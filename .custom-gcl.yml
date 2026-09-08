@@ -1,0 +1,8 @@
+# The golangci-lint version used to build the custom binary.
+version: v2.10.1
+name: custom-gcl
+destination: ./bin
+plugins:
+  - module: github.com/JacobJNilsson/anti-slop-go
+    import: github.com/JacobJNilsson/anti-slop-go/plugin
+    version: v1.4.0
