@@ -13,8 +13,7 @@ Reads the certificates deployed on a node (`GET /nodes/{node}/certificates/info`
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_node_certificate" "pve1" {
   node = "pve1"

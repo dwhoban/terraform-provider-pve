@@ -13,8 +13,7 @@ Manages an Active Directory authentication realm (`type=ad`) in Proxmox VE (`/ac
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 resource "pve_realm_ad" "ad" {
   realm          = "ad"
@@ -68,8 +67,7 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Import an existing AD realm by its realm ID.
 terraform import pve_realm_ad.ad ad

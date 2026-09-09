@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Refresh the subscription info on node pve1, contacting the Proxmox
 # subscription server even if the local cache is still valid.

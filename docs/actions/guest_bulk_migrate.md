@@ -13,8 +13,7 @@ description: |-
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Bulk migrates the given guests to node pve2. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_guest_bulk_migrate.move_vm100]

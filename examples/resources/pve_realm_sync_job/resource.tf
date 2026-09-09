@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Nightly sync job for the corporate LDAP realm.
 resource "pve_realm_sync_job" "corp_nightly" {

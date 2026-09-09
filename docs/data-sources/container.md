@@ -13,8 +13,7 @@ Reads one LXC container's configuration and runtime state. The interface list is
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_container" "ct1" {
   node = "pve1"

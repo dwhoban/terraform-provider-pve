@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Preview (dry run) what a full sync of the corporate LDAP realm would
 # change, removing vanished entries and their ACLs. Invoke with:

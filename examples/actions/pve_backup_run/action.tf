@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Run a snapshot-mode backup of guests 100 and 101 to the backup storage
 # on node pve1 with zstd compression, keeping the ten most recent

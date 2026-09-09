@@ -13,8 +13,7 @@ Manages a custom role in Proxmox VE (`/access/roles`). Built-in roles (those the
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 resource "pve_role" "operator" {
   roleid = "operator"
@@ -45,8 +44,7 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Import a role by its identifier:
 terraform import pve_role.operator operator

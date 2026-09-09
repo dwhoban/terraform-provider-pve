@@ -13,8 +13,7 @@ Reports runtime CPU, memory, kernel, and root-filesystem usage for a single Prox
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_node_status" "pve1" {
   node = "pve1"

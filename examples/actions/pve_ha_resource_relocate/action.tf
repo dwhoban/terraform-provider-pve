@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Request relocation of the HA-managed container 101 to node pve3. Unlike
 # a migrate, this stops the service on the old node and restarts it on the

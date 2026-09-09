@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Root-only arbitrary command execution on the node — validate the
 # provenance of any configuration using this action. Invoke with:

@@ -13,8 +13,7 @@ Migrates an LXC container to another cluster node (`POST /nodes/{node}/lxc/{vmid
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Destructive: moves container 100 from pve1 to pve2 using restart
 # migration, which stops the container for the move. Invoke with:

@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Replace the PEM placeholders with your certificate material, or load it
 # from files: certificates_pem = file("certs/pve1-fullchain.pem").

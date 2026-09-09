@@ -13,8 +13,7 @@ Reads a single Ceph monitor from `GET /nodes/{node}/ceph/mon`.
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_ceph_mon" "pve1" {
   node  = "pve1"

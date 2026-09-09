@@ -13,8 +13,7 @@ description: |-
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Migrates all guests from node pve1 to pve2. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_node_migrate_all.drain_pve1]

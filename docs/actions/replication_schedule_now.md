@@ -13,8 +13,7 @@ Schedules a replication job to start as soon as possible (`POST /nodes/{node}/re
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Start replication job 100-0 (guest 100) on node pve1 as soon as
 # possible and wait for the replication task to finish.

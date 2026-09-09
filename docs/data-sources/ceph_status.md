@@ -13,8 +13,7 @@ Ceph cluster status as observed from one node: the raw `ceph status` payload fro
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_ceph_status" "pve1" {
   node = "pve1"

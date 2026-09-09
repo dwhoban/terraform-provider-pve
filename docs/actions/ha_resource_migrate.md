@@ -13,8 +13,7 @@ Requests online migration of an HA resource to another node (`POST /cluster/ha/r
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Request an online (live) migration of the HA-managed VM 100 to node
 # pve2. The HA manager performs the migration after the request is

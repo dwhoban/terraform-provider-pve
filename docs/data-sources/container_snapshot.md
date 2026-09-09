@@ -13,8 +13,7 @@ Reads one snapshot of an LXC container (`GET /nodes/{node}/lxc/{vmid}/snapshot/{
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_container_snapshot" "pre_upgrade" {
   node = "pve1"

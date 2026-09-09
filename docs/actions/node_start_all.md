@@ -13,8 +13,7 @@ Starts all VMs and containers located on this node via `POST /nodes/{node}/start
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Starts every onboot guest on node pve1. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_node_start_all.start_pve1]

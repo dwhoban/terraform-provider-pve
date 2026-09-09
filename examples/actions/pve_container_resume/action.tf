@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Resumes the suspended container 100 on pve1. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_container_resume.resume_ct100]

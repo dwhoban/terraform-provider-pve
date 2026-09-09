@@ -13,8 +13,7 @@ Lists every storage visible on a node with its runtime status, as reported by `G
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_node_storages" "pve1" {
   node = "pve1"

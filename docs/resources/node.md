@@ -13,8 +13,7 @@ Proxmox VE node-level configuration (description, wake-on-LAN, ACME registration
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 resource "pve_node" "pve1" {
   node        = "pve1"
@@ -75,8 +74,7 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 terraform import pve_node.pve1 pve1
 ```

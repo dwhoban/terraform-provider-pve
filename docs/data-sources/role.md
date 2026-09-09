@@ -13,8 +13,7 @@ Reads a single role in Proxmox VE (`GET /access/roles/{roleid}`). Works for buil
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Built-in roles resolve through the same data source.
 data "pve_role" "pvevmadmin" {

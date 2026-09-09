@@ -13,8 +13,7 @@ Rolls an LXC container back to a snapshot (`POST /nodes/{node}/lxc/{vmid}/snapsh
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Destructive: rolls container 100 on pve1 back to the pre-upgrade
 # snapshot, discarding every change made after it was taken, and starts the

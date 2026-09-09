@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Prerequisite: an ACME account must exist in the cluster configuration
 # (see pve_acme_account); DNS challenges additionally need a DNS plugin

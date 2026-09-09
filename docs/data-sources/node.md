@@ -13,8 +13,7 @@ Node facts for one cluster node. Reads four endpoints per refresh: `GET /nodes/{
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_node" "pve1" {
   node = "pve1"

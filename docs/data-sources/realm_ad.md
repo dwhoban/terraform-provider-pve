@@ -13,8 +13,7 @@ Reads an Active Directory authentication realm (`type=ad`) from Proxmox VE (`/ac
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_realm_ad" "ad" {
   realm = "ad"

@@ -13,8 +13,7 @@ Lists every entity that can be used as a notification target, as reported by `GE
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_notification_targets" "all" {}
 

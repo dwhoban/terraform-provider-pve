@@ -13,8 +13,7 @@ Stops a running task (`DELETE /nodes/{node}/tasks/{upid}`, upstream `stop_task`)
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Stop a running vzdump task on node pve1. The task exits with a non-OK
 # status afterwards.

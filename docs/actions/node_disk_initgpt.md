@@ -13,8 +13,7 @@ Initializes a disk with a GPT table (`POST /nodes/{node}/disks/initgpt`) and wai
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Destructive: initializes /dev/sdb on node pve1 with a fresh GPT table,
 # destroying any existing partition layout.

@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Import an existing OpenID realm by its realm ID.
 terraform import pve_realm_openid.keycloak keycloak

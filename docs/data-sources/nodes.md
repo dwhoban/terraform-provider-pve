@@ -13,8 +13,7 @@ Lists every node in the Proxmox VE cluster as reported by `GET /nodes`.
 ## Example Usage
 
 ```terraform
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 data "pve_nodes" "all" {}
 

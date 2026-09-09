@@ -1,5 +1,4 @@
-# Copyright IBM Corp. 2021, 2026
-# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) HashiCorp, Inc.
 
 # Pull the Alpine 3.20 OCI image from Docker Hub into the local storage of
 # node pve1 and wait for the pull to finish.
