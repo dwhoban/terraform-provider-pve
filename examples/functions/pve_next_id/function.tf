@@ -1,7 +1,15 @@
 # Copyright (c) HashiCorp, Inc.
 
+terraform {
+  required_providers {
+    pve = {
+      source = "hashicorp/pve"
+    }
+  }
+}
+
 # The next free VM ID in the cluster, as reported by the provider function.
-# Call syntax: provider::<provider-name>::<function-name>.
+# Call syntax: provider::<provider-name>::<function-name>().
 
 output "next_vmid" {
   value = provider::pve::next_id()

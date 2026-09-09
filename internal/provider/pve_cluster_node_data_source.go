@@ -97,8 +97,13 @@ func (d *pveClusterNodeDataSource) Schema(_ context.Context, _ datasource.Schema
 
 // Configure implements datasource.DataSourceWithConfigure.
 func (d *pveClusterNodeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Nil provider data leaves the data source unconfigured; Terraform
+	// reaches this path during configuration validation.
+	if req.ProviderData == nil {
+		return
+	}
 	client, ok := req.ProviderData.(*pveclient.Client)
-	if !ok || client == nil {
+	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected pve_cluster_node data source Configure type",
 			fmt.Sprintf("Expected *pveclient.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),

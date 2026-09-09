@@ -128,6 +128,11 @@ func (r *pveClusterNodeResource) Schema(_ context.Context, _ resource.SchemaRequ
 
 // Configure implements resource.ResourceWithConfigure.
 func (r *pveClusterNodeResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Nil provider data leaves the resource unconfigured; Terraform
+	// reaches this path during configuration validation.
+	if req.ProviderData == nil {
+		return
+	}
 	client, ok := req.ProviderData.(*pveclient.Client)
 	if !ok || client == nil {
 		resp.Diagnostics.AddError(

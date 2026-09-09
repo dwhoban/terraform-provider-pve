@@ -1,5 +1,11 @@
 # Copyright (c) HashiCorp, Inc.
 
+variable "ceph_keyring" {
+  type      = string
+  sensitive = true
+  default   = "replace-with-ceph-keyring-contents"
+}
+
 # External Ceph RBD pool for VM images.
 resource "pve_storage_rbd" "rbd1" {
   storage       = "rbd1"

@@ -14,28 +14,34 @@ resource "pve_vm" "web" {
   onboot   = true
   tags     = ["prod", "web"]
 
-  disks {
-    id       = "scsi0"
-    storage  = "local-lvm"
-    size     = "32G"
-    iothread = true
-    discard  = "on"
-    ssd      = true
-  }
+  disks = [
+    {
+      id       = "scsi0"
+      storage  = "local-lvm"
+      size     = "32G"
+      iothread = true
+      discard  = "on"
+      ssd      = true
+    },
+  ]
 
-  network_interfaces {
-    id       = "net0"
-    model    = "virtio"
-    bridge   = "vmbr0"
-    vlan_tag = 10
-    firewall = true
-  }
+  network_interfaces = [
+    {
+      id       = "net0"
+      model    = "virtio"
+      bridge   = "vmbr0"
+      vlan_tag = 10
+      firewall = true
+    },
+  ]
 
-  cloud_init {
+  cloud_init = {
     user         = "admin"
     searchdomain = "example.internal"
     nameserver   = "10.0.0.1"
-    sshkeys      = file("/home/user/.ssh/id_ed25519.pub")
+    # Read from a public key file on the machine running Terraform:
+    # sshkeys = file("/home/user/.ssh/id_ed25519.pub")
+    sshkeys = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExamplePublicKeyPlaceholder"
 
     ipconfig = {
       ipconfig0 = "ip=dhcp"
@@ -51,7 +57,7 @@ resource "pve_vm" "cloned" {
   memory  = 4096
   started = true
 
-  clone {
+  clone = {
     source_vmid = 9000
     full        = true
     storage     = "local-lvm"

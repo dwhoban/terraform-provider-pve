@@ -119,3 +119,16 @@ Optional:
 - `keep_monthly` (Number) Keep backups for the last N different months. Must be 0 or greater.
 - `keep_weekly` (Number) Keep backups for the last N different weeks. Must be 0 or greater.
 - `keep_yearly` (Number) Keep backups for the last N different years. Must be 0 or greater.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Copyright (c) HashiCorp, Inc.
+
+# Import an existing nightly backup job by its PVE job id.
+terraform import pve_backup_job.daily nightly-daily
+```

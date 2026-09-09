@@ -18,8 +18,8 @@ Reboots a cluster node via `POST /nodes/{node}/status` (upstream `command: reboo
 
 # Destructive: reboots node pve1 immediately. Guests running on pve1 are
 # interrupted unless HA relocates them. Invoke with:
-#   terraform apply -invoke pve_node_reboot.reboot_pve1
-invoke "pve_node_reboot" "reboot_pve1" {
+#   apply it from a resource lifecycle block: actions = [action.pve_node_reboot.reboot_pve1]
+action "pve_node_reboot" "reboot_pve1" {
   config {
     node = "pve1"
   }

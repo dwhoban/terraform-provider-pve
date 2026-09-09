@@ -18,7 +18,7 @@ Manages an OpenFabric SDN fabric (`/cluster/sdn/fabrics/fabric`, section protoco
 # OpenFabric SDN fabric with one node member. Changes stay pending until
 # the `pve_sdn_apply` action pushes them cluster-wide.
 resource "pve_sdn_fabric_openfabric" "openfabric1" {
-  fabric_id      = "openfabric1"
+  fabric_id      = "ofab1"
   ip_prefix      = "10.0.0.0/24"
   hello_interval = 10
 

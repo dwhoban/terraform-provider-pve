@@ -1,5 +1,11 @@
 # Copyright (c) HashiCorp, Inc.
 
+variable "ceph_keyring" {
+  type      = string
+  sensitive = true
+  default   = "replace-with-ceph-keyring-contents"
+}
+
 # External CephFS cluster mounted as VM image/container storage.
 resource "pve_storage_cephfs" "cephfs1" {
   storage  = "cephfs1"

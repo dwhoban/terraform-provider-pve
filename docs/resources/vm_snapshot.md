@@ -44,3 +44,16 @@ resource "pve_vm_snapshot" "pre_upgrade" {
 - `parent` (String) The parent snapshot identifier, if the snapshot participates in a snapshot tree.
 - `snaptime` (Number) The snapshot creation time as a Unix epoch in seconds.
 - `vmstate` (Boolean) Whether the snapshot includes the VM RAM state.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Copyright (c) HashiCorp, Inc.
+
+# Import by `<node>/<vmid>/<snapshot-name>`.
+terraform import pve_vm_snapshot.pre_upgrade pve1/100/pre-upgrade
+```

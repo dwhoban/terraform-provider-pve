@@ -19,8 +19,8 @@ Rolls an LXC container back to a snapshot (`POST /nodes/{node}/lxc/{vmid}/snapsh
 # Destructive: rolls container 100 on pve1 back to the pre-upgrade
 # snapshot, discarding every change made after it was taken, and starts the
 # container afterwards. Invoke with:
-#   terraform apply -invoke pve_container_snapshot_rollback.rollback_ct100
-invoke "pve_container_snapshot_rollback" "rollback_ct100" {
+#   apply it from a resource lifecycle block: actions = [action.pve_container_snapshot_rollback.rollback_ct100]
+action "pve_container_snapshot_rollback" "rollback_ct100" {
   config {
     node  = "pve1"
     vmid  = 100

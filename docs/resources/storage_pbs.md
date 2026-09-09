@@ -15,6 +15,12 @@ Manages a Proxmox Backup Server storage definition (`/storage`, type `pbs`). Cha
 ```terraform
 # Copyright (c) HashiCorp, Inc.
 
+variable "pbs_password" {
+  type      = string
+  sensitive = true
+  default   = "replace-with-pbs-password"
+}
+
 # Proxmox Backup Server datastore for VM backups.
 resource "pve_storage_pbs" "pbs1" {
   storage       = "pbs1"

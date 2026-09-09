@@ -3,8 +3,8 @@
 
 # Preview (dry run) what a full sync of the corporate LDAP realm would
 # change, removing vanished entries and their ACLs. Invoke with:
-#   terraform apply -invoke pve_realm_sync.preview
-invoke "pve_realm_sync" "preview" {
+#   apply it from a resource lifecycle block: actions = [action.pve_realm_sync.preview]
+action "pve_realm_sync" "preview" {
   config {
     realm           = "corp"
     scope           = "both"

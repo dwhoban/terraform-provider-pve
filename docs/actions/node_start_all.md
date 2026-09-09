@@ -17,8 +17,8 @@ Starts all VMs and containers located on this node via `POST /nodes/{node}/start
 # SPDX-License-Identifier: MPL-2.0
 
 # Starts every onboot guest on node pve1. Invoke with:
-#   terraform apply -invoke pve_node_start_all.start_pve1
-invoke "pve_node_start_all" "start_pve1" {
+#   apply it from a resource lifecycle block: actions = [action.pve_node_start_all.start_pve1]
+action "pve_node_start_all" "start_pve1" {
   config {
     node = "pve1"
   }

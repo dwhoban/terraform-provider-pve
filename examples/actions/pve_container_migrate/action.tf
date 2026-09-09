@@ -3,8 +3,8 @@
 
 # Destructive: moves container 100 from pve1 to pve2 using restart
 # migration, which stops the container for the move. Invoke with:
-#   terraform apply -invoke pve_container_migrate.migrate_ct100
-invoke "pve_container_migrate" "migrate_ct100" {
+#   apply it from a resource lifecycle block: actions = [action.pve_container_migrate.migrate_ct100]
+action "pve_container_migrate" "migrate_ct100" {
   config {
     node           = "pve1"
     vmid           = 100
