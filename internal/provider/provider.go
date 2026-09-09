@@ -58,6 +58,7 @@ func (p *PveProvider) Metadata(ctx context.Context, req provider.MetadataRequest
 
 func (p *PveProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The Proxmox VE (PVE) provider manages a Proxmox Virtual Environment cluster: nodes, networking, storage, guests (QEMU and LXC), high availability, firewall, backup, notifications, and SDN through the PVE REST API.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "Proxmox VE endpoint URL, e.g. `https://pve.example.com:8006/`. May also be set via the `PROXMOX_VE_ENDPOINT` environment variable.",

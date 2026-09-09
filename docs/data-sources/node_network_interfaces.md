@@ -48,23 +48,23 @@ output "pve1_bridges" {
 Read-Only:
 
 - `active` (Boolean) Whether the interface is currently up.
-- `address` (String)
+- `address` (String) Plain IP address, when configured.
 - `autostart` (Boolean) Whether the interface is brought up on boot.
-- `bond_mode` (String)
-- `bond_primary` (String)
-- `bridge_fd` (Number)
-- `bridge_ports` (String)
-- `bridge_stp` (Boolean)
-- `cidr` (String)
-- `comments` (String)
-- `gateway` (String)
+- `bond_mode` (String) Linux kernel bonding driver mode (bond type only).
+- `bond_primary` (String) Primary bond slave (bond type only).
+- `bridge_fd` (Number) Bridge forward delay in seconds (bridge type only).
+- `bridge_ports` (String) Comma-separated member interfaces (bridge type only).
+- `bridge_stp` (Boolean) Whether spanning tree protocol is enabled (bridge type only).
+- `cidr` (String) IPv4 or IPv6 address in CIDR notation, when configured.
+- `comments` (String) Free-form comment shown in the UI, when set.
+- `gateway` (String) Default gateway, when configured.
 - `iface` (String) Interface name.
-- `method` (String)
-- `mtu` (Number)
-- `node` (String)
-- `ovs_bridge` (String)
-- `ovs_options` (Map of String)
-- `ovs_type` (String)
-- `slaves` (List of String)
+- `method` (String) Address assignment method: `static`, `dhcp`, `manual`, or `loopback`.
+- `mtu` (Number) Maximum transmission unit in bytes, when set.
+- `node` (String) Name of the PVE node the interface belongs to.
+- `ovs_bridge` (String) OVS bridge the interface belongs to, when applicable.
+- `ovs_options` (Map of String) Extra OVS options (e.g. `tag=10`).
+- `ovs_type` (String) OVS port type. One of `internal`, `native`, `trunk`, `access`, or `patch`.
+- `slaves` (List of String) Member interfaces of a bond.
 - `type` (String) Interface type. One of `eth`, `bond`, `bridge`, `vlan`, `ovsbond`, `ovsbridge`, `ovsintport`, `ovsport`, or `unknown`.
-- `vlan_id` (Number)
+- `vlan_id` (Number) VLAN tag (vlan type only).
