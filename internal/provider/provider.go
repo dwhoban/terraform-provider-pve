@@ -251,6 +251,19 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveNotificationEndpointWebhookResource,
 		NewPveNotificationMatcherResource,
 		NewPvePoolResource,
+		NewPveStorageNfsResource,
+		NewPveStorageCifsResource,
+		NewPveStorageIscsiResource,
+		NewPveStorageIscsidirectResource,
+		NewPveStorageLvmResource,
+		NewPveStorageLvmthinResource,
+		NewPveStorageZfspoolResource,
+		NewPveStorageDirectoryResource,
+		NewPveStoragePbsResource,
+		NewPveStorageCephfsResource,
+		NewPveStorageRbdResource,
+		NewPveFileResource,
+		NewPveDownloadFileResource,
 	}
 }
 
@@ -304,6 +317,21 @@ func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewPveNotificationMatcherDataSource,
 		NewPveNotificationTargetsDataSource,
 		NewPvePoolDataSource,
+		NewPveStorageNfsDataSource,
+		NewPveStorageCifsDataSource,
+		NewPveStorageIscsiDataSource,
+		NewPveStorageIscsidirectDataSource,
+		NewPveStorageLvmDataSource,
+		NewPveStorageLvmthinDataSource,
+		NewPveStorageZfspoolDataSource,
+		NewPveStorageDirectoryDataSource,
+		NewPveStoragePbsDataSource,
+		NewPveStorageCephfsDataSource,
+		NewPveStorageRbdDataSource,
+		NewPveNodeStoragesDataSource,
+		NewPveStorageFilesDataSource,
+		NewPveFileDataSource,
+		NewPveDownloadFileDataSource,
 	}
 }
 
@@ -318,6 +346,7 @@ func (p *PveProvider) Actions(ctx context.Context) []func() action.Action {
 		NewPveRealmSyncAction,
 		NewPveHaArmAction,
 		NewPveNotificationTestAction,
+		NewPveStoragePruneBackupsAction,
 	}
 }
 
