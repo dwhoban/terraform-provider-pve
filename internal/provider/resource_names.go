@@ -47,4 +47,17 @@ const (
 	TypeNamePveHaResource       = "ha_resource"
 	TypeNamePveHaRule           = "ha_rule"
 	TypeNamePveVersion          = "version"
+	// Phase 2 — firewall.
+	TypeNamePveClusterFirewallOptions     = "cluster_firewall_options"
+	TypeNamePveFirewallAlias              = "firewall_alias"
+	TypeNamePveFirewallIpset              = "firewall_ipset"
+	TypeNamePveFirewallSecurityGroup      = "firewall_security_group"
+	TypeNamePveClusterFirewallRules       = "cluster_firewall_rules"
+	TypeNamePveNodeFirewallRules          = "node_firewall_rules"
+	TypeNamePveGuestFirewallRules         = "guest_firewall_rules"
+	TypeNamePveSecurityGroupFirewallRules = "security_group_firewall_rules"
+	TypeNamePveVnetFirewallRules          = "vnet_firewall_rules"
+	TypeNamePveNodeFirewallOptions        = "node_firewall_options"
+	TypeNamePveGuestFirewallOptions       = "guest_firewall_options"
+	TypeNamePveSdnFirewallOptions         = "sdn_firewall_options"
 )

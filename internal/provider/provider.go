@@ -230,6 +230,18 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveHaGroupResource,
 		NewPveHaResourceResource,
 		NewPveHaRuleResource,
+		NewPveClusterFirewallOptionsResource,
+		NewPveNodeFirewallOptionsResource,
+		NewPveGuestFirewallOptionsResource,
+		NewPveSdnFirewallOptionsResource,
+		NewPveFirewallAliasResource,
+		NewPveFirewallIpsetResource,
+		NewPveFirewallSecurityGroupResource,
+		NewPveClusterFirewallRulesResource,
+		NewPveNodeFirewallRulesResource,
+		NewPveGuestFirewallRulesResource,
+		NewPveSecurityGroupFirewallRulesResource,
+		NewPveVnetFirewallRulesResource,
 	}
 }
 
@@ -264,6 +276,13 @@ func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewPveHaGroupDataSource,
 		NewPveHaResourceDataSource,
 		NewPveHaRuleDataSource,
+		NewPveClusterFirewallOptionsDataSource,
+		NewPveNodeFirewallOptionsDataSource,
+		NewPveGuestFirewallOptionsDataSource,
+		NewPveSdnFirewallOptionsDataSource,
+		NewPveFirewallAliasDataSource,
+		NewPveFirewallIpsetDataSource,
+		NewPveFirewallSecurityGroupDataSource,
 	}
 }
 
