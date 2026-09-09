@@ -50,7 +50,7 @@ resource "pve_node" "pve1" {
 - `dns3` (String) Tertiary DNS server.
 - `dns_search` (String) Search domain appended to short hostnames for DNS lookups.
 - `startall_onboot_delay` (Number) Delay in seconds before auto-starting any VMs on cluster boot.
-- `timezone` (String) IANA timezone name (e.g. `Europe/Berlin`). PVE accepts any value `timedatectl list-timezones` accepts; the provider does not maintain a whitelist.
+- `timezone` (String) IANA timezone name (e.g. `Europe/Berlin`). PVE accepts any value `timedatectl list-timezones` accepts; the provider does not maintain a whitelist. Must be between 1 and 64 characters.
 - `wakeonlan` (String) MAC address to send a Wake-on-LAN packet to on cluster start (colon-separated, e.g. `AA:BB:CC:DD:EE:FF`).
 
 ### Read-Only
@@ -62,7 +62,7 @@ resource "pve_node" "pve1" {
 
 Required:
 
-- `domain` (String) Fully qualified domain name to register.
+- `domain` (String) Fully qualified domain name to register. Must be between 1 and 253 characters.
 
 Optional:
 

@@ -110,7 +110,7 @@ func (r *pveNodeResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					Attributes: map[string]schema.Attribute{
 						"domain": schema.StringAttribute{
 							Required:            true,
-							MarkdownDescription: "Fully qualified domain name to register.",
+							MarkdownDescription: "Fully qualified domain name to register. Must be between 1 and 253 characters.",
 							Validators: []validator.String{
 								stringvalidator.LengthBetween(1, 253),
 							},
@@ -141,7 +141,7 @@ func (r *pveNodeResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"timezone": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "IANA timezone name (e.g. `Europe/Berlin`). PVE accepts any value `timedatectl list-timezones` accepts; the provider does not maintain a whitelist.",
+				MarkdownDescription: "IANA timezone name (e.g. `Europe/Berlin`). PVE accepts any value `timedatectl list-timezones` accepts; the provider does not maintain a whitelist. Must be between 1 and 64 characters.",
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(1, 64),
 				},
