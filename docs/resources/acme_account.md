@@ -39,7 +39,7 @@ resource "pve_acme_account" "default" {
 
 ### Read-Only
 
-- `account_url` (String) The CA account URL as reported by the `location` field of the account read.
+- `account_url` (String) The CA account URL as reported by the `location` field of the upstream account read response.
 - `tos` (String) The CA's Terms of Service URL as reported by the account read.
 
 ## Import

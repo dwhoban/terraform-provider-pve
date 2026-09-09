@@ -59,7 +59,7 @@ func (d *pveAcmeAccountDataSource) Schema(_ context.Context, _ datasource.Schema
 			},
 			"account_url": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The CA account URL as reported by the `location` field of the account read.",
+				MarkdownDescription: "The CA account URL as reported by the `location` field of the upstream account read response.",
 			},
 			"tos": schema.StringAttribute{
 				Computed:            true,
