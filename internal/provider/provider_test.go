@@ -290,7 +290,7 @@ func TestProvider_Configure_NoCredentials_Aggregated(t *testing.T) {
 		t.Fatal("expected error diagnostics for missing credentials")
 	}
 	msg := diagnosticsError(resp.Diagnostics)
-	for _, want := range []string{"static configuration", "environment", "credentials file", "PROXMOX_VE_", "docs/index.md"} {
+	for _, want := range []string{"static configuration", "environment", "credentials file", "PROXMOX_VE_", "provider documentation"} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("diagnostic missing %q: %s", want, msg)
 		}

@@ -149,7 +149,7 @@ func (p *PveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 			if errors.As(err, &ce) {
 				resp.Diagnostics.AddError(
 					"No Proxmox VE credentials found",
-					ce.Error()+"\n\nProvide credentials via the provider block, the PROXMOX_VE_* environment variables, or a credentials file at ~/.proxmox/credentials. See https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/main/docs/index.md for details.",
+					ce.Error()+"\n\nProvide credentials via the provider block, the PROXMOX_VE_* environment variables, or a credentials file at ~/.proxmox/credentials. See the provider documentation for details.",
 				)
 				return
 			}

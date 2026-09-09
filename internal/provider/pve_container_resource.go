@@ -15,6 +15,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -109,7 +112,7 @@ func (r *pveContainerResource) Schema(_ context.Context, _ resource.SchemaReques
 				Computed:            true,
 				MarkdownDescription: "Container ID (100 - 999999999). When omitted at create time the next free ID is allocated via `GET /cluster/nextid`.",
 				Validators:          []validator.Int64{int64validator.Between(100, 999999999)},
-				PlanModifiers:       []planmodifier.Int64{int64PlanModifierRequiresReplace{}},
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.RequiresReplace()},
 			},
 			"node": schema.StringAttribute{
 				Required:            true,
@@ -152,12 +155,12 @@ func (r *pveContainerResource) Schema(_ context.Context, _ resource.SchemaReques
 			"template": schema.BoolAttribute{
 				Optional:            true,
 				MarkdownDescription: "Enable/disable the container template flag. Changing it forces replacement.",
-				PlanModifiers:       []planmodifier.Bool{boolPlanModifierRequiresReplace{}},
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.RequiresReplace()},
 			},
 			"unprivileged": schema.BoolAttribute{
 				Optional:            true,
 				MarkdownDescription: "Makes the container run as an unprivileged user (creation default upstream is `true`). The pin marks this as should-not-be-modified-manually, so changing it forces replacement.",
-				PlanModifiers:       []planmodifier.Bool{boolPlanModifierRequiresReplace{}},
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.RequiresReplace()},
 			},
 			"cores": schema.Int64Attribute{
 				Optional:            true,
@@ -195,7 +198,7 @@ func (r *pveContainerResource) Schema(_ context.Context, _ resource.SchemaReques
 			"clone": schema.SingleNestedAttribute{
 				Optional:            true,
 				MarkdownDescription: "Create the container by cloning an existing container instead of restoring an `ostemplate`. Mutually exclusive with `ostemplate`; changing the block forces replacement.",
-				PlanModifiers:       []planmodifier.Object{objectPlanModifierRequiresReplace{}},
+				PlanModifiers:       []planmodifier.Object{objectplanmodifier.RequiresReplace()},
 				Attributes: map[string]schema.Attribute{
 					"source_vmid": schema.Int64Attribute{
 						Required:            true,
@@ -245,61 +248,6 @@ func (r *pveContainerResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 		},
 	}
-}
-
-// int64PlanModifierRequiresReplace forces replacement unconditionally.
-type int64PlanModifierRequiresReplace struct{}
-
-// Description implements planmodifier.Int64.
-func (m int64PlanModifierRequiresReplace) Description(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// MarkdownDescription implements planmodifier.Int64.
-func (m int64PlanModifierRequiresReplace) MarkdownDescription(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// PlanModifyInt64 implements planmodifier.Int64.
-func (m int64PlanModifierRequiresReplace) PlanModifyInt64(_ context.Context, _ planmodifier.Int64Request, resp *planmodifier.Int64Response) {
-	resp.RequiresReplace = true
-}
-
-// boolPlanModifierRequiresReplace forces replacement unconditionally.
-type boolPlanModifierRequiresReplace struct{}
-
-// Description implements planmodifier.Bool.
-func (m boolPlanModifierRequiresReplace) Description(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// MarkdownDescription implements planmodifier.Bool.
-func (m boolPlanModifierRequiresReplace) MarkdownDescription(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// PlanModifyBool implements planmodifier.Bool.
-func (m boolPlanModifierRequiresReplace) PlanModifyBool(_ context.Context, _ planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
-	resp.RequiresReplace = true
-}
-
-// objectPlanModifierRequiresReplace forces replacement unconditionally for
-// whole nested attributes.
-type objectPlanModifierRequiresReplace struct{}
-
-// Description implements planmodifier.Object.
-func (m objectPlanModifierRequiresReplace) Description(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// MarkdownDescription implements planmodifier.Object.
-func (m objectPlanModifierRequiresReplace) MarkdownDescription(_ context.Context) string {
-	return "Changing this value forces replacement."
-}
-
-// PlanModifyObject implements planmodifier.Object.
-func (m objectPlanModifierRequiresReplace) PlanModifyObject(_ context.Context, _ planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
-	resp.RequiresReplace = true
 }
 
 // Configure implements resource.ResourceWithConfigure.
