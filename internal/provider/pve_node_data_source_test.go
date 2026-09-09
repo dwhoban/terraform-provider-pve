@@ -83,3 +83,22 @@ func TestPveNodeNetworkInterfacesDataSource_SchemaAndMetadata(t *testing.T) {
 		}
 	}
 }
+
+// TestPveNodeDataSource_SchemaAndMetadata covers the per-node facts
+// data source (certificates, vzdump defaults, version, uptime).
+func TestPveNodeDataSource_SchemaAndMetadata(t *testing.T) {
+	d := NewPveNodeDataSource()
+	ctx := context.Background()
+	metaResp := &datasource.MetadataResponse{}
+	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNode {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNode)
+	}
+	schemaResp := &datasource.SchemaResponse{}
+	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
+	for _, key := range []string{"id", "node", "uptime", "certificates", "vzdump_defaults", "pve_version"} {
+		if schemaResp.Schema.Attributes[key] == nil {
+			t.Fatalf("schema missing %s attribute", key)
+		}
+	}
+}
