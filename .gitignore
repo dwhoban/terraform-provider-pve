@@ -25,7 +25,9 @@ website/node_modules
 *.test
 *.iml
 
-examples/*
+# Examples feed tfplugindocs and CI generation-diff; keep them tracked.
+# The vendored bpg reference provider stays local-only.
+examples/bpg-provider/
 
 website/vendor
 

@@ -54,7 +54,7 @@ const (
 )
 
 // ErrTaskFailed is returned (via errors.Is) by WaitForTask when the task
-// exited with a non-OK status. The wrapped *TaskError carries the upid,
+// exited with a non-OK status. The wrapped *TaskError carries the upid.
 var ErrTaskFailed = errors.New("pve task failed")
 
 // TaskError is the concrete error type returned by WaitForTask on a

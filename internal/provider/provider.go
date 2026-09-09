@@ -23,24 +23,24 @@ import (
 	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
-var _ provider.ProviderWithActions = &ScaffoldingProvider{}
+// Ensure PveProvider satisfies various provider interfaces.
+var _ provider.Provider = &PveProvider{}
+var _ provider.ProviderWithFunctions = &PveProvider{}
+var _ provider.ProviderWithEphemeralResources = &PveProvider{}
+var _ provider.ProviderWithActions = &PveProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
+// PveProvider defines the provider implementation.
+type PveProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model. Field names
+// PveProviderModel describes the provider data model. Field names
 // must match the tfsdk tags used in Schema(). The framework decodes config
 // into this struct on every Configure call.
-type ScaffoldingProviderModel struct {
+type PveProviderModel struct {
 	Endpoint                  types.String `tfsdk:"endpoint"`
 	APIToken                  types.String `tfsdk:"api_token"`
 	Username                  types.String `tfsdk:"username"`
@@ -51,12 +51,12 @@ type ScaffoldingProviderModel struct {
 	SkipCredentialsValidation types.Bool   `tfsdk:"skip_credentials_validation"`
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *PveProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "pve"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *PveProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
@@ -98,8 +98,8 @@ func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaReq
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+func (p *PveProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data PveProviderModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -205,47 +205,41 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 	resp.EphemeralResourceData = client
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
 		NewPveNodeResource,
-		NewPveNodeNetworkInterfaceResource,
+		NewPveNodeNetworkLinuxBridgeResource,
+		NewPveNodeNetworkLinuxBondResource,
+		NewPveNodeNetworkVlanResource,
 		NewPveNodeDiskZFSResource,
 		NewPveNodeDiskLVMResource,
 	}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
+func (p *PveProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{}
 }
 
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
-		NewPveClusterNodesDataSource,
+		NewPveNodesDataSource,
 		NewPveNodeStatusDataSource,
 		NewPveNodeDisksDataSource,
 		NewPveNodeNetworkInterfacesDataSource,
 	}
 }
 
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+func (p *PveProvider) Functions(ctx context.Context) []func() function.Function {
+	return []func() function.Function{}
 }
 
-func (p *ScaffoldingProvider) Actions(ctx context.Context) []func() action.Action {
-	return []func() action.Action{
-		NewExampleAction,
-	}
+func (p *PveProvider) Actions(ctx context.Context) []func() action.Action {
+	return []func() action.Action{}
 }
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &PveProvider{
 			version: version,
 		}
 	}

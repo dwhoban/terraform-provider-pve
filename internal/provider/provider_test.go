@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	"github.com/hashicorp/terraform-plugin-testing/echoprovider"
 
 	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
 )
@@ -29,16 +28,17 @@ import (
 // The factory function is called for each Terraform CLI command to create a provider
 // server that the CLI can connect to and interact with.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(New("test")()),
+	"pve": providerserver.NewProtocol6WithError(New("test")()),
 }
 
-// testAccProtoV6ProviderFactoriesWithEcho includes the echo provider alongside the scaffolding provider.
-// It allows for testing assertions on data returned by an ephemeral resource during Open.
-// The echoprovider is used to arrange tests by echoing ephemeral data into the Terraform state.
-// This lets the data be referenced in test assertions with state checks.
-var testAccProtoV6ProviderFactoriesWithEcho = map[string]func() (tfprotov6.ProviderServer, error){
-	"scaffolding": providerserver.NewProtocol6WithError(New("test")()),
-	"echo":        echoprovider.NewProviderServer(),
+// newTestProvider returns the concrete provider for unit tests.
+func newTestProvider() *PveProvider {
+	// New is the only constructor and always returns *PveProvider.
+	p, ok := New("test")().(*PveProvider)
+	if !ok {
+		panic("New must return *PveProvider")
+	}
+	return p
 }
 
 func testAccPreCheck(t *testing.T) {
@@ -104,7 +104,7 @@ func buildConfigFromMap(t *testing.T, s schema.Schema, values map[string]string)
 // configureRequest builds a provider.ConfigureRequest whose Config is the
 // given key/value pairs. Used by the unit tests below to drive Configure
 // directly without spinning up a Terraform CLI.
-func configureRequest(t *testing.T, p *ScaffoldingProvider, values map[string]string) provider.ConfigureResponse {
+func configureRequest(t *testing.T, p *PveProvider, values map[string]string) provider.ConfigureResponse {
 	t.Helper()
 	schemaResp := &provider.SchemaResponse{}
 	p.Schema(context.Background(), provider.SchemaRequest{}, schemaResp)
@@ -120,18 +120,18 @@ func configureRequest(t *testing.T, p *ScaffoldingProvider, values map[string]st
 	return resp
 }
 
-// withFakePVE spins up an httptest server that responds to /access/whoami
-func withFakePVE(t *testing.T, username string) (string, func()) {
+// withFakePVE spins up an httptest server that responds to /access/whoami.
+func withFakePVE(t *testing.T) (string, func()) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/access/ticket":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, `{"data":{"ticket":"PVE-fake-ticket","username":"`+username+`","CSRFPreventionToken":"fake-csrf"}}`)
+			_, _ = io.WriteString(w, `{"data":{"ticket":"PVE-fake-ticket","username":"`+"root@pam"+`","CSRFPreventionToken":"fake-csrf"}}`)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"data":{"username":"`+username+`","realm":"pam"}}`)
+		_, _ = io.WriteString(w, `{"data":{"username":"`+"root@pam"+`","realm":"pam"}}`)
 	}))
 	return srv.URL, srv.Close
 }
@@ -139,9 +139,9 @@ func withFakePVE(t *testing.T, username string) (string, func()) {
 // TestProvider_Configure_HappyPath_Token verifies the simplest success
 // path: a token in the provider block, validation enabled, fake /access/whoami.
 func TestProvider_Configure_HappyPath_Token(t *testing.T) {
-	endpoint, cleanup := withFakePVE(t, "root@pam")
+	endpoint, cleanup := withFakePVE(t)
 	defer cleanup()
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{
 		"endpoint":  endpoint,
 		"api_token": "root@pam!tf=AAAA-BBBB",
@@ -160,9 +160,9 @@ func TestProvider_Configure_HappyPath_Token(t *testing.T) {
 
 // TestProvider_Configure_HappyPath_Password covers the user/pass shape.
 func TestProvider_Configure_HappyPath_Password(t *testing.T) {
-	endpoint, cleanup := withFakePVE(t, "root@pam")
+	endpoint, cleanup := withFakePVE(t)
 	defer cleanup()
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{
 		"endpoint": endpoint,
 		"username": "root@pam",
@@ -171,7 +171,10 @@ func TestProvider_Configure_HappyPath_Password(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("Configure diagnostics: %s", diagnosticsError(resp.Diagnostics))
 	}
-	client := resp.ResourceData.(*pveclient.Client)
+	client, ok := resp.ResourceData.(*pveclient.Client)
+	if !ok {
+		t.Fatalf("ResourceData is %T, want *pveclient.Client", resp.ResourceData)
+	}
 	if client.AuthKind() != "password" {
 		t.Fatalf("AuthKind = %q, want password", client.AuthKind())
 	}
@@ -188,7 +191,7 @@ func TestProvider_Configure_SkipsValidation(t *testing.T) {
 		_, _ = io.WriteString(w, `{"data":{"username":"root@pam"}}`)
 	}))
 	defer srv.Close()
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{
 		"endpoint":                    srv.URL,
 		"api_token":                   "root@pam!tf=AAAA",
@@ -213,7 +216,7 @@ func TestProvider_Configure_Whoami401_Diagnostic(t *testing.T) {
 		_, _ = io.WriteString(w, `{"errors":"permission check failed"}`)
 	}))
 	defer srv.Close()
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{
 		"endpoint":  srv.URL,
 		"api_token": "root@pam!tf=BAD",
@@ -239,11 +242,11 @@ func TestProvider_Configure_Whoami401_Diagnostic(t *testing.T) {
 // TestProvider_Configure_EnvResolution confirms the chain picks up env vars
 // when the provider block is empty.
 func TestProvider_Configure_EnvResolution(t *testing.T) {
-	endpoint, cleanup := withFakePVE(t, "root@pam")
+	endpoint, cleanup := withFakePVE(t)
 	defer cleanup()
 	t.Setenv("PROXMOX_VE_ENDPOINT", endpoint)
 	t.Setenv("PROXMOX_VE_API_TOKEN", "root@pam!env=BBBB")
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{})
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("Configure diagnostics: %s", diagnosticsError(resp.Diagnostics))
@@ -256,7 +259,7 @@ func TestProvider_Configure_EnvResolution(t *testing.T) {
 // TestProvider_Configure_FileResolution confirms the chain falls through to
 // the credentials file when no other source is set.
 func TestProvider_Configure_FileResolution(t *testing.T) {
-	endpoint, cleanup := withFakePVE(t, "root@pam")
+	endpoint, cleanup := withFakePVE(t)
 	defer cleanup()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "credentials")
@@ -264,7 +267,7 @@ func TestProvider_Configure_FileResolution(t *testing.T) {
 		t.Fatalf("write credentials: %v", err)
 	}
 	t.Setenv("PROXMOX_VE_CREDENTIALS_FILE", path)
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{})
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("Configure diagnostics: %s", diagnosticsError(resp.Diagnostics))
@@ -281,7 +284,7 @@ func TestProvider_Configure_NoCredentials_Aggregated(t *testing.T) {
 	t.Setenv("PROXMOX_VE_USERNAME", "")
 	t.Setenv("PROXMOX_VE_PASSWORD", "")
 	t.Setenv("PROXMOX_VE_CREDENTIALS_FILE", filepath.Join(t.TempDir(), "no-such-file"))
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{})
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("expected error diagnostics for missing credentials")
@@ -297,9 +300,9 @@ func TestProvider_Configure_NoCredentials_Aggregated(t *testing.T) {
 // TestProvider_Configure_DataSlotsPopulated confirms all five protocol-6
 // data slots point at the same configured client.
 func TestProvider_Configure_DataSlotsPopulated(t *testing.T) {
-	endpoint, cleanup := withFakePVE(t, "root@pam")
+	endpoint, cleanup := withFakePVE(t)
 	defer cleanup()
-	p := New("test")().(*ScaffoldingProvider)
+	p := newTestProvider()
 	resp := configureRequest(t, p, map[string]string{
 		"endpoint":  endpoint,
 		"api_token": "root@pam!tf=ZZZZ",

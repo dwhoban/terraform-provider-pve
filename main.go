@@ -28,10 +28,9 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
-		// Also update the tfplugindocs generate command to either remove the
-		// -provider-name flag or set its value to the updated provider name.
-		Address: "registry.terraform.io/hashicorp/scaffolding",
+		// Address of the published provider on the Terraform Registry;
+		// also keep tools/tools.go's tfplugindocs -provider-name in sync.
+		Address: "registry.terraform.io/hashicorp/pve",
 		Debug:   debug,
 	}
 

@@ -17,9 +17,9 @@ func TestPveNodeResource_SchemaAndMetadata(t *testing.T) {
 	r := NewPveNodeResource()
 	ctx := context.Background()
 	metaResp := &resource.MetadataResponse{}
-	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNode {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNode)
+	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNode {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNode)
 	}
 	schemaResp := &resource.SchemaResponse{}
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
@@ -31,33 +31,14 @@ func TestPveNodeResource_SchemaAndMetadata(t *testing.T) {
 	}
 }
 
-// TestPveNodeNetworkInterfaceResource_SchemaAndMetadata covers the
-// network interface resource similarly.
-func TestPveNodeNetworkInterfaceResource_SchemaAndMetadata(t *testing.T) {
-	r := NewPveNodeNetworkInterfaceResource()
-	ctx := context.Background()
-	metaResp := &resource.MetadataResponse{}
-	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeNetworkInterface {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeNetworkInterface)
-	}
-	schemaResp := &resource.SchemaResponse{}
-	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
-	for _, key := range []string{"node", "iface", "type", "autostart", "active", "digest"} {
-		if schemaResp.Schema.Attributes[key] == nil {
-			t.Fatalf("schema missing %s attribute", key)
-		}
-	}
-}
-
 // TestPveNodeDiskZFSResource_SchemaAndMetadata covers the ZFS resource.
 func TestPveNodeDiskZFSResource_SchemaAndMetadata(t *testing.T) {
 	r := NewPveNodeDiskZFSResource()
 	ctx := context.Background()
 	metaResp := &resource.MetadataResponse{}
-	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeDiskZFS {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeDiskZFS)
+	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodeDiskZFS {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodeDiskZFS)
 	}
 	schemaResp := &resource.SchemaResponse{}
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
@@ -73,9 +54,9 @@ func TestPveNodeDiskLVMResource_SchemaAndMetadata(t *testing.T) {
 	r := NewPveNodeDiskLVMResource()
 	ctx := context.Background()
 	metaResp := &resource.MetadataResponse{}
-	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeDiskLVM {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeDiskLVM)
+	r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodeDiskLVM {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodeDiskLVM)
 	}
 	schemaResp := &resource.SchemaResponse{}
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)

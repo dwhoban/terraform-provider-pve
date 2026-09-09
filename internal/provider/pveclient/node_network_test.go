@@ -24,7 +24,7 @@ func TestClient_ListNodeNetwork_ArrayResponse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListNodeNetwork: %v", err)
 	}
-	if len(ifaces) != 1 || ifaces[0].Iface != "vmbr0" || ifaces[0].Type != "bridge" || !ifaces[0].Autostart {
+	if len(ifaces) != 1 || ifaces[0].Iface != "vmbr0" || ifaces[0].Type != "bridge" || ifaces[0].Autostart == nil || !*ifaces[0].Autostart {
 		t.Fatalf("unexpected ifaces: %+v", ifaces)
 	}
 }
@@ -108,3 +108,59 @@ func TestClient_ReloadNodeNetwork_ReturnsUpid(t *testing.T) {
 		t.Fatalf("got upid %q, want %q", got, upid)
 	}
 }
+
+// TestClient_GetNodeNetwork_BridgeVLANAwareBoolish verifies the
+// bridge_vlan_aware field decodes from both the boolean and the 0/1 int
+// encodings PVE emits, and stays nil when absent.
+func TestClient_GetNodeNetwork_BridgeVLANAwareBoolish(t *testing.T) {
+	c := newFakePVETokenServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/nodes/pve1/network/vmbr0" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"iface":"vmbr0","type":"bridge","bridge_vlan_aware":1,"bridge_vids":"2 4 100-200","bond_xmit_hash_policy":"layer3+4","digest":"d-1"}]}`)
+	})
+	iface, err := c.GetNodeNetwork(context.Background(), "pve1", "vmbr0")
+	if err != nil {
+		t.Fatalf("GetNodeNetwork: %v", err)
+	}
+	if iface.BridgeVLANAware == nil || !*iface.BridgeVLANAware {
+		t.Fatalf("BridgeVLANAware = %v, want pointer to true", iface.BridgeVLANAware)
+	}
+	if iface.BridgeVIDs != "2 4 100-200" {
+		t.Fatalf("BridgeVIDs = %q", iface.BridgeVIDs)
+	}
+	if iface.BondXmitHashPolicy != "layer3+4" {
+		t.Fatalf("BondXmitHashPolicy = %q", iface.BondXmitHashPolicy)
+	}
+}
+
+// TestClient_ListNodeNetwork_BridgeVLANAwareEncodings covers the false and
+// absent encodings alongside the int-1 form.
+func TestClient_ListNodeNetwork_BridgeVLANAwareEncodings(t *testing.T) {
+	c := newFakePVETokenServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[
+			{"iface":"vmbr0","type":"bridge","bridge_vlan_aware":true},
+			{"iface":"vmbr1","type":"bridge","bridge_vlan_aware":false},
+			{"iface":"vmbr2","type":"bridge"}
+		]}`)
+	})
+	ifaces, err := c.ListNodeNetwork(context.Background(), "pve1")
+	if err != nil {
+		t.Fatalf("ListNodeNetwork: %v", err)
+	}
+	want := []*bool{boolPtr(true), boolPtr(false), nil}
+	for i, w := range want {
+		got := ifaces[i].BridgeVLANAware
+		switch {
+		case w == nil && got != nil:
+			t.Fatalf("iface %d: BridgeVLANAware = %v, want nil", i, *got)
+		case w != nil && (got == nil || *got != *w):
+			t.Fatalf("iface %d: BridgeVLANAware = %v, want %v", i, got, *w)
+		}
+	}
+}
+
+// boolPtr is a test helper for building expected *bool values.
+func boolPtr(b bool) *bool { return &b }

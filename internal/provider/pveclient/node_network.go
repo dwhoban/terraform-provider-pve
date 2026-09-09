@@ -24,57 +24,62 @@ import (
 // BridgePorts is a comma-separated string per the PVE schema; callers
 // split it on demand for display.
 type NetworkInterface struct {
-	Iface         string            `json:"iface"`
-	Type          string            `json:"type"`
-	Autostart     bool              `json:"-"`
-	Active        bool              `json:"-"`
-	CIDR          string            `json:"cidr,omitempty"`
-	Address       string            `json:"address,omitempty"`
-	Gateway       string            `json:"gateway,omitempty"`
-	MTU           int               `json:"mtu,omitempty"`
-	BridgePorts   string            `json:"bridge_ports,omitempty"`
-	BridgeSTP     *bool             `json:"bridge_stp,omitempty"`
-	BridgeFD      int               `json:"bridge_fd,omitempty"`
-	VLANID        int               `json:"vlan-id,omitempty"`
-	VLANRawDevice string            `json:"vlan-raw-device,omitempty"`
-	OVSBridge     string            `json:"ovs_bridge,omitempty"`
-	OVSType       string            `json:"ovs_type,omitempty"`
-	OVSOptions    map[string]string `json:"ovs_options,omitempty"`
-	BondMode      string            `json:"bond_mode,omitempty"`
-	BondPrimary   string            `json:"bond_primary,omitempty"`
-	Slaves        []string          `json:"slaves,omitempty"`
-	Comments      string            `json:"comments,omitempty"`
-	Families      []string          `json:"families,omitempty"`
-	Method        string            `json:"method,omitempty"`
-	Digest        string            `json:"digest,omitempty"`
+	Iface              string            `json:"iface"`
+	Type               string            `json:"type"`
+	Autostart          *bool             `json:"autostart,omitempty"`
+	Active             bool              `json:"-"`
+	CIDR               string            `json:"cidr,omitempty"`
+	Address            string            `json:"address,omitempty"`
+	Gateway            string            `json:"gateway,omitempty"`
+	MTU                int               `json:"mtu,omitempty"`
+	BridgePorts        string            `json:"bridge_ports,omitempty"`
+	BridgeSTP          *bool             `json:"bridge_stp,omitempty"`
+	BridgeVIDs         string            `json:"bridge_vids,omitempty"`
+	BridgeVLANAware    *bool             `json:"bridge_vlan_aware,omitempty"`
+	BridgeFD           int               `json:"bridge_fd,omitempty"`
+	BondXmitHashPolicy string            `json:"bond_xmit_hash_policy,omitempty"`
+	VLANID             int               `json:"vlan-id,omitempty"`
+	VLANRawDevice      string            `json:"vlan-raw-device,omitempty"`
+	OVSBridge          string            `json:"ovs_bridge,omitempty"`
+	OVSType            string            `json:"ovs_type,omitempty"`
+	OVSOptions         map[string]string `json:"ovs_options,omitempty"`
+	BondMode           string            `json:"bond_mode,omitempty"`
+	BondPrimary        string            `json:"bond_primary,omitempty"`
+	Slaves             []string          `json:"slaves,omitempty"`
+	Comments           string            `json:"comments,omitempty"`
+	Families           []string          `json:"families,omitempty"`
+	Method             string            `json:"method,omitempty"`
+	Digest             string            `json:"digest,omitempty"`
 }
 
 // networkInterfaceRaw mirrors the wire shape with the boolish fields as
 // json.RawMessage so the custom unmarshaler can accept either bool or int.
 type networkInterfaceRaw struct {
-	Iface         string            `json:"iface"`
-	Type          string            `json:"type"`
-	Autostart     json.RawMessage   `json:"autostart"`
-	Active        json.RawMessage   `json:"active"`
-	CIDR          string            `json:"cidr,omitempty"`
-	Address       string            `json:"address,omitempty"`
-	Gateway       string            `json:"gateway,omitempty"`
-	MTU           int               `json:"mtu,omitempty"`
-	BridgePorts   string            `json:"bridge_ports,omitempty"`
-	BridgeSTP     *bool             `json:"bridge_stp,omitempty"`
-	BridgeFD      int               `json:"bridge_fd,omitempty"`
-	VLANID        int               `json:"vlan-id,omitempty"`
-	VLANRawDevice string            `json:"vlan-raw-device,omitempty"`
-	OVSBridge     string            `json:"ovs_bridge,omitempty"`
-	OVSType       string            `json:"ovs_type,omitempty"`
-	OVSOptions    map[string]string `json:"ovs_options,omitempty"`
-	BondMode      string            `json:"bond_mode,omitempty"`
-	BondPrimary   string            `json:"bond_primary,omitempty"`
-	Slaves        []string          `json:"slaves,omitempty"`
-	Comments      string            `json:"comments,omitempty"`
-	Families      []string          `json:"families,omitempty"`
-	Method        string            `json:"method,omitempty"`
-	Digest        string            `json:"digest,omitempty"`
+	Iface              string            `json:"iface"`
+	Type               string            `json:"type"`
+	Autostart          json.RawMessage   `json:"autostart"`
+	Active             json.RawMessage   `json:"active"`
+	CIDR               string            `json:"cidr,omitempty"`
+	Address            string            `json:"address,omitempty"`
+	Gateway            string            `json:"gateway,omitempty"`
+	BridgePorts        string            `json:"bridge_ports,omitempty"`
+	BridgeSTP          *bool             `json:"bridge_stp,omitempty"`
+	BridgeVIDs         string            `json:"bridge_vids,omitempty"`
+	BridgeVLANAware    json.RawMessage   `json:"bridge_vlan_aware,omitempty"`
+	BridgeFD           int               `json:"bridge_fd,omitempty"`
+	BondXmitHashPolicy string            `json:"bond_xmit_hash_policy,omitempty"`
+	VLANID             int               `json:"vlan-id,omitempty"`
+	VLANRawDevice      string            `json:"vlan-raw-device,omitempty"`
+	OVSBridge          string            `json:"ovs_bridge,omitempty"`
+	OVSType            string            `json:"ovs_type,omitempty"`
+	OVSOptions         map[string]string `json:"ovs_options,omitempty"`
+	BondMode           string            `json:"bond_mode,omitempty"`
+	BondPrimary        string            `json:"bond_primary,omitempty"`
+	Slaves             []string          `json:"slaves,omitempty"`
+	Comments           string            `json:"comments,omitempty"`
+	Families           []string          `json:"families,omitempty"`
+	Method             string            `json:"method,omitempty"`
+	Digest             string            `json:"digest,omitempty"`
 }
 
 // UnmarshalJSON tolerates the int 0/1 encoding of Autostart/Active that
@@ -86,12 +91,16 @@ func (n *NetworkInterface) UnmarshalJSON(data []byte) error {
 	}
 	n.Iface = raw.Iface
 	n.Type = raw.Type
-	n.Autostart = decodeBoolish(raw.Autostart)
+	n.Autostart = nodeNetworkBoolishPtr(raw.Autostart)
 	n.Active = decodeBoolish(raw.Active)
 	n.CIDR = raw.CIDR
 	n.Address = raw.Address
-	n.Gateway = raw.Gateway
-	n.MTU = raw.MTU
+	n.BridgeVIDs = raw.BridgeVIDs
+	if v := nodeNetworkBoolishPtr(raw.BridgeVLANAware); v != nil {
+		n.BridgeVLANAware = v
+	}
+	n.BridgeFD = raw.BridgeFD
+	n.BondXmitHashPolicy = raw.BondXmitHashPolicy
 	n.BridgePorts = raw.BridgePorts
 	n.BridgeSTP = raw.BridgeSTP
 	n.BridgeFD = raw.BridgeFD
@@ -124,6 +133,7 @@ func decodeBoolish(raw json.RawMessage) bool {
 	switch trimmed[0] {
 	case 't', 'T', '1':
 		return true
+
 	case 'f', 'F', '0':
 		return false
 	}
@@ -132,6 +142,20 @@ func decodeBoolish(raw json.RawMessage) bool {
 		return b
 	}
 	return false
+}
+
+// nodeNetworkBoolishPtr decodes a raw boolish value into a *bool, keeping
+// nil for absent/null so callers can distinguish "unset" from "false".
+func nodeNetworkBoolishPtr(raw json.RawMessage) *bool {
+	if len(raw) == 0 {
+		return nil
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return nil
+	}
+	v := decodeBoolish(raw)
+	return &v
 }
 
 // ListNodeNetwork returns the array from GET /nodes/{node}/network.

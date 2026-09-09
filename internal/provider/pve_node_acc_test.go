@@ -37,12 +37,12 @@ func TestAccPveNode_basic(t *testing.T) {
 
 func testAccPveNodeConfig_basic(node string) string {
 	return fmt.Sprintf(`
-provider "scaffolding" {
+provider "pve" {
   endpoint  = "https://example.invalid:8006/"
   api_token = "root@pam!tf=dummy"
 }
 
-resource "scaffolding_node" "test" {
+resource "pve_node" "test" {
   node        = %[1]q
   description = "managed by terraform"
 }

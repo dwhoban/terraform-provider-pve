@@ -10,15 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 )
 
-// TestPveClusterNodesDataSource_SchemaAndMetadata is the schema test for
+// TestPveNodesDataSource_SchemaAndMetadata is the schema test for
 // the cluster node index data source.
-func TestPveClusterNodesDataSource_SchemaAndMetadata(t *testing.T) {
-	d := NewPveClusterNodesDataSource()
+func TestPveNodesDataSource_SchemaAndMetadata(t *testing.T) {
+	d := NewPveNodesDataSource()
 	ctx := context.Background()
 	metaResp := &datasource.MetadataResponse{}
-	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveClusterNodes {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveClusterNodes)
+	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodes {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodes)
 	}
 	schemaResp := &datasource.SchemaResponse{}
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
@@ -34,9 +34,9 @@ func TestPveNodeStatusDataSource_SchemaAndMetadata(t *testing.T) {
 	d := NewPveNodeStatusDataSource()
 	ctx := context.Background()
 	metaResp := &datasource.MetadataResponse{}
-	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeStatus {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeStatus)
+	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodeStatus {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodeStatus)
 	}
 	schemaResp := &datasource.SchemaResponse{}
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
@@ -52,9 +52,9 @@ func TestPveNodeDisksDataSource_SchemaAndMetadata(t *testing.T) {
 	d := NewPveNodeDisksDataSource()
 	ctx := context.Background()
 	metaResp := &datasource.MetadataResponse{}
-	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeDisks {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeDisks)
+	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodeDisks {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodeDisks)
 	}
 	schemaResp := &datasource.SchemaResponse{}
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
@@ -71,9 +71,9 @@ func TestPveNodeNetworkInterfacesDataSource_SchemaAndMetadata(t *testing.T) {
 	d := NewPveNodeNetworkInterfacesDataSource()
 	ctx := context.Background()
 	metaResp := &datasource.MetadataResponse{}
-	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "scaffolding"}, metaResp)
-	if metaResp.TypeName != "scaffolding_"+TypeNamePveNodeNetworkInterfaces {
-		t.Fatalf("TypeName = %q, want scaffolding_%s", metaResp.TypeName, TypeNamePveNodeNetworkInterfaces)
+	d.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "pve"}, metaResp)
+	if metaResp.TypeName != "pve_"+TypeNamePveNodeNetworkInterfaces {
+		t.Fatalf("TypeName = %q, want pve_%s", metaResp.TypeName, TypeNamePveNodeNetworkInterfaces)
 	}
 	schemaResp := &datasource.SchemaResponse{}
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
