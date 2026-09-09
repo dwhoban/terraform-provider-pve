@@ -16,6 +16,9 @@ bin/custom-gcl: .custom-gcl.yml
 generate:
 	cd tools; go generate ./...
 
+validate-docs:
+	cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-dir .. -provider-name pve
+
 fmt:
 	gofmt -s -w -e .
 
@@ -25,4 +28,4 @@ test:
 testacc:
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
-.PHONY: fmt lint test testacc build install generate
+.PHONY: fmt lint test testacc build install generate validate-docs
