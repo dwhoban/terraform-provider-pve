@@ -1,40 +1,44 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider for Proxmox VE (PVE)
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+A [Terraform](https://www.terraform.io) provider for [Proxmox Virtual Environment](https://www.proxmox.com/en/proxmox-virtual-environment), built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). It manages a PVE cluster through the REST API: access control, cluster and HA configuration, firewall, backup and replication, metrics and notifications, storage, nodes, guests (QEMU and LXC), certificates, and SDN.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
-
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
-
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
-
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+The API surface is partitioned per [ADR 0001](docs/adr/0001-proxmox-api-endpoint-treatment.md): every sanctioned component maps to exactly one Terraform treatment (resource, data source, action, or function), pinned to the vendored API spec in `api-spec/apidoc.js`. `TestProvider_RegisteredSurface` asserts the registered inventory so the surface cannot drift silently.
 
 ## Requirements
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0 (>= 1.14 for actions)
+- [Go](https://golang.org/doc/install) >= 1.25.8 (to build the provider)
+
+## Using the Provider
+
+Configure the provider with an endpoint plus either an API token or a username/password (environment variables `PROXMOX_VE_ENDPOINT`, `PROXMOX_VE_API_TOKEN`, `PROXMOX_VE_USERNAME`, `PROXMOX_VE_PASSWORD`, and friends are also honored):
+
+```hcl
+provider "pve" {
+  endpoint = "https://pve.example.com:8006/"
+  api_token = "root@pam!terraform=uuid"
+}
+```
+
+For the upstream API operations and schemas this provider targets, see the [Proxmox VE API Viewer](https://pve.proxmox.com/pve-docs/api-viewer/apidoc.js).
 
 ## Building the Provider
-
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
 
 ```shell
 go install
 ```
 
-## Adding Dependencies
+## Developing the Provider
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+- `make build` — compile the provider.
+- `make test` — unit and schema tests (no cluster required).
+- `make lint` — pinned golangci-lint plus the custom anti-slop plugin (builds `bin/custom-gcl`; requires `golangci-lint` on `PATH`).
+- `make generate` — regenerate `docs/` via tfplugindocs and format examples (requires `terraform` on `PATH`).
+- `make validate-docs` — validate generated documentation against the provider schema.
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
+Adding or changing a component? Register it in `internal/provider/provider.go` and add its type name to `TestProvider_RegisteredSurface` in the same package; derive attribute sets from `api-spec/apidoc.js` (grep, never whole-file read).
+
+To add a dependency:
 
 ```shell
 go get github.com/author/dependency
@@ -43,21 +47,9 @@ go mod tidy
 
 Then commit the changes to `go.mod` and `go.sum`.
 
-## Using the Provider
+In order to run the acceptance tests, point the provider at a disposable cluster via the `PROXMOX_VE_*` environment variables and run `make testacc`.
 
-For the upstream API operations and schemas that this provider targets, see the [Proxmox VE API Viewer](https://pve.proxmox.com/pve-docs/api-viewer/apidoc.js).
-
-## Developing the Provider
-
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
-
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-To generate or update documentation, run `make generate`.
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
+*Note:* Acceptance tests create real resources on a live Proxmox VE cluster.
 
 ```shell
 make testacc
