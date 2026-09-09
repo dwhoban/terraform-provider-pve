@@ -203,6 +203,10 @@ func (p *PveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	resp.ResourceData = client
 	resp.ActionData = client
 	resp.EphemeralResourceData = client
+
+	// Functions have no configure hook in framework v1.19; publish the
+	// client through the package-level slot so pve_next_id can reach it.
+	pveNextIdClientSlot.Store(client)
 }
 
 func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -212,7 +216,20 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveNodeNetworkLinuxBondResource,
 		NewPveNodeNetworkVlanResource,
 		NewPveNodeDiskZFSResource,
-		NewPveNodeDiskLVMResource,
+		NewPveUserResource,
+		NewPveUserTokenResource,
+		NewPveGroupResource,
+		NewPveRoleResource,
+		NewPveAclResource,
+		NewPveRealmLdapResource,
+		NewPveRealmAdResource,
+		NewPveRealmOpenidResource,
+		NewPveRealmSyncJobResource,
+		NewPveClusterNodeResource,
+		NewPveClusterOptionsResource,
+		NewPveHaGroupResource,
+		NewPveHaResourceResource,
+		NewPveHaRuleResource,
 	}
 }
 
@@ -226,15 +243,41 @@ func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewPveNodeStatusDataSource,
 		NewPveNodeDisksDataSource,
 		NewPveNodeNetworkInterfacesDataSource,
+		NewPveUserDataSource,
+		NewPveUserTokenDataSource,
+		NewPveGroupDataSource,
+		NewPveRoleDataSource,
+		NewPveAclDataSource,
+		NewPvePermissionsDataSource,
+		NewPveRealmLdapDataSource,
+		NewPveRealmAdDataSource,
+		NewPveRealmOpenidDataSource,
+		NewPveRealmsDataSource,
+		NewPveRealmSyncJobDataSource,
+		NewPveClusterResourcesDataSource,
+		NewPveClusterStatusDataSource,
+		NewPveTasksDataSource,
+		NewPveVersionDataSource,
+		NewPveClusterNodeDataSource,
+		NewPveClusterOptionsDataSource,
+		NewPveHaStatusDataSource,
+		NewPveHaGroupDataSource,
+		NewPveHaResourceDataSource,
+		NewPveHaRuleDataSource,
 	}
 }
 
 func (p *PveProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{}
+	return []func() function.Function{
+		NewPveNextIdFunction,
+	}
 }
 
 func (p *PveProvider) Actions(ctx context.Context) []func() action.Action {
-	return []func() action.Action{}
+	return []func() action.Action{
+		NewPveRealmSyncAction,
+		NewPveHaArmAction,
+	}
 }
 
 func New(version string) func() provider.Provider {

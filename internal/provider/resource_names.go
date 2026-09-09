@@ -5,8 +5,7 @@ package provider
 
 // Resource and data-source type-name suffixes. Each constant is appended
 // to req.ProviderTypeName in the resource's Metadata method, so the full
-// Terraform resource type is e.g. `pve_node`
-// after the planned provider rename.
+// Terraform resource type is e.g. `pve_node`.
 //
 // Centralizing these strings prevents drift between the implementation
 // files (where they are set on resp.TypeName) and the test files (where
@@ -23,4 +22,29 @@ const (
 	TypeNamePveNodeStatus             = "node_status"
 	TypeNamePveNodeDisks              = "node_disks"
 	TypeNamePveNodeNetworkInterfaces  = "node_network_interfaces"
+	// Phase 1 — access control, cluster core, HA.
+	TypeNamePveUser             = "user"
+	TypeNamePveUserToken        = "user_token"
+	TypeNamePveGroup            = "group"
+	TypeNamePveRole             = "role"
+	TypeNamePveAcl              = "acl"
+	TypeNamePvePermissions      = "permissions"
+	TypeNamePveRealmLdap        = "realm_ldap"
+	TypeNamePveRealmAd          = "realm_ad"
+	TypeNamePveRealmOpenid      = "realm_openid"
+	TypeNamePveRealms           = "realms"
+	TypeNamePveRealmSync        = "realm_sync"
+	TypeNamePveRealmSyncJob     = "realm_sync_job"
+	TypeNamePveClusterResources = "cluster_resources"
+	TypeNamePveClusterStatus    = "cluster_status"
+	TypeNamePveTasks            = "tasks"
+	TypeNamePveNextId           = "next_id"
+	TypeNamePveClusterNode      = "cluster_node"
+	TypeNamePveClusterOptions   = "cluster_options"
+	TypeNamePveHaStatus         = "ha_status"
+	TypeNamePveHaArm            = "ha_arm"
+	TypeNamePveHaGroup          = "ha_group"
+	TypeNamePveHaResource       = "ha_resource"
+	TypeNamePveHaRule           = "ha_rule"
+	TypeNamePveVersion          = "version"
 )
