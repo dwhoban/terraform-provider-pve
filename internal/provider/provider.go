@@ -279,6 +279,10 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveNodeCertificateResource,
 		NewPveAcmeCertificateResource,
 		NewPveAptStandardRepositoryResource,
+		NewPveVmResource,
+		NewPveVmSnapshotResource,
+		NewPveContainerResource,
+		NewPveContainerSnapshotResource,
 	}
 }
 
@@ -371,6 +375,12 @@ func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewPveCustomCPUModelDataSource,
 		NewPveNodeCertificateDataSource,
 		NewPveAcmeCertificateDataSource,
+		NewPveVmsDataSource,
+		NewPveVmDataSource,
+		NewPveVmSnapshotDataSource,
+		NewPveContainersDataSource,
+		NewPveContainerDataSource,
+		NewPveContainerSnapshotDataSource,
 	}
 }
 
@@ -391,6 +401,17 @@ func (p *PveProvider) Actions(ctx context.Context) []func() action.Action {
 		NewPveNodeServiceAction,
 		NewPveNodeAptUpdateAction,
 		NewPveNodeWakeonlanAction,
+		NewPveVmRebootAction,
+		NewPveVmSuspendAction,
+		NewPveVmResumeAction,
+		NewPveVmResetAction,
+		NewPveVmMigrateAction,
+		NewPveVmSnapshotRollbackAction,
+		NewPveContainerRebootAction,
+		NewPveContainerSuspendAction,
+		NewPveContainerResumeAction,
+		NewPveContainerMigrateAction,
+		NewPveContainerSnapshotRollbackAction,
 	}
 }
 
