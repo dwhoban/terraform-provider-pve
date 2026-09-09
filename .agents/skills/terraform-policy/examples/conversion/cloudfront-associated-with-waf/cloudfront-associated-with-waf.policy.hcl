@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Approximation of HashiCorp PCI DSS Sentinel example: cloudfront-associated-with-waf.sentinel
 # Exact conversion quality: Not convertible
 # This tfpolicy only checks for a non-empty web_acl_id value.

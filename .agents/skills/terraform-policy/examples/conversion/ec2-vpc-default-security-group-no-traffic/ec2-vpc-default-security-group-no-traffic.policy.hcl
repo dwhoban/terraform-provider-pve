@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Approximation of HashiCorp PCI DSS Sentinel example: ec2-vpc-default-security-group-no-traffic.sentinel
 # Exact conversion quality: Not convertible
 # This tfpolicy only checks inline ingress/egress on aws_default_security_group resources.

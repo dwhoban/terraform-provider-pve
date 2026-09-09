@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Converted from HashiCorp PCI DSS Sentinel example: eventbridge-custom-event-bus-should-have-attached-policy.sentinel
 # Conversion quality: Limited
 

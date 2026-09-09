@@ -2,27 +2,27 @@
 
 ## Project Overview
 
-This repository is a HashiCorp Terraform Plugin Framework provider scaffold, not a completed Proxmox provider. It demonstrates one resource, data source, ephemeral resource, action, and function under `internal/provider/`, plus Terraform examples and generated Registry documentation. Replace the example implementations when adding real provider behavior.
+This repository is a Terraform Plugin Framework provider targeting Proxmox Virtual Environment (PVE). The current implementation is still HashiCorp scaffold code: it serves the placeholder provider address `registry.terraform.io/hashicorp/scaffolding`, uses hardcoded example values, and has no Proxmox API client, authentication chain, or PVE resources yet.
 
-Requirements are Go `1.25.8` from `go.mod` and Terraform `>= 1.0` (CI exercises Terraform `1.13.*` and `1.14.*`).
+Requirements are Go `1.25.8` from `go.mod` and Terraform `>= 1.0`. The provider uses Terraform protocol 6 and the Plugin Framework, not a completed SDKv2 provider.
 
 ## Architecture & Data Flow
 
-- `main.go` parses `-debug`, configures protocol 6 serving, and calls `providerserver.Serve(..., provider.New(version), ...)`.
-- `internal/provider/provider.go` implements `ScaffoldingProvider`, declares provider schema, configures provider data, and registers framework capabilities.
-- Provider `Configure` decodes `ScaffoldingProviderModel`, appends diagnostics, and currently passes `http.DefaultClient` through `ResourceData` and `DataSourceData`.
-- Resources, data sources, and actions receive provider data in `Configure`, assert its concrete type, and retain the client on their implementation struct.
-- Operations decode Terraform config, plan, or state into framework models, perform provider work, then append diagnostics while writing state or results.
-- Current examples are intentionally local: resource/data-source IDs and ephemeral values are hardcoded; no API client, authentication, retries, waiters, not-found handling, or Proxmox domain package exists.
-- Framework functions use `Definition` plus `Run`; actions use `Invoke` and may emit progress events; the example ephemeral resource only implements `Open`.
+- `main.go` parses `-debug` and serves `provider.New(version)` through `providerserver.Serve`.
+- `internal/provider/provider.go` defines provider metadata/schema, `Configure`, and registration for resources, data sources, ephemeral resources, functions, and actions.
+- `Configure` decodes provider config, appends diagnostics, and currently passes `http.DefaultClient` through `ResourceData` and `DataSourceData`; it is a placeholder for a real PVE client and credential chain.
+- Components receive provider data in `Configure`, reject nil or unexpected types with diagnostics, and retain the client on their implementation struct.
+- Operations decode config, plan, or state into framework models, perform provider work, append diagnostics, and write Terraform state or results. Current examples return hardcoded IDs/tokens and do not call an upstream API.
+
+For real PVE work, keep provider configuration and API-client construction in `Configure`; resources and data sources should consume that configured client rather than create clients independently.
 
 ## Key Directories
 
-- `internal/provider/`: provider registration, schemas, CRUD/read/Invoke/Open implementations, and tests.
-- `examples/`: Terraform configurations used by documentation generation and manual CLI checks. Documentation discovery expects `provider/provider.tf`, `data-sources/<full name>/data-source.tf`, `resources/<full name>/resource.tf`, plus matching action and ephemeral paths.
-- `docs/`: generated `tfplugindocs` pages; edit source schemas/examples, then regenerate.
-- `tools/`: separate Go module containing `go:generate` dependencies and directives.
-- `.github/workflows/`: build, lint, generation-diff, acceptance-test, and release automation.
+- `internal/provider/`: provider registration, schemas, CRUD/read implementations, action/function/ephemeral implementations, and tests.
+- `examples/`: Terraform configurations used by `tfplugindocs`; discovery expects `provider/provider.tf`, `data-sources/<full-name>/data-source.tf`, `resources/<full-name>/resource.tf`, and matching action/ephemeral paths.
+- `docs/`: generated Registry documentation. Edit schemas/templates/examples, then regenerate; do not hand-edit generated pages.
+- `tools/`: separate Go module containing generation dependencies and `go:generate` directives.
+- `.github/workflows/`: build/lint, generation-diff, acceptance-test, and release automation.
 
 ## Development Commands
 
@@ -30,52 +30,61 @@ Run from the repository root:
 
 ```sh
 make build       # go build -v ./...
-make install     # build and go install
+make install     # build, then go install -v ./...
 make fmt         # gofmt -s -w -e .
-make lint        # golangci-lint run
-make test        # unit/in-process tests with coverage
-make generate    # headers, Terraform example formatting, and docs
-make testacc     # TF_ACC=1 acceptance suite; use intentionally
+make lint        # build bin/custom-gcl, then run the configured linters
+make test        # go test -v -cover -timeout=120s -parallel=10 ./...
+make testacc     # TF_ACC=1 go test -v -cover -timeout 120m ./...
+make generate    # headers, Terraform example formatting, and tfplugindocs
 ```
 
-A focused unit run is useful while editing: `go test -v ./internal/provider -run '^TestExampleFunction_'`. After changing schemas or examples, run `make generate`; CI rejects generated diffs. `tools/tools.go` owns the generation commands. Do not hand-edit generated files in `docs/`.
+The provider server can be started directly with `go run . -debug`; Terraform normally launches the compiled provider using its registry address. There is no separate application server or `make run` target.
+
+After changing schemas or documentation examples, run `make generate`. CI rejects generated-file differences. The authoritative generation directives are in `tools/tools.go`.
 
 ## Code Conventions & Common Patterns
 
-- Use Terraform Plugin Framework APIs, not SDKv2. `.golangci.yml` explicitly blocks SDKv2 packages and enables `staticcheck`, `errcheck`, `unused`, `gofmt`, and related checks.
-- Keep compile-time interface assertions: `var _ resource.Resource = &ExampleResource{}`.
-- Provide `New<Type>()` constructors returning framework interfaces and register them in the corresponding provider method (`Resources`, `DataSources`, `EphemeralResources`, `Functions`, or `Actions`).
-- Define Terraform models with framework `types.*` values and `tfsdk` tags. Keep schema descriptions in source; they feed generated docs.
-- After `req.Config.Get`, `req.Plan.Get`, `req.State.Get`, or result/state `Set`, append diagnostics and return early when `HasError()` is true.
-- In component `Configure` methods, handle nil provider data before type assertions and report a diagnostic on a wrong type; do not panic.
-- Resource lifecycle methods are `Create`, `Read`, `Update`, and `Delete`; implement import with `resource.ImportStatePassthroughID` when IDs support passthrough. Remove state on an upstream not-found response in real resources.
-- Use `tflog` for provider-operation logging and keep secrets out of logs. Add retries/waiters only for APIs that are actually eventually consistent.
-- Preserve Terraform state semantics: map API responses into model values, distinguish null/unknown/known values, and avoid hardcoded example values in real implementations.
+### Framework and registration
+
+- Use Terraform Plugin Framework APIs for new code; do not add SDKv2 imports. `.golangci.yml` blocks SDKv2 packages through `depguard`.
+- Keep compile-time interface assertions such as `var _ resource.Resource = &ExampleResource{}`.
+- Provide `New<Type>()` constructors returning framework interfaces and register them from the provider's `Resources`, `DataSources`, `EphemeralResources`, `Functions`, or `Actions` methods.
+- Define Terraform models with `types.*` values and `tfsdk` tags. Give every schema attribute a `MarkdownDescription`; descriptions feed generated Registry docs.
+
+### Diagnostics and state
+
+- After `req.Config.Get`, `req.Plan.Get`, `req.State.Get`, or result/state `Set`, append diagnostics and return immediately when `HasError()` is true.
+- In component `Configure` methods, handle nil provider data before type assertions and report a diagnostic for the wrong concrete type; do not panic.
+- Preserve Terraform null/unknown/known semantics. Use plan modifiers and validators for schema behavior, and mark secrets `Sensitive`.
+- Real resource `Read` methods must remove state when the upstream object is not found; `Delete` should treat an already-absent object as success. Import uses `resource.ImportStatePassthroughID` only when the API identifier supports passthrough.
+
+### API and operation behavior
+
+- Wrap underlying errors with `%w`, match typed API errors rather than error strings, and make diagnostics name the operation, object type, identifier, and cause.
+- Use `tflog` for provider-operation logging; never log credentials or other secret values.
+- Add retries/waiters only for APIs that are actually eventually consistent. Keep finder, not-found, status, and waiter behavior reusable across CRUD methods.
+- Actions use `Invoke`, report meaningful progress for long operations, and are exercised through Terraform `action_trigger` blocks. Ephemeral resources implement `Open`; add `Renew`/`Close` only when the upstream value has a real lease lifecycle and never persist secret results.
 
 ## Important Files
 
-- `main.go`: provider executable and registry address.
-- `internal/provider/provider.go`: provider schema, configuration, and capability registration.
-- `internal/provider/example_resource.go`: CRUD, import, schema, and provider-data pattern.
-- `internal/provider/example_data_source.go`: data-source configuration and read pattern.
-- `internal/provider/example_ephemeral_resource.go`: ephemeral `Open` and result pattern.
-- `internal/provider/example_action.go` and `example_function.go`: action/function framework patterns.
-- `GNUmakefile`: authoritative local commands.
-- `tools/tools.go`: generation source of truth.
-- `.github/workflows/test.yml`: CI build, lint, generation, and Terraform-version matrix.
-- `.golangci.yml`: enabled linters and SDKv2 restrictions.
-- `.goreleaser.yml`: cross-platform release builds, checksums, and signing.
+- `main.go`: provider executable, debug flag, registry address, and version wiring.
+- `internal/provider/provider.go`: provider schema/configuration and capability registration.
+- `internal/provider/example_resource.go`, `example_data_source.go`, `example_action.go`, `example_function.go`, and `example_ephemeral_resource.go`: current Framework patterns to replace with PVE behavior.
+- `GNUmakefile`, `.golangci.yml`, and `.custom-gcl.yml`: authoritative local build, test, generation, formatter, and custom anti-slop lint wiring.
+- `tools/tools.go`, `examples/`, and `docs/`: documentation-generation source, Terraform examples, and generated output.
 
 ## Runtime/Tooling Preferences
 
-Use Go modules and the versions declared in `go.mod` and `tools/go.mod`; do not introduce a second package manager. Use the `GNUmakefile` targets instead of duplicating command recipes. `make generate` requires Terraform on `PATH` and uses `tfplugindocs`; the tools module pins `copywrite` and `terraform-plugin-docs`. Release builds set `CGO_ENABLED=0`, use `-trimpath`, and inject version metadata through GoReleaser.
+- Use Go modules only: the provider uses root `go.mod`; generation tools use the separate `tools/go.mod`. Do not introduce another package manager.
+- `make generate` requires Terraform on `PATH`; it runs `terraform fmt`, Copywrite, and `tfplugindocs`. Generated docs use provider name `scaffolding` until the provider address is renamed.
+- `make lint` builds `bin/custom-gcl` with golangci-lint `v2.10.1` and anti-slop-go `v1.4.0`; the `bin/` directory is ignored. CI uses the same pinned custom-linter build.
+- Release builds use GoReleaser from `.goreleaser.yml`, set `CGO_ENABLED=0`, use `-trimpath`, and inject version/commit metadata. Releases are triggered by `v*` tags.
+- Load the relevant local guidance before implementation: `.agents/skills/new-terraform-provider/SKILL.md`, `provider-configuration/SKILL.md`, `provider-resources/SKILL.md`, `provider-actions/SKILL.md`, `provider-ephemeral-resources/SKILL.md`, `provider-test-patterns/SKILL.md`, `provider-docs/SKILL.md`, `run-acceptance-tests/SKILL.md`, `terraform-style-guide/SKILL.md`, and `terraform-test/SKILL.md`.
 
 ## Testing & QA
 
-Tests use Go `testing` plus `terraform-plugin-testing`. Acceptance-style tests live beside implementations as `internal/provider/*_test.go`; protocol 6 factories are defined in `provider_test.go`. State assertions use `statecheck`, `knownvalue`, and `tfjsonpath`; the ephemeral test also uses the testing `echoprovider`.
-
-- `make test` runs `go test -v -cover -timeout=120s -parallel=10 ./...`.
-- `make testacc` runs `TF_ACC=1 go test -v -cover -timeout 120m ./...`; acceptance tests may create real resources and incur cost in a real provider.
-- CI builds and lints before testing, then tests Terraform `1.13.*` and `1.14.*` with `TF_ACC=1`.
-- Add or update behavior-focused state checks for schema and lifecycle changes. Preserve import, update, delete, and not-found coverage for real resources.
-- When changing generated output, verify `make generate` leaves no diff; this is a CI gate.
+- Tests live beside implementations in `internal/provider/*_test.go` and use Go `testing` plus `terraform-plugin-testing`.
+- Protocol 6 factories are defined in `provider_test.go`. Prefer `ConfigStateChecks` with `statecheck`, `knownvalue`, and `tfjsonpath`; use `resource.ParallelTest` unless tests share state.
+- Current `TestAcc*` tests exercise scaffold resources, data sources, actions, and ephemeral/function examples. They do not contact Proxmox and do not validate real PVE behavior. Version gates currently cover Terraform `>= 1.10` for ephemeral resources, `>= 1.14` for actions, and `>= 1.8` for functions.
+- Use focused unit tests for pure provider logic. For real acceptance coverage, set `TF_ACC=1`, pass an explicit timeout, verify the target PVE account first, and add cleanup/sweeper coverage before running against live infrastructure.
+- CI tests Terraform `1.13.*` and `1.14.*`; the generation job runs `make generate` and fails if generated output changes. The repository has no native `.tftest.hcl` suite currently.

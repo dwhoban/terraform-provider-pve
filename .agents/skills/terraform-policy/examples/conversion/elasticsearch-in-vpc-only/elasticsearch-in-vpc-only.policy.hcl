@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Approximation of HashiCorp PCI DSS Sentinel example: elasticsearch-in-vpc-only.sentinel
 # Exact conversion quality: Limited
 

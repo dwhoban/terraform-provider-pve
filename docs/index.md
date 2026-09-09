@@ -12,6 +12,8 @@ description: |-
 ## Example Usage
 
 ```terraform
+# Copyright (c) HashiCorp, Inc.
+
 provider "scaffolding" {
   # example configuration here
 }
@@ -22,4 +24,11 @@ provider "scaffolding" {
 
 ### Optional
 
-- `endpoint` (String) Example provider attribute
+- `api_token` (String, Sensitive) Proxmox VE API token in the form `USER@REALM!TOKENID=UUID`. May also be set via the `PROXMOX_VE_API_TOKEN` environment variable. Mutually exclusive in effect with `username`/`password`; if both are supplied the token is used.
+- `endpoint` (String) Proxmox VE endpoint URL, e.g. `https://pve.example.com:8006/`. May also be set via the `PROXMOX_VE_ENDPOINT` environment variable.
+- `insecure` (String) Skip TLS verification of the Proxmox endpoint. Accepts `true` or `1`. May also be set via the `PROXMOX_VE_INSECURE` environment variable. Prefer `root_ca` for production clusters.
+- `otp` (String, Sensitive) Optional one-time password used together with `username`/`password` when the target account has TOTP 2FA enabled. May also be set via the `PROXMOX_VE_OTP` environment variable.
+- `password` (String, Sensitive) Proxmox VE password for `username`. May also be set via the `PROXMOX_VE_PASSWORD` environment variable.
+- `root_ca` (String) PEM-encoded CA bundle used to validate the Proxmox endpoint certificate. May also be set via the `PROXMOX_VE_ROOT_CA` environment variable.
+- `skip_credentials_validation` (Boolean) Skip the `GET /access/whoami` identity check performed during provider configuration. Useful for ephemeral environments where the credentials are known to be valid. Defaults to `false`.
+- `username` (String) Proxmox VE username in `user@realm` form (e.g. `root@pam`). May also be set via the `PROXMOX_VE_USERNAME` environment variable.

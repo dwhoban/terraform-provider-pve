@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Converted from HashiCorp PCI DSS Sentinel example: elasticsearch-https-required.sentinel
 # Conversion quality: Good
 

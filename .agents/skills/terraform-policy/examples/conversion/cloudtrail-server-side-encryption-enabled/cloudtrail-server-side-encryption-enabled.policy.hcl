@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Converted from HashiCorp PCI DSS Sentinel example: cloudtrail-server-side-encryption-enabled.sentinel
 # Conversion quality: Good
 

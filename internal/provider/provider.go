@@ -5,16 +5,22 @@ package provider
 
 import (
 	"context"
-	"net/http"
+	"errors"
+	"fmt"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/credentials"
+	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
 )
 
 // Ensure ScaffoldingProvider satisfies various provider interfaces.
@@ -31,9 +37,18 @@ type ScaffoldingProvider struct {
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
+// ScaffoldingProviderModel describes the provider data model. Field names
+// must match the tfsdk tags used in Schema(). The framework decodes config
+// into this struct on every Configure call.
 type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+	Endpoint                  types.String `tfsdk:"endpoint"`
+	APIToken                  types.String `tfsdk:"api_token"`
+	Username                  types.String `tfsdk:"username"`
+	Password                  types.String `tfsdk:"password"`
+	Insecure                  types.String `tfsdk:"insecure"`
+	RootCA                    types.String `tfsdk:"root_ca"`
+	OTP                       types.String `tfsdk:"otp"`
+	SkipCredentialsValidation types.Bool   `tfsdk:"skip_credentials_validation"`
 }
 
 func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -45,7 +60,38 @@ func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaReq
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+				MarkdownDescription: "Proxmox VE endpoint URL, e.g. `https://pve.example.com:8006/`. May also be set via the `PROXMOX_VE_ENDPOINT` environment variable.",
+				Optional:            true,
+			},
+			"api_token": schema.StringAttribute{
+				MarkdownDescription: "Proxmox VE API token in the form `USER@REALM!TOKENID=UUID`. May also be set via the `PROXMOX_VE_API_TOKEN` environment variable. Mutually exclusive in effect with `username`/`password`; if both are supplied the token is used.",
+				Optional:            true,
+				Sensitive:           true,
+			},
+			"username": schema.StringAttribute{
+				MarkdownDescription: "Proxmox VE username in `user@realm` form (e.g. `root@pam`). May also be set via the `PROXMOX_VE_USERNAME` environment variable.",
+				Optional:            true,
+			},
+			"password": schema.StringAttribute{
+				MarkdownDescription: "Proxmox VE password for `username`. May also be set via the `PROXMOX_VE_PASSWORD` environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+			},
+			"insecure": schema.StringAttribute{
+				MarkdownDescription: "Skip TLS verification of the Proxmox endpoint. Accepts `true` or `1`. May also be set via the `PROXMOX_VE_INSECURE` environment variable. Prefer `root_ca` for production clusters.",
+				Optional:            true,
+			},
+			"root_ca": schema.StringAttribute{
+				MarkdownDescription: "PEM-encoded CA bundle used to validate the Proxmox endpoint certificate. May also be set via the `PROXMOX_VE_ROOT_CA` environment variable.",
+				Optional:            true,
+			},
+			"otp": schema.StringAttribute{
+				MarkdownDescription: "Optional one-time password used together with `username`/`password` when the target account has TOTP 2FA enabled. May also be set via the `PROXMOX_VE_OTP` environment variable.",
+				Optional:            true,
+				Sensitive:           true,
+			},
+			"skip_credentials_validation": schema.BoolAttribute{
+				MarkdownDescription: "Skip the `GET /access/whoami` identity check performed during provider configuration. Useful for ephemeral environments where the credentials are known to be valid. Defaults to `false`.",
 				Optional:            true,
 			},
 		},
@@ -54,25 +100,118 @@ func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaReq
 
 func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var data ScaffoldingProviderModel
-
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	// Reject unknown values for the auth attributes so the user gets a clear
+	// error during planning instead of a confusing message later. Endpoint
+	// and root_ca can legitimately be planned from another resource via
+	// for_each and are not gated.
+	for _, f := range []struct {
+		name  string
+		value any
+	}{
+		{"api_token", data.APIToken},
+		{"username", data.Username},
+		{"password", data.Password},
+		{"otp", data.OTP},
+	} {
+		if v, ok := f.value.(interface{ IsUnknown() bool }); ok && v.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root(f.name),
+				"Provider configuration value is unknown",
+				fmt.Sprintf("The %q attribute is unknown at configuration time. Set it to a literal value or supply the matching PROXMOX_VE_* environment variable.", f.name),
+			)
+		}
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	static := credentials.Credentials{
+		Token:    data.APIToken.ValueString(),
+		Username: data.Username.ValueString(),
+		Password: data.Password.ValueString(),
+		Endpoint: data.Endpoint.ValueString(),
+		Insecure: data.Insecure.ValueString(),
+		RootCA:   data.RootCA.ValueString(),
+		OTP:      data.OTP.ValueString(),
+	}
+
+	creds, err := credentials.NewDefaultChain(static, credentials.Options{
+		GetEnv: os.Getenv,
+	}).Retrieve(ctx)
+	if err != nil {
+		if errors.Is(err, credentials.ErrNoCredentials) {
+			var ce *credentials.ChainError
+			if errors.As(err, &ce) {
+				resp.Diagnostics.AddError(
+					"No Proxmox VE credentials found",
+					ce.Error()+"\n\nProvide credentials via the provider block, the PROXMOX_VE_* environment variables, or a credentials file at ~/.proxmox/credentials. See https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/main/docs/index.md for details.",
+				)
+				return
+			}
+		}
+		resp.Diagnostics.AddError(
+			"Unable to resolve Proxmox VE credentials",
+			fmt.Sprintf("Credential resolution failed: %s", err.Error()),
+		)
+		return
+	}
+
+	client, err := pveclient.NewClient(pveclient.Credentials{
+		Token:    creds.Token,
+		Username: creds.Username,
+		Password: creds.Password,
+		Endpoint: creds.Endpoint,
+		Insecure: creds.Insecure,
+		RootCA:   creds.RootCA,
+		OTP:      creds.OTP,
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to build Proxmox VE client",
+			fmt.Sprintf("Build client from credentials source %q failed: %s", creds.Source, err.Error()),
+		)
+		return
+	}
+
+	if !data.SkipCredentialsValidation.ValueBool() {
+		_, err := client.Whoami(ctx)
+		if err != nil {
+			failingField := "api_token"
+			envVar := "PROXMOX_VE_API_TOKEN"
+			if creds.Token == "" {
+				failingField = "username/password"
+				envVar = "PROXMOX_VE_USERNAME / PROXMOX_VE_PASSWORD"
+			}
+			resp.Diagnostics.AddError(
+				"Proxmox VE credential validation failed",
+				fmt.Sprintf("GET /access/whoami against %s failed using credentials from %q (auth_kind=%s). Verify the %s value and the matching %s environment variable, or set skip_credentials_validation=true to defer this check. Underlying error: %s",
+					client.Endpoint(), creds.Source, client.AuthKind(), failingField, envVar, err.Error()),
+			)
+			return
+		}
+	}
+
+	// Protocol 6 surfaces five data slots. Mirror the client across all of
+	// them so future resources, data sources, actions, ephemeral resources,
+	// and functions can receive the same configured client.
 	resp.DataSourceData = client
 	resp.ResourceData = client
+	resp.ActionData = client
+	resp.EphemeralResourceData = client
 }
 
 func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewExampleResource,
+		NewPveNodeResource,
+		NewPveNodeNetworkInterfaceResource,
+		NewPveNodeDiskZFSResource,
+		NewPveNodeDiskLVMResource,
 	}
 }
 
@@ -85,6 +224,10 @@ func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() e
 func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewExampleDataSource,
+		NewPveClusterNodesDataSource,
+		NewPveNodeStatusDataSource,
+		NewPveNodeDisksDataSource,
+		NewPveNodeNetworkInterfacesDataSource,
 	}
 }
 

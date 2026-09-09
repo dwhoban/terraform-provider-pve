@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # Converted from HashiCorp PCI DSS Sentinel example: efs-access-point-should-enforce-user-identity.sentinel
 # Conversion quality: Perfect
 

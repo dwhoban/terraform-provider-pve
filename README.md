@@ -45,7 +45,7 @@ Then commit the changes to `go.mod` and `go.sum`.
 
 ## Using the Provider
 
-Fill this in for each provider
+For the upstream API operations and schemas that this provider targets, see the [Proxmox VE API Viewer](https://pve.proxmox.com/pve-docs/api-viewer/apidoc.js).
 
 ## Developing the Provider
 

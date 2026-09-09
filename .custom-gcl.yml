@@ -1,3 +1,5 @@
+# Copyright (c) HashiCorp, Inc.
+
 # The golangci-lint version used to build the custom binary.
 version: v2.10.1
 name: custom-gcl
