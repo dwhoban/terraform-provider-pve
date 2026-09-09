@@ -6,6 +6,7 @@ package pveclient
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -178,4 +179,17 @@ func (c *Client) AddAptStandardRepository(ctx context.Context, node, handle stri
 		Handle string `json:"handle"`
 	}{Handle: handle}
 	return c.Do(ctx, "PUT", path, body, nil)
+}
+
+// GetNodeAptChangelog reads GET /nodes/{node}/apt/changelog for one
+// package (pin parameter `name`) and returns the raw changelog text.
+func (c *Client) GetNodeAptChangelog(ctx context.Context, node, name string) (string, error) {
+	query := url.Values{}
+	query.Set("name", name)
+	var changelog string
+	path := fmt.Sprintf("/nodes/%s/apt/changelog?%s", node, query.Encode())
+	if err := c.Do(ctx, "GET", path, nil, &changelog); err != nil {
+		return "", err
+	}
+	return changelog, nil
 }

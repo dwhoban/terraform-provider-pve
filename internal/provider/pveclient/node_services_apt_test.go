@@ -181,3 +181,26 @@ func TestClient_ChangeAptRepository_PostsBody(t *testing.T) {
 		}
 	}
 }
+
+// TestClient_GetNodeAptChangelog verifies the changelog endpoint receives
+// the package name as a query parameter and the raw changelog string is
+// unwrapped from the data envelope.
+func TestClient_GetNodeAptChangelog(t *testing.T) {
+	c := newFakePVETokenServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/nodes/pve1/apt/changelog" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("name"); got != "pve-manager" {
+			t.Fatalf("name query = %q, want pve-manager", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":"pve-manager (8.2.2) stable; urgency=medium\n\n  * Update based on Debian 12.5\n"}`)
+	})
+	changelog, err := c.GetNodeAptChangelog(context.Background(), "pve1", "pve-manager")
+	if err != nil {
+		t.Fatalf("GetNodeAptChangelog: %v", err)
+	}
+	if !strings.Contains(changelog, "pve-manager (8.2.2)") || !strings.Contains(changelog, "urgency=medium") {
+		t.Fatalf("changelog = %q", changelog)
+	}
+}

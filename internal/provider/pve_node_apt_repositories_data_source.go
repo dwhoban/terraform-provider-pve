@@ -38,6 +38,8 @@ type pveNodeAptRepositoriesDataSource struct {
 type pveNodeAptRepositoriesDataSourceModel struct {
 	ID                   types.String                                   `tfsdk:"id"`
 	Node                 types.String                                   `tfsdk:"node"`
+	Package              types.String                                   `tfsdk:"package"`
+	Changelog            types.String                                   `tfsdk:"changelog"`
 	Digest               types.String                                   `tfsdk:"digest"`
 	Repositories         []pveNodeAptRepositoriesDataSourceRepo         `tfsdk:"repositories"`
 	StandardRepositories []pveNodeAptRepositoriesDataSourceStandardRepo `tfsdk:"standard_repositories"`
@@ -105,6 +107,14 @@ func (d *pveNodeAptRepositoriesDataSource) Schema(_ context.Context, _ datasourc
 			"node": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The cluster node whose APT repositories to read.",
+			},
+			"package": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Package name to additionally fetch the changelog for (`GET /nodes/{node}/apt/changelog`). When set, `changelog` carries the package's raw changelog text; when unset, `changelog` is null.",
+			},
+			"changelog": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Raw changelog text of `package` as reported by the node. Null when `package` is not set.",
 			},
 			"digest": schema.StringAttribute{
 				Computed:            true,
@@ -270,6 +280,19 @@ func (d *pveNodeAptRepositoriesDataSource) Read(ctx context.Context, req datasou
 	data.StandardRepositories = aptStandardRepositoriesToTF(repos.StandardRepositories)
 	data.Infos = aptRepositoryInfosToTF(repos.Infos)
 	data.Errors = aptRepositoryErrorsToTF(repos.Errors)
+	if !data.Package.IsNull() {
+		changelog, err := d.client.GetNodeAptChangelog(ctx, node, data.Package.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error reading pve_node_apt_repositories",
+				fmt.Sprintf("reading APT changelog for package %s on node %s: %s", data.Package.ValueString(), node, err),
+			)
+			return
+		}
+		data.Changelog = types.StringValue(changelog)
+	} else {
+		data.Changelog = types.StringNull()
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 

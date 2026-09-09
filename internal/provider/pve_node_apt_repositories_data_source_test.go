@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -26,13 +27,19 @@ func TestPveNodeAptRepositories_MetadataAndSchema(t *testing.T) {
 	}
 	schemaResp := &datasource.SchemaResponse{}
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
-	for _, key := range []string{"id", "node", "digest", "repositories", "standard_repositories", "infos", "errors"} {
+	for _, key := range []string{"id", "node", "package", "changelog", "digest", "repositories", "standard_repositories", "infos", "errors"} {
 		if schemaResp.Schema.Attributes[key] == nil {
 			t.Fatalf("schema missing %s attribute", key)
 		}
 	}
 	if !schemaResp.Schema.Attributes["node"].IsRequired() {
 		t.Fatal("node attribute should be Required")
+	}
+	if !schemaResp.Schema.Attributes["package"].IsOptional() {
+		t.Fatal("package attribute should be Optional")
+	}
+	if !schemaResp.Schema.Attributes["changelog"].IsComputed() {
+		t.Fatal("changelog attribute should be Computed")
 	}
 }
 
@@ -60,6 +67,8 @@ func TestPveNodeAptRepositories_ReadFlattensFiles(t *testing.T) {
 	raw := tftypes.NewValue(tftypes.Object{AttributeTypes: attrTypes}, map[string]tftypes.Value{
 		"id":                    tftypes.NewValue(tftypes.String, nil),
 		"node":                  tftypes.NewValue(tftypes.String, "pve1"),
+		"package":               tftypes.NewValue(tftypes.String, nil),
+		"changelog":             tftypes.NewValue(tftypes.String, nil),
 		"digest":                tftypes.NewValue(tftypes.String, nil),
 		"repositories":          tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptRepoRowAttrTypes()}}, nil),
 		"standard_repositories": tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptStandardRowAttrTypes()}}, nil),
@@ -102,6 +111,63 @@ func TestPveNodeAptRepositories_ReadFlattensFiles(t *testing.T) {
 	if len(data.Errors) != 1 || data.Errors[0].Path.ValueString() != "/etc/apt/sources.list.d/broken.list" {
 		t.Fatalf("errors = %+v", data.Errors)
 	}
+	if !data.Changelog.IsNull() {
+		t.Fatalf("changelog should be null without package: %q", data.Changelog.ValueString())
+	}
+}
+
+// TestPveNodeAptRepositories_ReadChangelog verifies the optional package
+// attribute triggers the changelog read and surfaces the raw text; the
+// unset case is covered by TestPveNodeAptRepositories_ReadFlattensFiles.
+func TestPveNodeAptRepositories_ReadChangelog(t *testing.T) {
+	d := NewPveNodeAptRepositoriesDataSource()
+	// safetyassert: the constructor in this package always returns this concrete implementation type.
+	impl, ok := d.(*pveNodeAptRepositoriesDataSource)
+	if !ok {
+		t.Fatalf("constructor returned %T", d)
+	}
+	impl.client = newHaTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/nodes/pve1/apt/repositories":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":{"digest":"dd01","errors":[],"files":[],"standard-repos":[],"infos":[]}}`)
+		case "/nodes/pve1/apt/changelog":
+			if got := r.URL.Query().Get("name"); got != "pve-manager" {
+				t.Fatalf("name query = %q, want pve-manager", got)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":"pve-manager (8.2.2) stable; urgency=medium\n\n  * Update\n"}`)
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	})
+	ctx := context.Background()
+	schemaResp := &datasource.SchemaResponse{}
+	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
+	attrTypes := aptRepositoriesDataSourceAttrTypes()
+	raw := tftypes.NewValue(tftypes.Object{AttributeTypes: attrTypes}, map[string]tftypes.Value{
+		"id":                    tftypes.NewValue(tftypes.String, nil),
+		"node":                  tftypes.NewValue(tftypes.String, "pve1"),
+		"package":               tftypes.NewValue(tftypes.String, "pve-manager"),
+		"changelog":             tftypes.NewValue(tftypes.String, nil),
+		"digest":                tftypes.NewValue(tftypes.String, nil),
+		"repositories":          tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptRepoRowAttrTypes()}}, nil),
+		"standard_repositories": tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptStandardRowAttrTypes()}}, nil),
+		"infos":                 tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptInfoRowAttrTypes()}}, nil),
+		"errors":                tftypes.NewValue(tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptErrorRowAttrTypes()}}, nil),
+	})
+	readResp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(tftypes.Object{AttributeTypes: attrTypes}, nil)}}
+	d.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: raw}}, readResp)
+	if readResp.Diagnostics.HasError() {
+		t.Fatalf("Read diagnostics: %s", diagnosticsError(readResp.Diagnostics))
+	}
+	var data pveNodeAptRepositoriesDataSourceModel
+	if err := readResp.State.Get(ctx, &data); err != nil {
+		t.Fatalf("State.Get: %v", err)
+	}
+	if data.Changelog.IsNull() || !strings.Contains(data.Changelog.ValueString(), "pve-manager (8.2.2)") {
+		t.Fatalf("changelog = %q", data.Changelog.ValueString())
+	}
 }
 
 // aptRepositoriesDataSourceAttrTypes returns the top-level attribute types
@@ -110,6 +176,8 @@ func aptRepositoriesDataSourceAttrTypes() map[string]tftypes.Type {
 	return map[string]tftypes.Type{
 		"id":                    tftypes.String,
 		"node":                  tftypes.String,
+		"package":               tftypes.String,
+		"changelog":             tftypes.String,
 		"digest":                tftypes.String,
 		"repositories":          tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptRepoRowAttrTypes()}},
 		"standard_repositories": tftypes.List{ElementType: tftypes.Object{AttributeTypes: aptStandardRowAttrTypes()}},
