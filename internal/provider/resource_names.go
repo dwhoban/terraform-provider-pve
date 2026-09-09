@@ -60,4 +60,18 @@ const (
 	TypeNamePveNodeFirewallOptions        = "node_firewall_options"
 	TypeNamePveGuestFirewallOptions       = "guest_firewall_options"
 	TypeNamePveSdnFirewallOptions         = "sdn_firewall_options"
+	// Phase 3 — backup, replication, metrics, notifications, pools.
+	TypeNamePveBackupJob                    = "backup_job"
+	TypeNamePveBackupJobs                   = "backup_jobs"
+	TypeNamePveReplication                  = "replication"
+	TypeNamePveNodeReplications             = "node_replications"
+	TypeNamePveMetricsServer                = "metrics_server"
+	TypeNamePveNotificationEndpointSendmail = "notification_endpoint_sendmail"
+	TypeNamePveNotificationEndpointGoty     = "notification_endpoint_goty"
+	TypeNamePveNotificationEndpointSmtp     = "notification_endpoint_smtp"
+	TypeNamePveNotificationEndpointWebhook  = "notification_endpoint_webhook"
+	TypeNamePveNotificationMatcher          = "notification_matcher"
+	TypeNamePveNotificationTargets          = "notification_targets"
+	TypeNamePveNotificationTest             = "notification_test"
+	TypeNamePvePool                         = "pool"
 )

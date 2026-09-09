@@ -242,6 +242,15 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveGuestFirewallRulesResource,
 		NewPveSecurityGroupFirewallRulesResource,
 		NewPveVnetFirewallRulesResource,
+		NewPveBackupJobResource,
+		NewPveReplicationResource,
+		NewPveMetricsServerResource,
+		NewPveNotificationEndpointSendmailResource,
+		NewPveNotificationEndpointGotyResource,
+		NewPveNotificationEndpointSMTPResource,
+		NewPveNotificationEndpointWebhookResource,
+		NewPveNotificationMatcherResource,
+		NewPvePoolResource,
 	}
 }
 
@@ -283,6 +292,18 @@ func (p *PveProvider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewPveFirewallAliasDataSource,
 		NewPveFirewallIpsetDataSource,
 		NewPveFirewallSecurityGroupDataSource,
+		NewPveBackupJobDataSource,
+		NewPveBackupJobsDataSource,
+		NewPveReplicationDataSource,
+		NewPveNodeReplicationsDataSource,
+		NewPveMetricsServerDataSource,
+		NewPveNotificationEndpointSendmailDataSource,
+		NewPveNotificationEndpointGotyDataSource,
+		NewPveNotificationEndpointSMTPDataSource,
+		NewPveNotificationEndpointWebhookDataSource,
+		NewPveNotificationMatcherDataSource,
+		NewPveNotificationTargetsDataSource,
+		NewPvePoolDataSource,
 	}
 }
 
@@ -296,6 +317,7 @@ func (p *PveProvider) Actions(ctx context.Context) []func() action.Action {
 	return []func() action.Action{
 		NewPveRealmSyncAction,
 		NewPveHaArmAction,
+		NewPveNotificationTestAction,
 	}
 }
 
