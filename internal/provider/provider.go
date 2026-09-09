@@ -216,6 +216,7 @@ func (p *PveProvider) Resources(ctx context.Context) []func() resource.Resource 
 		NewPveNodeNetworkLinuxBondResource,
 		NewPveNodeNetworkVlanResource,
 		NewPveNodeDiskZFSResource,
+		NewPveNodeDiskLVMResource,
 		NewPveUserResource,
 		NewPveUserTokenResource,
 		NewPveGroupResource,

@@ -30,6 +30,7 @@ func TestProvider_RegisteredSurface(t *testing.T) {
 		"pve_node_network_linux_bond",
 		"pve_node_network_vlan",
 		"pve_node_disk_zfs",
+		"pve_node_disk_lvm",
 		"pve_user",
 		"pve_user_token",
 		"pve_group",
