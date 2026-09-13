@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/pveclient"
 )
 
 // sdnListTestClient spins up a fake PVE API served by h and returns a

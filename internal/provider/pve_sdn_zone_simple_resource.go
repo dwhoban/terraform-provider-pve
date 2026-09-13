@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/pveclient"
 )
 
 // Ensure framework interfaces are satisfied.

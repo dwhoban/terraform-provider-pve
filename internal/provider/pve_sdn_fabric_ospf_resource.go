@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/pveclient"
 )
 
 // sdnFabricIDPattern is the pin's pve-sdn-fabric-id format: 2 - 8

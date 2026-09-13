@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/pveclient"
 )
 
 // vmActionVMIDValidators is shared by every VM action: the pin constrains

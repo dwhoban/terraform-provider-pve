@@ -19,8 +19,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/credentials"
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider/pveclient"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/credentials"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider/pveclient"
 )
 
 // Ensure PveProvider satisfies various provider interfaces.

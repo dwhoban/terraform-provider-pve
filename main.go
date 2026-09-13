@@ -8,8 +8,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/dwhoban/terraform-provider-pve/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-provider-scaffolding-framework/internal/provider"
 )
 
 var (
@@ -30,7 +30,7 @@ func main() {
 	opts := providerserver.ServeOpts{
 		// Address of the published provider on the Terraform Registry;
 		// also keep tools/tools.go's tfplugindocs -provider-name in sync.
-		Address: "registry.terraform.io/hashicorp/pve",
+		Address: "registry.terraform.io/dwhoban/pve",
 		Debug:   debug,
 	}
 

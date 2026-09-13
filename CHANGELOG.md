@@ -1,6 +1,6 @@
 ## 0.1.0 (Unreleased)
 
-- Provider identity `registry.terraform.io/hashicorp/pve` (Terraform Plugin Framework, protocol 6), with API-token and username/password credential chains, TLS controls, and `PROXMOX_VE_*` environment resolution
+- Provider identity `registry.terraform.io/dwhoban/pve` (Terraform Plugin Framework, protocol 6), with API-token and username/password credential chains, TLS controls, and `PROXMOX_VE_*` environment resolution
 - Full ADR-0001 API surface: 87 managed resources, 106 data sources, 41 actions, and the `next_id` provider function, pinned by `TestProvider_RegisteredSurface`
 - Access control: users, tokens, groups, roles, ACLs, permissions, LDAP/AD/OpenID realms, realm sync jobs
 - Cluster: membership, options, resources/status/tasks reads, HA groups/resources/rules/status/arm and move actions
