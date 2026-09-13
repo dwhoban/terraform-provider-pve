@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_hardware_mapping_pci" "gpu" {
   id          = "gpu"
   description = "Host GPU passed through to the media VM"

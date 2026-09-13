@@ -13,8 +13,6 @@ Manages a file (ISO image, container template or import image) on a PVE storage 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Upload a local ISO image to the `local` storage on node pve1.
 resource "pve_file" "debian_iso" {
   node         = "pve1"
@@ -67,7 +65,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing storage file by its `<node>:<storage>:<volid>` identifier:
 terraform import pve_file.debian_iso 'pve1:local:local:iso/debian-12.iso'
 ```

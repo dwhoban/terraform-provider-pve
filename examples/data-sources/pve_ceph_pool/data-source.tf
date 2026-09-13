@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_pool" "rbd" {
   node = "pve1"
   name = "rbd"

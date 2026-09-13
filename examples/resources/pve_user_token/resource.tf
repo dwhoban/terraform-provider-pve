@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage the CI user and an API token for it. The token secret is returned
 # exactly once, at create, and stored in the state as `token_value`.
 resource "pve_user" "ci" {

@@ -13,8 +13,6 @@ Lists every storage visible on a node with its runtime status, as reported by `G
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_storages" "pve1" {
   node = "pve1"
 }

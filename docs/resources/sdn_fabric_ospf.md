@@ -13,8 +13,6 @@ Manages an OSPF SDN fabric (`/cluster/sdn/fabrics/fabric`, section protocol `osp
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # OSPF SDN fabric with one node member. Changes stay pending until the
 # `pve_sdn_apply` action pushes them cluster-wide.
 resource "pve_sdn_fabric_ospf" "ospf1" {
@@ -113,7 +111,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing OSPF fabric by its identifier:
 terraform import pve_sdn_fabric_ospf.ospf1 ospf1
 ```

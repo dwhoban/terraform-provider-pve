@@ -13,8 +13,6 @@ Proxmox VE node-level configuration (description, wake-on-LAN, ACME registration
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node" "pve1" {
   node        = "pve1"
   description = "primary node managed by terraform"
@@ -74,7 +72,5 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 terraform import pve_node.pve1 pve1
 ```

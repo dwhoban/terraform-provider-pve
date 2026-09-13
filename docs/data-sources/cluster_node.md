@@ -13,8 +13,6 @@ Reads the cluster membership record of a single Proxmox VE node: its corosync no
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Read the cluster membership record of node pve1.
 data "pve_cluster_node" "pve1" {
   node = "pve1"

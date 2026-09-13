@@ -13,8 +13,6 @@ Manages the ordered firewall ruleset of one guest (`GET/POST /nodes/{node}/{qemu
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_guest_firewall_rules" "vm100" {
   node       = "pve1"
   guest_type = "qemu"
@@ -85,7 +83,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing guest firewall ruleset by `<node>:<guest_type>:<vmid>`:
 terraform import pve_guest_firewall_rules.vm100 pve1:qemu:100
 ```

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Snapshot of container 100 taken before each upgrade. The snapshot name is
 # immutable: only the description updates in place.
 resource "pve_container_snapshot" "pre_upgrade" {

@@ -13,8 +13,6 @@ Arms or disarms the cluster HA stack. Arming re-enables the HA stack after it wa
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Disarm the HA stack during maintenance: resources are frozen (no new
 # commands or state changes are applied) until the stack is armed again.
 action "pve_ha_arm" "maintenance" {

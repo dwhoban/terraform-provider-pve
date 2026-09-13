@@ -13,8 +13,6 @@ Reads a directory storage configuration (`/storage/{storage}` with upstream type
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_directory" "local" {
   id = "local"
 }

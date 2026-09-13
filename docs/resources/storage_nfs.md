@@ -13,8 +13,6 @@ Manages an NFS storage definition (`/storage`, type `nfs`). Changing `storage` o
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an NFS export as a PVE storage definition.
 resource "pve_storage_nfs" "media" {
   storage = "media"
@@ -62,8 +60,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE storage definition by its storage ID.
 terraform import pve_storage_nfs.media "media"
 ```

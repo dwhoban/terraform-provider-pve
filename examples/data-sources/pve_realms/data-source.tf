@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realms" "all" {}
 
 output "authentication_realms" {

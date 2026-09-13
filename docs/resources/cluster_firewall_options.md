@@ -13,8 +13,6 @@ Manages the cluster-wide firewall options singleton (`GET/PUT /cluster/firewall/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Cluster-wide firewall options. This is a cluster singleton: one instance
 # manages every listed option, and removing an attribute clears it on the
 # cluster via the `delete` parameter. Destroy only forgets the state.
@@ -52,8 +50,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import is a passthrough: any ID resolves to the cluster firewall options
 # singleton.
 terraform import pve_cluster_firewall_options.cluster cluster

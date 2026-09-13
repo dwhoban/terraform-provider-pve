@@ -13,7 +13,6 @@ Manages an SDN vnet object (`/cluster/sdn/vnets`). A vnet is a virtual network b
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
 # A vnet is a virtual network bridged into an SDN zone. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 
@@ -53,7 +52,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing SDN vnet by its identifier:
 terraform import pve_sdn_vnet.vnet1 vnet1
 ```

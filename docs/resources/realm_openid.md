@@ -13,8 +13,6 @@ Manages an OpenID Connect authentication realm (`type=openid`) in Proxmox VE (`/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_openid" "keycloak" {
   realm      = "keycloak"
   comment    = "Keycloak SSO"
@@ -64,8 +62,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing OpenID realm by its realm ID.
 terraform import pve_realm_openid.keycloak keycloak
 ```

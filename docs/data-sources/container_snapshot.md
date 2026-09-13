@@ -13,8 +13,6 @@ Reads one snapshot of an LXC container (`GET /nodes/{node}/lxc/{vmid}/snapshot/{
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_container_snapshot" "pre_upgrade" {
   node = "pve1"
   vmid = 100

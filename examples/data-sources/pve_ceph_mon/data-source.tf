@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_mon" "pve1" {
   node  = "pve1"
   monid = "pve1"

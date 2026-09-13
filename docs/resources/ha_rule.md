@@ -13,8 +13,6 @@ Manages an HA rule (`/cluster/ha/rules`). HA rules replace the deprecated HA gro
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ha_rule" "keep_db" {
   rule      = "keep-db-on-pve1"
   type      = "node-affinity"
@@ -49,7 +47,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing HA rule by its identifier:
 terraform import pve_ha_rule.keep_db keep-db-on-pve1
 ```

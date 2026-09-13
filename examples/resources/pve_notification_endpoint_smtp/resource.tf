@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_smtp" "relay" {
   name         = "mailrelay"
   server       = "smtp.example.com"

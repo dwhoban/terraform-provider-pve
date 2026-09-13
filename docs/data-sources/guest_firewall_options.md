@@ -13,8 +13,6 @@ Reads the firewall options singleton of one guest from `GET /nodes/{node}/{qemu|
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the lxc container 101 on node pve1.
 data "pve_guest_firewall_options" "ct101" {
   node       = "pve1"

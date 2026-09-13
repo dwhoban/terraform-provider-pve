@@ -13,8 +13,6 @@ Reads the metadata of one Ceph OSD from `GET /nodes/{node}/ceph/osd/{osdid}/meta
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_osd" "osd0" {
   node   = "pve1"
   osd_id = 0

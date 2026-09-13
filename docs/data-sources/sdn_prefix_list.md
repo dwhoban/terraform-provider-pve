@@ -13,8 +13,6 @@ Reads one SDN prefix list and its ordered entries from `GET /cluster/sdn/prefix-
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_prefix_list" "pl1" {
   id = "pl1"
 }

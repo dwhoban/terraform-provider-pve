@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Approximation of HashiCorp PCI DSS Sentinel example: ec2-network-acl-should-have-subnet-ids.sentinel
 # Exact conversion quality: Limited
 

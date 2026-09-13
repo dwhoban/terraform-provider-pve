@@ -13,8 +13,6 @@ Manages a single QEMU VM snapshot (`POST /nodes/{node}/qemu/{vmid}/snapshot`). S
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_vm_snapshot" "pre_upgrade" {
   node        = "pve1"
   vmid        = 100
@@ -52,8 +50,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import by `<node>/<vmid>/<snapshot-name>`.
 terraform import pve_vm_snapshot.pre_upgrade pve1/100/pre-upgrade
 ```

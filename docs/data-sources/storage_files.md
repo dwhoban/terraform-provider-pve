@@ -13,8 +13,6 @@ Lists the files stored on a storage, as reported by `GET /nodes/{node}/storage/{
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_files" "local_iso" {
   node    = "pve1"
   storage = "local"

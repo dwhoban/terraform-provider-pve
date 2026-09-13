@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the SDN vnet1. One instance per vnet manages the
 # listed options; removing an attribute clears it via the `delete`
 # parameter. Destroy only forgets the state.

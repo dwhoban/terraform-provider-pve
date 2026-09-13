@@ -13,8 +13,6 @@ Suspends a QEMU VM (`POST /nodes/{node}/qemu/{vmid}/status/suspend`). The action
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Suspend VM 100 to disk; it resumes on the next start.
 action "pve_vm_suspend" "suspend_vm" {
   config {

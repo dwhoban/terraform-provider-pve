@@ -13,8 +13,6 @@ Retrieves the parsed APT repository configuration of one node (`GET /nodes/{node
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Parsed APT repository configuration of node pve1.
 data "pve_node_apt_repositories" "pve1" {
   node = "pve1"

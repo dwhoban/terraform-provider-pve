@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Nightly sync job for the corporate LDAP realm.
 resource "pve_realm_sync_job" "corp_nightly" {
   id              = "corp-nightly"

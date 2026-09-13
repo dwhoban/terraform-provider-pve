@@ -13,8 +13,6 @@ Lists the systemd services PVE manages on one node (`GET /nodes/{node}/services`
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Systemd services managed by PVE on node pve1, with their current states.
 data "pve_node_services" "pve1" {
   node = "pve1"

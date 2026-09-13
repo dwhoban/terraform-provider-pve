@@ -13,8 +13,6 @@ Manages an LVM storage configuration (`/storage/{storage}` with type `lvm`). Eve
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_storage_lvm" "vmstore" {
   id      = "vmstore"
   content = ["images", "rootdir"]
@@ -68,7 +66,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing LVM storage by its identifier:
 terraform import pve_storage_lvm.vmstore vmstore
 ```

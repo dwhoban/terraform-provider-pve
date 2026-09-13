@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Route error notifications from hosts matching `pve` to the built-in
 # mail-to-root target; combine conditions with `any`.
 resource "pve_notification_matcher" "ops" {

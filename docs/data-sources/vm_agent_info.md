@@ -13,8 +13,6 @@ Merged runtime facts of a QEMU guest as reported by its guest agent (`GET /nodes
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Requires the QEMU guest agent inside vm 100.
 data "pve_vm_agent_info" "vm100" {
   node = "pve1"

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_ldap" "corp" {
   realm        = "corp"
   comment      = "Corporate LDAP"

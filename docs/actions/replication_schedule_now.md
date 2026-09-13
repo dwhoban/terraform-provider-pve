@@ -13,8 +13,6 @@ Schedules a replication job to start as soon as possible (`POST /nodes/{node}/re
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Start replication job 100-0 (guest 100) on node pve1 as soon as
 # possible and wait for the replication task to finish.
 action "pve_replication_schedule_now" "replicate_vm100_now" {

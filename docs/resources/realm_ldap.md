@@ -13,8 +13,6 @@ Manages an LDAP authentication realm (`type=ldap`) in Proxmox VE (`/access/domai
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_ldap" "corp" {
   realm        = "corp"
   comment      = "Corporate LDAP"
@@ -79,8 +77,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing LDAP realm by its realm ID.
 terraform import pve_realm_ldap.corp corp
 ```

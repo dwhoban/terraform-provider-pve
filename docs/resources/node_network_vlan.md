@@ -13,8 +13,6 @@ Manages a VLAN network interface (`type=vlan`) on a Proxmox VE node (`/nodes/{no
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_network_vlan" "vlan100" {
   node            = "pve1"
   iface           = "vmbr0.100"
@@ -56,8 +54,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import by `<node>:<iface>`.
 terraform import pve_node_network_vlan.vlan100 pve1:vmbr0.100
 ```

@@ -13,8 +13,6 @@ Reads the firewall options singleton of one SDN vnet from `GET /cluster/sdn/vnet
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the SDN vnet1.
 data "pve_sdn_firewall_options" "vnet1" {
   vnet = "vnet1"

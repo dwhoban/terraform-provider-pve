@@ -13,8 +13,6 @@ Sends a wake on LAN magic packet to the node's configured WoL interface (`POST /
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 action "pve_node_wakeonlan" "wake_pve2" {
   config {
     node = "pve2"

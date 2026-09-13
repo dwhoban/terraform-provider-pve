@@ -13,8 +13,6 @@ Reads a single SDN IPAM plugin object (`GET /cluster/sdn/ipams/{ipam}`) plus its
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_ipam" "netbox1" {
   ipam = "netbox1"
 }

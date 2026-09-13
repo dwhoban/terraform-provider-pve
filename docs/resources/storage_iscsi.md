@@ -13,8 +13,6 @@ Manages an iSCSI target storage definition (`/storage`, type `iscsi`). iSCSI tar
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an iSCSI target as a PVE storage definition. iSCSI targets are
 # used as disks for VMs only.
 resource "pve_storage_iscsi" "san" {
@@ -58,8 +56,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE storage definition by its storage ID.
 terraform import pve_storage_iscsi.san "san"
 ```

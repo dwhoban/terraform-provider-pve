@@ -13,8 +13,6 @@ Manages a file on a PVE storage that PVE downloads itself from an HTTP(S) URL (`
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Have PVE download an ISO directly from a URL onto the `local` storage.
 # The checksum pair is optional but recommended for reproducible runs.
 resource "pve_download_file" "alpine_iso" {
@@ -73,7 +71,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing URL-downloaded file by its `<node>:<storage>:<volid>` identifier:
 terraform import pve_download_file.alpine_iso 'pve1:local:local:iso/alpine-virt-3.20.3-x86_64.iso'
 ```

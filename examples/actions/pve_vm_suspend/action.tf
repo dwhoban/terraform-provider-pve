@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Suspend VM 100 to disk; it resumes on the next start.
 action "pve_vm_suspend" "suspend_vm" {
   config {

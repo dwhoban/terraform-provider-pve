@@ -13,8 +13,6 @@ Manages the firewall options singleton of one SDN vnet (`GET/PUT /cluster/sdn/vn
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the SDN vnet1. One instance per vnet manages the
 # listed options; removing an attribute clears it via the `delete`
 # parameter. Destroy only forgets the state.
@@ -51,8 +49,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import ID is the vnet identifier.
 terraform import pve_sdn_firewall_options.vnet1 vnet1
 ```

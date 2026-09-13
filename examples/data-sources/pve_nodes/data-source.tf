@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_nodes" "all" {}
 
 output "cluster_node_names" {

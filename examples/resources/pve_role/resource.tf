@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_role" "operator" {
   roleid = "operator"
   privs = [

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Host firewall options of node pve1. One instance per node manages the
 # listed options; removing an attribute clears it via the `delete`
 # parameter. Destroy only forgets the state.

@@ -13,8 +13,6 @@ Reads a single logical PCI hardware mapping (`GET /cluster/mapping/pci/{id}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_hardware_mapping_pci" "gpu" {
   id = "gpu"
 }

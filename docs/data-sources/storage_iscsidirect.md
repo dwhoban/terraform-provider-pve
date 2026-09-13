@@ -13,8 +13,6 @@ Reads an iSCSI direct-attached storage definition from `GET /storage/{storage}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_iscsidirect" "fast" {
   storage = "fast"
 }

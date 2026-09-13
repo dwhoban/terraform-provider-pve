@@ -13,8 +13,6 @@ Requests relocation of an HA resource to another node (`POST /cluster/ha/resourc
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Request relocation of the HA-managed container 101 to node pve3. Unlike
 # a migrate, this stops the service on the old node and restarts it on the
 # target, causing downtime.

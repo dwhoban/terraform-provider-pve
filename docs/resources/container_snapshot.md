@@ -13,8 +13,6 @@ Creates and destroys one snapshot of an LXC container (`POST/DELETE /nodes/{node
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Snapshot of container 100 taken before each upgrade. The snapshot name is
 # immutable: only the description updates in place.
 resource "pve_container_snapshot" "pre_upgrade" {
@@ -50,7 +48,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing snapshot by its node, vmid, and name:
 terraform import pve_container_snapshot.pre_upgrade pve1/100/pre-upgrade
 ```

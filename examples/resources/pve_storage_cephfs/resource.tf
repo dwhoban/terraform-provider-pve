@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 variable "ceph_keyring" {
   type      = string
   sensitive = true

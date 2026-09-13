@@ -13,8 +13,6 @@ Reads the finished task list of one node (`GET /nodes/{node}/tasks`). Rows are P
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_tasks" "pve1" {
   node       = "pve1"
   limit      = 50

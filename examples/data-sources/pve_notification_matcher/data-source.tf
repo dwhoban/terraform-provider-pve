@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_matcher" "ops" {
   name = "ops"
 }

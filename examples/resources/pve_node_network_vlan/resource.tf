@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_network_vlan" "vlan100" {
   node            = "pve1"
   iface           = "vmbr0.100"

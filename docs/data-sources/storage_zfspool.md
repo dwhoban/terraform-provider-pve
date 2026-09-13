@@ -13,8 +13,6 @@ Reads a ZFS pool storage configuration (`/storage/{storage}` with type `zfspool`
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_zfspool" "zfspool" {
   id = "zfspool"
 }

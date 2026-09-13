@@ -13,8 +13,6 @@ Manages a Proxmox VE resource pool (`/pools`). PVE's create endpoint does not ac
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_pool" "prod" {
   poolid  = "prod"
   comment = "Production workload pool"
@@ -60,8 +58,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing pool by its poolid.
 terraform import pve_pool.prod prod
 ```

@@ -13,8 +13,6 @@ Syncs users and/or groups from the configured LDAP/AD directory into `user.cfg` 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Preview (dry run) what a full sync of the corporate LDAP realm would
 # change, removing vanished entries and their ACLs. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_realm_sync.preview]

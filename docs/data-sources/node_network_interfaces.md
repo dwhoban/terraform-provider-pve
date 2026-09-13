@@ -13,8 +13,6 @@ Lists every network interface defined on a Proxmox VE node (`GET /nodes/{node}/n
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_network_interfaces" "pve1" {
   node = "pve1"
   type = "bridge"

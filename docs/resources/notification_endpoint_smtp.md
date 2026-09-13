@@ -13,8 +13,6 @@ Manages a SMTP notification endpoint (`POST/PUT/DELETE /cluster/notifications/en
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_smtp" "relay" {
   name         = "mailrelay"
   server       = "smtp.example.com"
@@ -56,7 +54,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing smtp endpoint by its name:
 terraform import pve_notification_endpoint_smtp.relay mailrelay
 ```

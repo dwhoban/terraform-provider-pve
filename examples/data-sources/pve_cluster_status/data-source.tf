@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Cluster membership, quorum, corosync totem settings, and QDevice status.
 
 data "pve_cluster_status" "cluster" {}

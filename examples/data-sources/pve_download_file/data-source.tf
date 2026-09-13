@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_download_file" "alpine_iso" {
   node         = "pve1"
   storage      = "local"

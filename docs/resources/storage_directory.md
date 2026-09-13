@@ -13,8 +13,6 @@ Manages a directory storage configuration (`/storage/{storage}` with upstream ty
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_storage_directory" "local" {
   id             = "local"
   path           = "/var/lib/vz"
@@ -72,7 +70,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing directory storage by its identifier:
 terraform import pve_storage_directory.local local
 ```

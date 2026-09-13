@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_guest_firewall_rules" "vm100" {
   node       = "pve1"
   guest_type = "qemu"

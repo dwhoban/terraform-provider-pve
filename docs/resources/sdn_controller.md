@@ -13,7 +13,6 @@ Manages an SDN controller object (`/cluster/sdn/controllers`). Controllers run t
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
 # A controller runs the routing backbone for EVPN zones. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 
@@ -65,7 +64,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing SDN controller by its identifier:
 terraform import pve_sdn_controller.bgp1 bgp1
 ```

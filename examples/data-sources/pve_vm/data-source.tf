@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Read the effective configuration and runtime status of one QEMU guest.
 data "pve_vm" "web" {
   node = "pve1"

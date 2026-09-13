@@ -13,8 +13,6 @@ Lists the LXC containers on one node as reported by `GET /nodes/{node}/lxc`. Onl
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # LXC containers on node pve1.
 data "pve_containers" "pve1" {
   node = "pve1"

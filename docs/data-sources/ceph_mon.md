@@ -13,8 +13,6 @@ Reads a single Ceph monitor from `GET /nodes/{node}/ceph/mon`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_mon" "pve1" {
   node  = "pve1"
   monid = "pve1"

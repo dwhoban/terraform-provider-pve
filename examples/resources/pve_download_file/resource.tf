@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Have PVE download an ISO directly from a URL onto the `local` storage.
 # The checksum pair is optional but recommended for reproducible runs.
 resource "pve_download_file" "alpine_iso" {

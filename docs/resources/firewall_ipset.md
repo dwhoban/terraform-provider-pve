@@ -13,8 +13,6 @@ Manages an IP set and its members in the cluster firewall configuration (`/clust
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_firewall_ipset" "management" {
   name    = "management"
   comment = "Admin hosts"
@@ -45,7 +43,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing IP set by its name (members are read back on import):
 terraform import pve_firewall_ipset.management management
 ```

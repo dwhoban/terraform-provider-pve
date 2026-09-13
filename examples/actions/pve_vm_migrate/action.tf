@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Live-migrate VM 100 from pve1 to pve2.
 action "pve_vm_migrate" "migrate_vm" {
   config {

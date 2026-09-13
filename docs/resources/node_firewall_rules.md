@@ -13,8 +13,6 @@ Manages the ordered firewall ruleset of one node (`GET/POST /nodes/{node}/firewa
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_firewall_rules" "pve1" {
   node = "pve1"
   rules = [
@@ -79,7 +77,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing node firewall ruleset by its node name:
 terraform import pve_node_firewall_rules.pve1 pve1
 ```

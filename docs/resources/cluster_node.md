@@ -16,8 +16,6 @@ Manages cluster membership for a single Proxmox VE node. The provider endpoint m
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manages cluster membership for node pve1. The provider endpoint must
 # target pve1 itself: create calls POST /cluster/config/join on it, which
 # joins the node into the existing cluster at 10.0.0.10.
@@ -68,8 +66,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing cluster membership. The ID is the node name.
 terraform import pve_cluster_node.pve1 pve1
 ```

@@ -13,8 +13,6 @@ Reads a single SDN reverse-DNS plugin object (`GET /cluster/sdn/dns/{dns}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_dns" "pdns1" {
   dns = "pdns1"
 }

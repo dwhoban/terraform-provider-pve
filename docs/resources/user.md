@@ -13,8 +13,6 @@ Manages a PVE user account (`/access/users/{userid}`). The account lives in the 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a PVE user account in the `pve` realm.
 resource "pve_user" "ci" {
   userid    = "ci@pve"
@@ -65,8 +63,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE user by its full user ID.
 terraform import pve_user.ci "root@pam"
 ```

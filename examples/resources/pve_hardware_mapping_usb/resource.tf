@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_hardware_mapping_usb" "ups" {
   id          = "ups"
   description = "UPS serial link"

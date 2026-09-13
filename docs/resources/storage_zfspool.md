@@ -13,8 +13,6 @@ Manages a ZFS pool storage configuration (`/storage/{storage}` with type `zfspoo
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_storage_zfspool" "zfspool" {
   id        = "zfspool"
   content   = ["images", "rootdir"]
@@ -64,7 +62,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing ZFS pool storage by its identifier:
 terraform import pve_storage_zfspool.zfspool zfspool
 ```

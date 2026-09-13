@@ -13,8 +13,6 @@ Node facts for one cluster node. Reads four endpoints per refresh: `GET /nodes/{
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node" "pve1" {
   node = "pve1"
 }

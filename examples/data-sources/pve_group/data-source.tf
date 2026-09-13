@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_group" "admins" {
   groupid = "admins"
 }

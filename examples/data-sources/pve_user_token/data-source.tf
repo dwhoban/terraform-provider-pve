@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # List every API token of a PVE user.
 data "pve_user_token" "root_tokens" {
   userid = "root@pam"

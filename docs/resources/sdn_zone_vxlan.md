@@ -13,8 +13,6 @@ Manages a VXLAN SDN zone (`/cluster/sdn/zones`, type `vxlan`) building an overla
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a VXLAN SDN zone between the nodes' VTEPs.
 resource "pve_sdn_zone_vxlan" "zone1" {
   zone  = "zone1"
@@ -58,8 +56,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE SDN zone by its zone identifier.
 terraform import pve_sdn_zone_vxlan.zone1 "zone1"
 ```

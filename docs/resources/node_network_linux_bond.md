@@ -13,8 +13,6 @@ Manages a Linux bond network interface (`type=bond`) on a Proxmox VE node (`/nod
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_network_linux_bond" "bond0" {
   node                  = "pve1"
   iface                 = "bond0"
@@ -67,8 +65,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import by `<node>:<iface>`.
 terraform import pve_node_network_linux_bond.bond0 pve1:bond0
 ```

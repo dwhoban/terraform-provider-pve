@@ -13,8 +13,6 @@ Reads a single Ceph pool and its settings from `GET /nodes/{node}/ceph/pool`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_pool" "rbd" {
   node = "pve1"
   name = "rbd"

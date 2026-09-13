@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_ad" "ad" {
   realm          = "ad"
   comment        = "Active Directory"

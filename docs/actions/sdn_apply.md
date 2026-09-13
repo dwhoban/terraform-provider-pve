@@ -13,8 +13,6 @@ Applies the pending SDN configuration cluster-wide and reloads ifreload and FRR 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Apply every pending SDN change cluster-wide and wait for the reload task.
 # Warning: this pushes all pending SDN configuration (zones, vnets,
 # subnets, fabrics, controllers) to all nodes at once.

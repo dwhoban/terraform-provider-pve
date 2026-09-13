@@ -13,8 +13,6 @@ Merges the QEMU capabilities of one node: available CPU models (`GET /nodes/{nod
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_capabilities" "pve1" {
   node = "pve1"
 }

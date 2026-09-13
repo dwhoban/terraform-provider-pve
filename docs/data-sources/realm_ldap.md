@@ -13,8 +13,6 @@ Reads an LDAP authentication realm (`type=ldap`) from Proxmox VE (`/access/domai
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realm_ldap" "corp" {
   realm = "corp"
 }

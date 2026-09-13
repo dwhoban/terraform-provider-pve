@@ -12,8 +12,6 @@ The Proxmox VE (PVE) provider manages a Proxmox Virtual Environment cluster: nod
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 provider "pve" {
   # endpoint  = "https://pve.example.com:8006/"
   # api_token = "root@pam!terraform=uuid"

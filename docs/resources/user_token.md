@@ -13,8 +13,6 @@ Manages a PVE API token for a user account (`/access/users/{userid}/token/{token
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage the CI user and an API token for it. The token secret is returned
 # exactly once, at create, and stored in the state as `token_value`.
 resource "pve_user" "ci" {
@@ -63,8 +61,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE API token as <userid>!<tokenid>.
 terraform import pve_user_token.ci "root@pam!ci"
 ```

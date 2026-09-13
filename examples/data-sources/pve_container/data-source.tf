@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_container" "ct1" {
   node = "pve1"
   vmid = 100

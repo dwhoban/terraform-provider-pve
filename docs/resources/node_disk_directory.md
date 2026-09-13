@@ -13,8 +13,6 @@ Manages directory storage on a Proxmox VE node: a filesystem created on an unuse
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_disk_directory" "backup" {
   node           = "pve1"
   name           = "backup"
@@ -49,7 +47,5 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 terraform import pve_node_disk_directory.backup pve1:backup
 ```

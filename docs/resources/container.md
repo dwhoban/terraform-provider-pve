@@ -13,8 +13,6 @@ Manages one LXC container, either from an `ostemplate` or by cloning an existing
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # LXC container created from an OS template on local storage.
 resource "pve_container" "ct1" {
   vmid         = 100
@@ -142,7 +140,5 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 terraform import pve_container.ct1 pve1/100
 ```

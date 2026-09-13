@@ -13,8 +13,6 @@ Reads an external metric server configuration from `GET /cluster/metrics/server/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_metrics_server" "influx" {
   id = "influx1"
 }

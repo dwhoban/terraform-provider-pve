@@ -13,8 +13,6 @@ Lists every entity that can be used as a notification target, as reported by `GE
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_targets" "all" {}
 
 output "notification_target_names" {

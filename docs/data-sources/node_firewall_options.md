@@ -13,8 +13,6 @@ Reads the host firewall options singleton of one node from `GET /nodes/{node}/fi
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Host firewall options of node pve1.
 data "pve_node_firewall_options" "pve1" {
   node = "pve1"

@@ -13,8 +13,6 @@ Manages an HA resource (`/cluster/ha/resources`), binding a guest (`vm:<vmid>` o
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ha_resource" "web" {
   sid          = "vm:100"
   state        = "started"
@@ -50,7 +48,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing HA resource by its SID:
 terraform import pve_ha_resource.web vm:100
 ```

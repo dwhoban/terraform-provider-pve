@@ -13,8 +13,6 @@ Manages the node's custom TLS certificate chain (`POST`/`DELETE /nodes/{node}/ce
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Replace the PEM placeholders with your certificate material, or load it
 # from files: certificates_pem = file("certs/pve1-fullchain.pem").
 resource "pve_node_certificate" "custom" {
@@ -70,8 +68,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # A node carries at most one custom certificate; the import ID is the node
 # name. Provide the chain and key in configuration so the next plan matches.
 terraform import pve_node_certificate.custom pve1

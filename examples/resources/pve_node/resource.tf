@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node" "pve1" {
   node        = "pve1"
   description = "primary node managed by terraform"

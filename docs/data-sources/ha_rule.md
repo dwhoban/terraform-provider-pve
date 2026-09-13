@@ -13,8 +13,6 @@ Reads a single HA rule from `GET /cluster/ha/rules/{rule}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ha_rule" "keep_db" {
   rule = "keep-db-on-pve1"
 }

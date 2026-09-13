@@ -13,8 +13,6 @@ Reads the subscription info of a node as reported by `GET /nodes/{node}/subscrip
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_subscription" "pve1" {
   node = "pve1"
 }

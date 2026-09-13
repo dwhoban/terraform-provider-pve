@@ -13,8 +13,6 @@ Reads a single file (ISO image, container template or import image) from a PVE s
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_file" "debian_iso" {
   node         = "pve1"
   storage      = "local"

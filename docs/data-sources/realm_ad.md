@@ -13,8 +13,6 @@ Reads an Active Directory authentication realm (`type=ad`) from Proxmox VE (`/ac
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realm_ad" "ad" {
   realm = "ad"
 }

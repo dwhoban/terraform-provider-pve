@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Download the Debian 12 standard appliance template onto the local
 # storage of node pve1 and wait for the download to finish. Templates
 # available on the node are listed by the pve_appliances data source.

@@ -13,8 +13,6 @@ Manages the host firewall options singleton of one node (`GET/PUT /nodes/{node}/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Host firewall options of node pve1. One instance per node manages the
 # listed options; removing an attribute clears it via the `delete`
 # parameter. Destroy only forgets the state.
@@ -70,8 +68,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import ID is the node name.
 terraform import pve_node_firewall_options.pve1 pve1
 ```

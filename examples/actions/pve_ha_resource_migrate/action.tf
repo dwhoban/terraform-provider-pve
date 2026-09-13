@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Request an online (live) migration of the HA-managed VM 100 to node
 # pve2. The HA manager performs the migration after the request is
 # accepted.

@@ -13,8 +13,6 @@ Reads a single security group's metadata from `GET /cluster/firewall/groups`. Th
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_firewall_security_group" "web" {
   group = "web"
 }

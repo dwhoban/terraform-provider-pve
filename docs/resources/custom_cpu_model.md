@@ -13,8 +13,6 @@ Manages a custom CPU model definition (`/cluster/qemu/custom-cpu-models`), a nam
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_custom_cpu_model" "lab_cpu" {
   name           = "lab-cpu"
   reported_model = "Skylake-Client"
@@ -51,7 +49,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing custom CPU model by its name:
 terraform import pve_custom_cpu_model.lab_cpu lab-cpu
 ```

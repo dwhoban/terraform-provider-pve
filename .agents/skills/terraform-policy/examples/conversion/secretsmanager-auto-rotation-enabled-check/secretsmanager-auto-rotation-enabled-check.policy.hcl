@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Approximation of HashiCorp PCI DSS Sentinel example: secretsmanager-auto-rotation-enabled-check.sentinel
 # Exact conversion quality: Limited
 

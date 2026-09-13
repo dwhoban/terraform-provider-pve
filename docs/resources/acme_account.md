@@ -13,8 +13,6 @@ Registers an ACME account with a CA (`POST /cluster/acme/account` and `GET/PUT/D
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_acme_account" "default" {
   name    = "default"
   contact = ["mailto:ops@example.com"]
@@ -49,7 +47,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing ACME account by its name:
 terraform import pve_acme_account.default default
 ```

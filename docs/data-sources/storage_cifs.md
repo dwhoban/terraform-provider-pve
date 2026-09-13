@@ -13,8 +13,6 @@ Reads a CIFS storage definition from `GET /storage/{storage}`. The share's passw
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_cifs" "archive" {
   storage = "archive"
 }

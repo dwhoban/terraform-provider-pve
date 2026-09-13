@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Converted from HashiCorp PCI DSS Sentinel example: dms-endpoint-should-be-ssl-configured.sentinel
 # Conversion quality: Good
 

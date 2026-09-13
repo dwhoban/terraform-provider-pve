@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a CIFS/SMB share as a PVE storage definition.
 resource "pve_storage_cifs" "archive" {
   storage    = "archive"

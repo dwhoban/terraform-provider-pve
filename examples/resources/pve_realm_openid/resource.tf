@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_openid" "keycloak" {
   realm      = "keycloak"
   comment    = "Keycloak SSO"

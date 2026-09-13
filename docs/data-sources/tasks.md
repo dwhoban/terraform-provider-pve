@@ -13,8 +13,6 @@ Lists recent tasks cluster wide as reported by `GET /cluster/tasks`. Running tas
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Recent tasks cluster wide.
 
 data "pve_tasks" "recent" {}

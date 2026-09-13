@@ -13,8 +13,6 @@ Reads a single SDN subnet object (`GET /cluster/sdn/vnets/{vnet}/subnets/{subnet
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_subnet" "subnet1" {
   vnet   = "vnet1"
   subnet = "10.0.0.0-24"

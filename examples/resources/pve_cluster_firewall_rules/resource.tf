@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_cluster_firewall_rules" "cluster" {
   rules = [
     {

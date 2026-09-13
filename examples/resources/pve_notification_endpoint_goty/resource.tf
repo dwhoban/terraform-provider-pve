@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_goty" "mobile_push" {
   name    = "gotify"
   server  = "https://gotify.example.com"

@@ -13,8 +13,6 @@ Lists the appliance templates (container templates and virtual appliance images)
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_appliances" "pve1" {
   node = "pve1"
 }

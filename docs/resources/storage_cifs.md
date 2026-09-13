@@ -13,8 +13,6 @@ Manages a CIFS storage definition (`/storage`, type `cifs`). Changing `storage` 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a CIFS/SMB share as a PVE storage definition.
 resource "pve_storage_cifs" "archive" {
   storage    = "archive"
@@ -72,8 +70,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE storage definition by its storage ID.
 terraform import pve_storage_cifs.archive "archive"
 ```

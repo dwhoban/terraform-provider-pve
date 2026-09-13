@@ -13,8 +13,6 @@ Looks up a single PVE-managed directory storage on a Proxmox VE node (`GET /node
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_disk_directory" "backup" {
   node = "pve1"
   name = "backup"

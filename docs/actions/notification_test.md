@@ -13,8 +13,6 @@ Sends a test notification to the provided target or matcher (`POST /cluster/noti
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Send a test notification through the built-in mail-to-root target to
 # verify the notification chain end to end.
 action "pve_notification_test" "smoke" {

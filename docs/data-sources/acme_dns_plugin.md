@@ -13,8 +13,6 @@ Reads a single ACME DNS challenge plugin (`GET /cluster/acme/plugins/{id}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_acme_dns_plugin" "pdns" {
   plugin = "pdns"
 }

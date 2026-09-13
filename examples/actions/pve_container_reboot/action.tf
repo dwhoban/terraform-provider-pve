@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Reboots container 100 on pve1: shuts it down and starts it again,
 # applying pending configuration changes. Waits up to 60 seconds for the
 # shutdown phase. Invoke with:

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an EVPN SDN zone on a BGP/EVPN controller.
 resource "pve_sdn_zone_evpn" "zone1" {
   zone       = "zone1"

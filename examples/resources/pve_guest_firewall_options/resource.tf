@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the qemu VM 100 on node pve1. One instance per guest
 # manages the listed options; removing an attribute clears it via the
 # `delete` parameter. Destroy only forgets the state.

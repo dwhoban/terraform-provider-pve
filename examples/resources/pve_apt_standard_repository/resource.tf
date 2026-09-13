@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Enable the no-subscription PVE repository on node pve1. Destroying this
 # resource only forgets it from state: the PVE API cannot remove repository
 # entries.

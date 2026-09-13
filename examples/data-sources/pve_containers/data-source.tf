@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # LXC containers on node pve1.
 data "pve_containers" "pve1" {
   node = "pve1"

@@ -13,8 +13,6 @@ Ceph cluster status as observed from one node: the raw `ceph status` payload fro
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ceph_status" "pve1" {
   node = "pve1"
 }

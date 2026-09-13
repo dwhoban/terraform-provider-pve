@@ -13,8 +13,6 @@ Reads a single SDN controller object (`GET /cluster/sdn/controllers/{controller}
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_controller" "bgp1" {
   controller = "bgp1"
 }

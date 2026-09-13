@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Converted from HashiCorp PCI DSS Sentinel example: step-functions-state-machine-logging-enabled.sentinel
 # Conversion quality: Good
 

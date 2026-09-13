@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Disarm the HA stack during maintenance: resources are frozen (no new
 # commands or state changes are applied) until the stack is armed again.
 action "pve_ha_arm" "maintenance" {

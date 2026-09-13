@@ -13,8 +13,6 @@ Manages an HA group (`/cluster/ha/groups`). PVE marks HA groups as deprecated in
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ha_group" "primary" {
   group      = "primary"
   nodes      = ["pve1:2", "pve2:1"]
@@ -45,7 +43,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing HA group by its identifier:
 terraform import pve_ha_group.primary primary
 ```

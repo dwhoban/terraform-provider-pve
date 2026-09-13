@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_sdn_prefix_list" "pl1" {
   id = "pl1"
   entries = [

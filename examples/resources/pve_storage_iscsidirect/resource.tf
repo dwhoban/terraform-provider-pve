@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an iSCSI direct-attached storage definition. Volumes are shared
 # block devices; no snapshot or cloning is possible.
 resource "pve_storage_iscsidirect" "fast" {

@@ -13,8 +13,6 @@ Reads one LXC container's configuration and runtime state. The interface list is
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_container" "ct1" {
   node = "pve1"
   vmid = 100

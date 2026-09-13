@@ -13,8 +13,6 @@ Reads a single Gotify notification endpoint from `GET /cluster/notifications/end
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_endpoint_goty" "mobile_push" {
   name = "gotify"
 }

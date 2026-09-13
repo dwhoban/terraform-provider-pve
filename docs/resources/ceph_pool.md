@@ -13,8 +13,6 @@ Creates and manages a Ceph pool through `POST/PUT/DELETE /nodes/{node}/ceph/pool
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ceph_pool" "rbd" {
   node              = "pve1"
   name              = "rbd"
@@ -63,7 +61,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing Ceph pool by its management node and pool name:
 terraform import pve_ceph_pool.rbd pve1:rbd
 ```

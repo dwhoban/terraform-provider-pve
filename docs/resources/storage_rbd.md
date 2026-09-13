@@ -13,8 +13,6 @@ Manages a Ceph RBD storage definition (`/storage`, type `rbd`). Changing `storag
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 variable "ceph_keyring" {
   type      = string
   sensitive = true
@@ -66,7 +64,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing storage definition by its storage identifier:
 terraform import pve_storage_rbd.rbd1 rbd1
 ```

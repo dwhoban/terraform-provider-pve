@@ -13,8 +13,6 @@ Reads the certificates deployed on a node (`GET /nodes/{node}/certificates/info`
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_certificate" "pve1" {
   node = "pve1"
 }

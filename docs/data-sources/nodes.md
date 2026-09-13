@@ -13,8 +13,6 @@ Lists every node in the Proxmox VE cluster as reported by `GET /nodes`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_nodes" "all" {}
 
 output "cluster_node_names" {

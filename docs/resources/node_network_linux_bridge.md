@@ -13,8 +13,6 @@ Manages a Linux bridge network interface (`type=bridge`) on a Proxmox VE node (`
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_network_linux_bridge" "vmbr0" {
   node              = "pve1"
   iface             = "vmbr0"
@@ -61,8 +59,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import by `<node>:<iface>`.
 terraform import pve_node_network_linux_bridge.vmbr0 pve1:vmbr0
 ```

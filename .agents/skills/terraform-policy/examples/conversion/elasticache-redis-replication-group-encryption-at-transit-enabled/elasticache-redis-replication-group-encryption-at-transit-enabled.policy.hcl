@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Converted from HashiCorp PCI DSS Sentinel example: elasticache-redis-replication-group-encryption-at-transit-enabled.sentinel
 # Conversion quality: Perfect
 

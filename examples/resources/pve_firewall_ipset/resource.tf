@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_firewall_ipset" "management" {
   name    = "management"
   comment = "Admin hosts"

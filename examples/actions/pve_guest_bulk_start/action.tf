@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Bulk starts or resumes the given guests cluster-wide. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_guest_bulk_start.start_vm100]
 action "pve_guest_bulk_start" "start_vm100" {

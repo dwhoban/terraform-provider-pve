@@ -13,8 +13,6 @@ Reads a single PVE user account (`GET /access/users/{userid}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Look up a PVE user account.
 data "pve_user" "root" {
   userid = "root@pam"

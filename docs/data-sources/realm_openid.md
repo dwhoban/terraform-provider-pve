@@ -13,8 +13,6 @@ Reads an OpenID Connect authentication realm (`type=openid`) from Proxmox VE (`/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realm_openid" "keycloak" {
   realm = "keycloak"
 }

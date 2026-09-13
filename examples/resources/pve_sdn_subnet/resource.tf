@@ -1,4 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
 # A subnet tracks the IP space of a vnet. Run the `pve_sdn_apply` action
 # afterwards to activate pending SDN changes.
 

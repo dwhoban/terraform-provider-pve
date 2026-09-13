@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manages cluster membership for node pve1. The provider endpoint must
 # target pve1 itself: create calls POST /cluster/config/join on it, which
 # joins the node into the existing cluster at 10.0.0.10.

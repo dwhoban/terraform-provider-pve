@@ -13,8 +13,6 @@ Reads a single HA group from `GET /cluster/ha/groups/{group}`. PVE marks HA grou
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ha_group" "primary" {
   group = "primary"
 }

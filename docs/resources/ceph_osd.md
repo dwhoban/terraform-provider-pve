@@ -13,8 +13,6 @@ Creates and destroys one Ceph OSD on a node (`POST/DELETE /nodes/{node}/ceph/osd
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ceph_osd" "sdb" {
   node               = "pve1"
   device             = "/dev/sdb"
@@ -57,7 +55,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing OSD by its node and id:
 terraform import pve_ceph_osd.sdb pve1:osd.0
 ```

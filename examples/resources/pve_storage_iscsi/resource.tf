@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an iSCSI target as a PVE storage definition. iSCSI targets are
 # used as disks for VMs only.
 resource "pve_storage_iscsi" "san" {

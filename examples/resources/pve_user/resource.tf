@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a PVE user account in the `pve` realm.
 resource "pve_user" "ci" {
   userid    = "ci@pve"

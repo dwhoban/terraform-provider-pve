@@ -13,8 +13,6 @@ Manages a logical USB hardware mapping (`/cluster/mapping/usb`), declaring one e
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_hardware_mapping_usb" "ups" {
   id          = "ups"
   description = "UPS serial link"
@@ -59,7 +57,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing USB mapping by its identifier:
 terraform import pve_hardware_mapping_usb.ups ups
 ```

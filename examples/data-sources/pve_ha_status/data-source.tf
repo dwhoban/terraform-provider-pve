@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ha_status" "current" {}
 
 output "ha_quorate" {

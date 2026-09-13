@@ -13,8 +13,6 @@ Manages an IP or network alias in the cluster firewall configuration (`/cluster/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_firewall_alias" "office" {
   name    = "office"
   cidr    = "203.0.113.0/24"
@@ -41,7 +39,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing firewall alias by its name:
 terraform import pve_firewall_alias.office office
 ```

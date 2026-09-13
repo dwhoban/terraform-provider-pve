@@ -13,8 +13,6 @@ Reads a single IP set and its members from `GET /cluster/firewall/ipset/{name}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_firewall_ipset" "management" {
   name = "management"
 }

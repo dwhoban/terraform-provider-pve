@@ -13,8 +13,6 @@ Manages a logical PCI hardware mapping (`/cluster/mapping/pci`), declaring one e
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_hardware_mapping_pci" "gpu" {
   id          = "gpu"
   description = "Host GPU passed through to the media VM"
@@ -66,7 +64,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing PCI mapping by its identifier:
 terraform import pve_hardware_mapping_pci.gpu gpu
 ```

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ha_rule" "keep_db" {
   rule      = "keep-db-on-pve1"
   type      = "node-affinity"

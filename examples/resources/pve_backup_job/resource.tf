@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_backup_job" "daily" {
   id       = "daily"
   schedule = "mon..fri 02:00"

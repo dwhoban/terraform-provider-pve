@@ -13,8 +13,6 @@ Manages the datacenter-wide cluster options singleton (`GET/PUT /cluster/options
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Datacenter-wide cluster options. This is a cluster singleton: one
 # instance manages every listed option, and removing an attribute clears it
 # on the cluster. Destroy only forgets the state.
@@ -204,8 +202,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import is a passthrough: any ID resolves to the cluster options singleton.
 terraform import pve_cluster_options.options cluster
 ```

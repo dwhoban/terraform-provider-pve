@@ -14,7 +14,7 @@ bin/custom-gcl: .custom-gcl.yml
 	golangci-lint custom
 
 generate:
-	cd tools; go generate ./...
+	cd tools; go generate -tags generate ./...
 
 validate-docs:
 	cd tools; go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate --provider-dir .. -provider-name pve

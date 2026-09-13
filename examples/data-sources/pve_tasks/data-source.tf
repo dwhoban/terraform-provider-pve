@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Recent tasks cluster wide.
 
 data "pve_tasks" "recent" {}

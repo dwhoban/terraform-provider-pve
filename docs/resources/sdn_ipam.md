@@ -13,7 +13,6 @@ Manages an SDN IPAM plugin object (`/cluster/sdn/ipams`). The IPAM tracks IP add
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
 # An IPAM plugin tracks IP address allocation for SDN zones and vnets.
 # Run the `pve_sdn_apply` action afterwards to activate pending changes.
 
@@ -52,7 +51,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing SDN IPAM plugin by its identifier:
 terraform import pve_sdn_ipam.netbox1 netbox1
 ```

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Stop a running vzdump task on node pve1. The task exits with a non-OK
 # status afterwards.
 action "pve_task_cancel" "stop_backup_task" {

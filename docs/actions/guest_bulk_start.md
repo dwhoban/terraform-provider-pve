@@ -13,8 +13,6 @@ Bulk starts or resumes all guests on the cluster via `POST /cluster/bulk-action/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Bulk starts or resumes the given guests cluster-wide. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_guest_bulk_start.start_vm100]
 action "pve_guest_bulk_start" "start_vm100" {

@@ -13,8 +13,6 @@ Manages the ordered rules of one security group (`GET/POST /cluster/firewall/gro
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_security_group_firewall_rules" "web" {
   group = "web"
   rules = [
@@ -78,7 +76,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing security group ruleset by its group name:
 terraform import pve_security_group_firewall_rules.web web
 ```

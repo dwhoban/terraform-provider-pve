@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # List every resource in the Proxmox VE cluster.
 
 data "pve_cluster_resources" "all" {}

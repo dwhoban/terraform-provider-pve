@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Look up one standard repository on node pve1 by its handle. `status` is
 # null while the repository is not configured.
 data "pve_apt_standard_repository" "enterprise" {

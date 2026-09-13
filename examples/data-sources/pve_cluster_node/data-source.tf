@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Read the cluster membership record of node pve1.
 data "pve_cluster_node" "pve1" {
   node = "pve1"

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # LXC container created from an OS template on local storage.
 resource "pve_container" "ct1" {
   vmid         = 100

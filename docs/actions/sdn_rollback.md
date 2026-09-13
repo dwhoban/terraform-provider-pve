@@ -13,8 +13,6 @@ Rolls back the pending SDN configuration to the last applied state (`POST /clust
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Discard every pending SDN change cluster-wide, restoring the last applied
 # configuration. Already applied configuration is not touched.
 action "pve_sdn_rollback" "discard_pending" {}

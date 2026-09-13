@@ -13,8 +13,6 @@ Manages the `/etc/hosts` file of one node (`GET/POST /nodes/{node}/hosts`). Ever
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_hosts" "pve1" {
   node = "pve1"
 
@@ -59,8 +57,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # The import ID is the node name.
 terraform import pve_node_hosts.pve1 pve1
 ```

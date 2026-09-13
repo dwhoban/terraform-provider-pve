@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Approximation of HashiCorp PCI DSS Sentinel example: s3-bucket-should-have-object-lock-enabled.sentinel
 # Exact conversion quality: Limited
 

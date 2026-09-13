@@ -13,8 +13,6 @@ Reads a single storage replication job from `GET /cluster/replication/{id}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_replication" "vm100" {
   id = "100-0"
 }

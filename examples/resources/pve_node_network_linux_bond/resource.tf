@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_network_linux_bond" "bond0" {
   node                  = "pve1"
   iface                 = "bond0"

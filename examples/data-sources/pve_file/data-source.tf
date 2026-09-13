@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_file" "debian_iso" {
   node         = "pve1"
   storage      = "local"

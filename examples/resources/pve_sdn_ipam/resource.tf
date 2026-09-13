@@ -1,4 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
 # An IPAM plugin tracks IP address allocation for SDN zones and vnets.
 # Run the `pve_sdn_apply` action afterwards to activate pending changes.
 

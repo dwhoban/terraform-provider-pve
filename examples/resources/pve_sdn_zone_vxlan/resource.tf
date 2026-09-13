@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a VXLAN SDN zone between the nodes' VTEPs.
 resource "pve_sdn_zone_vxlan" "zone1" {
   zone  = "zone1"

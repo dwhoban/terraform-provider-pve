@@ -13,8 +13,6 @@ Reads a Proxmox Backup Server storage definition from `GET /storage/{storage}` (
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_pbs" "pbs1" {
   storage = "pbs1"
 }

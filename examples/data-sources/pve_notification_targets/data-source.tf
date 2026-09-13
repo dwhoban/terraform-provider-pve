@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_targets" "all" {}
 
 output "notification_target_names" {

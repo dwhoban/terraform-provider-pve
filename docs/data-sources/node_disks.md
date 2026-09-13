@@ -13,8 +13,6 @@ Lists the physical disks attached to a Proxmox VE node (`GET /nodes/{node}/disks
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_disks" "pve1" {
   node          = "pve1"
   include_smart = true

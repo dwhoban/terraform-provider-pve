@@ -13,8 +13,6 @@ Suspends an LXC container (`POST /nodes/{node}/lxc/{vmid}/status/suspend`). Upst
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Suspends container 100 on pve1. Upstream marks container suspend as
 # experimental; the container state is frozen in memory. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_container_suspend.suspend_ct100]

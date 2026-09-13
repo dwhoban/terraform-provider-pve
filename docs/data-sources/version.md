@@ -13,8 +13,6 @@ Proxmox VE API version details as reported by `GET /version`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Proxmox VE API version details of the responding node.
 
 data "pve_version" "current" {}

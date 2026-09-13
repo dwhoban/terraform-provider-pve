@@ -13,8 +13,6 @@ Reads a single notification matcher from `GET /cluster/notifications/matchers/{n
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_matcher" "ops" {
   name = "ops"
 }

@@ -13,8 +13,6 @@ Reads a single URL-downloaded file from a PVE storage content listing, including
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_download_file" "alpine_iso" {
   node         = "pve1"
   storage      = "local"

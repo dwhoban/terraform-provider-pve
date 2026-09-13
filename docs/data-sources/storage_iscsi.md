@@ -13,8 +13,6 @@ Reads an iSCSI target storage definition from `GET /storage/{storage}`. Errors w
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_iscsi" "san" {
   storage = "san"
 }

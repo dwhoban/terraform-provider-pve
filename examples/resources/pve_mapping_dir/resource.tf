@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_mapping_dir" "share" {
   id          = "share"
   description = "Media share exposed to guests"

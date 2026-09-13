@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Read the datacenter-wide cluster options. All attributes are computed;
 # unset options are null.
 data "pve_cluster_options" "options" {}

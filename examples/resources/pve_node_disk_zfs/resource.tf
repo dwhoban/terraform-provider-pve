@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_disk_zfs" "tank" {
   node        = "pve1"
   name        = "tank"

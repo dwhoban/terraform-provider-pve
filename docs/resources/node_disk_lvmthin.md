@@ -13,8 +13,6 @@ Manages an LVM thinpool on a Proxmox VE node. PVE does not support in-place thin
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_disk_lvmthin" "data" {
   node           = "pve1"
   name           = "data"
@@ -47,7 +45,5 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 terraform import pve_node_disk_lvmthin.data pve1:data
 ```

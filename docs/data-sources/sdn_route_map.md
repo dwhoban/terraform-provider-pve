@@ -13,8 +13,6 @@ Reads one SDN route map and its ordered entries from `GET /cluster/sdn/route-map
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_route_map" "rm1" {
   route_map_id = "rm1"
 }

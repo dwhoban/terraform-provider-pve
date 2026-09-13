@@ -13,8 +13,6 @@ Migrates a QEMU VM to another cluster node (`POST /nodes/{node}/qemu/{vmid}/migr
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Live-migrate VM 100 from pve1 to pve2.
 action "pve_vm_migrate" "migrate_vm" {
   config {

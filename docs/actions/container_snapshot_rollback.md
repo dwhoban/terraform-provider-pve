@@ -13,8 +13,6 @@ Rolls an LXC container back to a snapshot (`POST /nodes/{node}/lxc/{vmid}/snapsh
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Destructive: rolls container 100 on pve1 back to the pre-upgrade
 # snapshot, discarding every change made after it was taken, and starts the
 # container afterwards. Invoke with:

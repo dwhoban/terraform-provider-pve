@@ -13,7 +13,6 @@ Manages an SDN subnet object nested under a vnet (`/cluster/sdn/vnets/{vnet}/sub
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
 # A subnet tracks the IP space of a vnet. Run the `pve_sdn_apply` action
 # afterwards to activate pending SDN changes.
 
@@ -49,7 +48,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing SDN subnet by `<vnet>:<subnet>`:
 terraform import pve_sdn_subnet.subnet1 vnet1:10.0.0.0-24
 ```

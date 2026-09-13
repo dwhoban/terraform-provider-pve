@@ -1,4 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
 # A reverse-DNS plugin registers guest IPs with PowerDNS. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 

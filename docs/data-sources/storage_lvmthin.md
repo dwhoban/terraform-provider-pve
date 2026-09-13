@@ -13,8 +13,6 @@ Reads an LVM-thin storage configuration (`/storage/{storage}` with type `lvmthin
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_lvmthin" "thinstore" {
   id = "thinstore"
 }

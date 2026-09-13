@@ -13,8 +13,6 @@ Reads a single sendmail notification endpoint from `GET /cluster/notifications/e
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_notification_endpoint_sendmail" "ops_mail" {
   name = "ops-mail"
 }

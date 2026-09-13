@@ -13,8 +13,6 @@ Manages the cluster-wide firewall ruleset (`GET/POST /cluster/firewall/rules`, `
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_cluster_firewall_rules" "cluster" {
   rules = [
     {
@@ -87,7 +85,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import the existing cluster firewall ruleset:
 terraform import pve_cluster_firewall_rules.cluster cluster
 ```

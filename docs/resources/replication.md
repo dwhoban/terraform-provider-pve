@@ -13,8 +13,6 @@ Manages a storage replication job in the cluster configuration (`/cluster/replic
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_replication" "vm100" {
   id       = "100-0"
   target   = "pve2"
@@ -53,7 +51,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing replication job by its ID:
 terraform import pve_replication.vm100 100-0
 ```

@@ -13,8 +13,6 @@ Manages a user group in Proxmox VE (`/access/groups`). Group membership is maint
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_group" "admins" {
   groupid = "admins"
   comment = "Cluster administrators"
@@ -50,8 +48,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import a group by its identifier:
 terraform import pve_group.admins admins
 ```

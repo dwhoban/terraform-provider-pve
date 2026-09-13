@@ -13,8 +13,6 @@ Reboots a cluster node via `POST /nodes/{node}/status` (upstream `command: reboo
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Destructive: reboots node pve1 immediately. Guests running on pve1 are
 # interrupted unless HA relocates them. Invoke with:
 #   apply it from a resource lifecycle block: actions = [action.pve_node_reboot.reboot_pve1]

@@ -13,8 +13,6 @@ Prunes backups on a storage that follow the standard naming scheme (`DELETE /nod
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Preview what a prune with this retention would remove from the `local`
 # storage on node `pve1`, without deleting anything. The action reports how
 # many backups would be removed, kept, protected, or renamed.

@@ -13,8 +13,6 @@ Reads a single IP or network alias from `GET /cluster/firewall/aliases/{name}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_firewall_alias" "office" {
   name = "office"
 }

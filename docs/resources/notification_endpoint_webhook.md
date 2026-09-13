@@ -13,8 +13,6 @@ Manages a webhook notification endpoint (`POST/PUT/DELETE /cluster/notifications
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_webhook" "alerting" {
   name   = "alerting-hook"
   url    = "https://hooks.example.com/pve"
@@ -54,7 +52,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing webhook endpoint by its name:
 terraform import pve_notification_endpoint_webhook.alerting alerting-hook
 ```

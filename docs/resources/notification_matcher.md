@@ -13,8 +13,6 @@ Manages a notification matcher (`/cluster/notifications/matchers`). A matcher ro
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Route error notifications from hosts matching `pve` to the built-in
 # mail-to-root target; combine conditions with `any`.
 resource "pve_notification_matcher" "ops" {
@@ -52,7 +50,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing notification matcher by its name:
 terraform import pve_notification_matcher.ops ops
 ```

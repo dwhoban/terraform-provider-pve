@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Upload a local ISO image to the `local` storage on node pve1.
 resource "pve_file" "debian_iso" {
   node         = "pve1"

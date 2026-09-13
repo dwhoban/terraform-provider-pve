@@ -13,8 +13,6 @@ Manages one QEMU guest (KVM virtual machine) on a PVE node (`POST/GET/PUT/DELETE
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # A minimal QEMU guest on node pve1. The provider allocates the next free
 # VMID at create time because `vmid` is omitted.
 resource "pve_vm" "web" {
@@ -196,8 +194,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # The import ID is <node>/<vmid>.
 terraform import pve_vm.web pve1/100
 ```

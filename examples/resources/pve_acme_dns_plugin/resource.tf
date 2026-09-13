@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Credentials must be base64 encoded before passing them to `data`. For a
 # PowerDNS provider the file holds `pdns_api_url=...` and `pdns_api_key=...`
 # lines; build the value with:

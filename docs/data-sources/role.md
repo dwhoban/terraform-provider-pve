@@ -13,8 +13,6 @@ Reads a single role in Proxmox VE (`GET /access/roles/{roleid}`). Works for buil
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Built-in roles resolve through the same data source.
 data "pve_role" "pvevmadmin" {
   roleid = "PVEVMAdmin"

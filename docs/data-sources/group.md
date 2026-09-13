@@ -13,8 +13,6 @@ Reads a single user group in Proxmox VE (`GET /access/groups/{groupid}`), includ
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_group" "admins" {
   groupid = "admins"
 }

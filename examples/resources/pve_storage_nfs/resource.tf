@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an NFS export as a PVE storage definition.
 resource "pve_storage_nfs" "media" {
   storage = "media"

@@ -13,8 +13,6 @@ Manages a simple SDN zone (`/cluster/sdn/zones`, type `simple`) — an isolated 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a simple SDN zone with IPAM and DNS backends.
 resource "pve_sdn_zone_simple" "zone1" {
   zone  = "zone1"
@@ -56,8 +54,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE SDN zone by its zone identifier.
 terraform import pve_sdn_zone_simple.zone1 "zone1"
 ```

@@ -13,8 +13,6 @@ Manages a realm-sync job (`/cluster/jobs/realm-sync`) that periodically syncs us
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Nightly sync job for the corporate LDAP realm.
 resource "pve_realm_sync_job" "corp_nightly" {
   id              = "corp-nightly"
@@ -57,8 +55,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing realm-sync job by its job ID.
 terraform import pve_realm_sync_job.corp_nightly corp-nightly
 ```

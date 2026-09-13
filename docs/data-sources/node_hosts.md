@@ -13,8 +13,6 @@ Reads the `/etc/hosts` file of one node (`GET /nodes/{node}/hosts`) as ordered e
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_hosts" "pve1" {
   node = "pve1"
 }

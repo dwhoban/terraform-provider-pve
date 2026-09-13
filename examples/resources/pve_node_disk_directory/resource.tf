@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_disk_directory" "backup" {
   node           = "pve1"
   name           = "backup"

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_node_firewall_rules" "pve1" {
   node = "pve1"
   rules = [

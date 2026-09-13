@@ -13,8 +13,6 @@ Reads an LVM storage configuration (`/storage/{storage}` with type `lvm`). Readi
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_lvm" "vmstore" {
   id = "vmstore"
 }

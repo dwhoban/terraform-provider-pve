@@ -13,8 +13,6 @@ Reads the cluster-wide firewall options singleton from `GET /cluster/firewall/op
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Cluster-wide firewall options.
 data "pve_cluster_firewall_options" "cluster" {}
 ```

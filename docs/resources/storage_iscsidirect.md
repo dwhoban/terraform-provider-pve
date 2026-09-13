@@ -13,8 +13,6 @@ Manages an iSCSI direct-attached storage definition (`/storage`, type `iscsidire
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage an iSCSI direct-attached storage definition. Volumes are shared
 # block devices; no snapshot or cloning is possible.
 resource "pve_storage_iscsidirect" "fast" {
@@ -58,8 +56,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE storage definition by its storage ID.
 terraform import pve_storage_iscsidirect.fast "fast"
 ```

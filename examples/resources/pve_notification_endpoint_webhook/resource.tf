@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_webhook" "alerting" {
   name   = "alerting-hook"
   url    = "https://hooks.example.com/pve"

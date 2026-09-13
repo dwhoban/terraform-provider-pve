@@ -13,8 +13,6 @@ Manages a directory hardware mapping (`/cluster/mapping/dir`), declaring per-nod
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_mapping_dir" "share" {
   id          = "share"
   description = "Media share exposed to guests"
@@ -53,7 +51,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing directory mapping by its identifier:
 terraform import pve_mapping_dir.share share
 ```

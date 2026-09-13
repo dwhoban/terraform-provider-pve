@@ -13,7 +13,6 @@ Manages an SDN reverse-DNS plugin object (`/cluster/sdn/dns`). The pin's only pl
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
 # A reverse-DNS plugin registers guest IPs with PowerDNS. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 
@@ -57,7 +56,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing SDN DNS plugin by its identifier:
 terraform import pve_sdn_dns.pdns1 pdns1
 ```

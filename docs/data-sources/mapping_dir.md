@@ -13,8 +13,6 @@ Reads a single directory hardware mapping (`GET /cluster/mapping/dir/{id}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_mapping_dir" "share" {
   id = "share"
 }

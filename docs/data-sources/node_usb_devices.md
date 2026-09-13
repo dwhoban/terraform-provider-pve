@@ -13,8 +13,6 @@ Lists the local USB devices of one node (`GET /nodes/{node}/hardware/usb`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_usb_devices" "pve1" {
   node = "pve1"
 }

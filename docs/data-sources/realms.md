@@ -13,8 +13,6 @@ Lists every authentication realm in the Proxmox VE cluster, including the built-
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realms" "all" {}
 
 output "authentication_realms" {

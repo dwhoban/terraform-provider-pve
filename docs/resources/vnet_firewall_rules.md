@@ -13,8 +13,6 @@ Manages the ordered firewall ruleset of one SDN vnet (`GET/POST /cluster/sdn/vne
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_vnet_firewall_rules" "vnet0" {
   vnet = "vnet0"
   rules = [
@@ -78,7 +76,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing vnet firewall ruleset by its vnet name:
 terraform import pve_vnet_firewall_rules.vnet0 vnet0
 ```

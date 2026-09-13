@@ -13,8 +13,6 @@ Reads a vzdump backup job definition (`GET /cluster/backup/{id}`) together with 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_backup_job" "daily" {
   id = "daily"
 }

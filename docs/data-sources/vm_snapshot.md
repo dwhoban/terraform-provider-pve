@@ -13,8 +13,6 @@ Reads a single QEMU VM snapshot (`GET /nodes/{node}/qemu/{vmid}/snapshot/{snapna
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_vm_snapshot" "pre_upgrade" {
   node = "pve1"
   vmid = 100

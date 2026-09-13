@@ -13,8 +13,6 @@ Reads a single custom CPU model definition (`GET /cluster/qemu/custom-cpu-models
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_custom_cpu_model" "lab_cpu" {
   name = "lab-cpu"
 }

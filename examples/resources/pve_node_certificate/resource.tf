@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Replace the PEM placeholders with your certificate material, or load it
 # from files: certificates_pem = file("certs/pve1-fullchain.pem").
 resource "pve_node_certificate" "custom" {

@@ -13,8 +13,6 @@ Cluster status information from `GET /cluster/status`, plus the corosync totem s
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Cluster membership, quorum, corosync totem settings, and QDevice status.
 
 data "pve_cluster_status" "cluster" {}

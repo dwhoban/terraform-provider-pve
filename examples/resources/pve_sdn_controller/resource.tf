@@ -1,4 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
 # A controller runs the routing backbone for EVPN zones. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 

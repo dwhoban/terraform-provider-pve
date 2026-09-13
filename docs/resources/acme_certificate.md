@@ -13,8 +13,6 @@ Manages a node's ACME-ordered TLS certificate (`POST`/`PUT`/`DELETE /nodes/{node
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Prerequisite: an ACME account must exist in the cluster configuration
 # (see pve_acme_account); DNS challenges additionally need a DNS plugin
 # (see pve_acme_dns_plugin).
@@ -60,8 +58,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # A node carries at most one ACME certificate; the import ID is the node
 # name. Domains must also be present in configuration so the next plan
 # matches.

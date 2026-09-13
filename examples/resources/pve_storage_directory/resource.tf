@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_storage_directory" "local" {
   id             = "local"
   path           = "/var/lib/vz"

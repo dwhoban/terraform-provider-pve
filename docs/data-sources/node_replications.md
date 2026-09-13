@@ -13,8 +13,6 @@ Lists the replication jobs on one node as reported by `GET /nodes/{node}/replica
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_replications" "pve1" {
   node = "pve1"
 }

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # A minimal QEMU guest on node pve1. The provider allocates the next free
 # VMID at create time because `vmid` is omitted.
 resource "pve_vm" "web" {

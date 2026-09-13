@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Datacenter-wide cluster options. This is a cluster singleton: one
 # instance manages every listed option, and removing an attribute clears it
 # on the cluster. Destroy only forgets the state.

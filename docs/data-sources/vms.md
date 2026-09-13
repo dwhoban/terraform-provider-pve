@@ -13,8 +13,6 @@ Lists the virtual machines on one Proxmox VE node as reported by `GET /nodes/{no
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # List every virtual machine on node pve1.
 
 data "pve_vms" "pve1" {

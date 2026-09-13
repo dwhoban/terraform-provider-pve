@@ -13,8 +13,6 @@ Reads an ACME account registered on this cluster (`GET /cluster/acme/account/{na
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_acme_account" "default" {
   name = "default"
 }

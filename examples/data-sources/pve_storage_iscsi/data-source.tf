@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_iscsi" "san" {
   storage = "san"
 }

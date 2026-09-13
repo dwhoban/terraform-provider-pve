@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_vnet_firewall_rules" "vnet0" {
   vnet = "vnet0"
   rules = [

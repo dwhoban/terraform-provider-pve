@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # List every virtual machine on node pve1.
 
 data "pve_vms" "pve1" {

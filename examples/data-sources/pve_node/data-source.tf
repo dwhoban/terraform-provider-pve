@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node" "pve1" {
   node = "pve1"
 }

@@ -13,8 +13,6 @@ Reads a Proxmox VE resource pool from `GET /pools/{poolid}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_pool" "prod" {
   poolid = "prod"
 }

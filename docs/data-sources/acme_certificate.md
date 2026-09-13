@@ -13,8 +13,6 @@ Reads a node's ACME certificate registration (the `acme` entry of `GET /nodes/{n
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_acme_certificate" "pve1" {
   node = "pve1"
 }

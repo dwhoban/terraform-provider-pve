@@ -13,8 +13,6 @@ Manages a vzdump backup job (`/cluster/backup/{id}`). Attributes left unset are 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_backup_job" "daily" {
   id       = "daily"
   schedule = "mon..fri 02:00"
@@ -127,8 +125,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing nightly backup job by its PVE job id.
 terraform import pve_backup_job.daily nightly-daily
 ```

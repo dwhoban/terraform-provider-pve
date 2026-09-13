@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_group" "admins" {
   groupid = "admins"
   comment = "Cluster administrators"

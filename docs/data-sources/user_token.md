@@ -13,8 +13,6 @@ Reads API tokens of a PVE user (`GET /access/users/{userid}/token[/{tokenid}]`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # List every API token of a PVE user.
 data "pve_user_token" "root_tokens" {
   userid = "root@pam"

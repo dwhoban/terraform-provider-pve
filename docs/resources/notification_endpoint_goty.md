@@ -13,8 +13,6 @@ Manages a Gotify notification endpoint (`POST/PUT/DELETE /cluster/notifications/
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_goty" "mobile_push" {
   name    = "gotify"
   server  = "https://gotify.example.com"
@@ -44,7 +42,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing gotify endpoint by its name:
 terraform import pve_notification_endpoint_goty.mobile_push gotify
 ```

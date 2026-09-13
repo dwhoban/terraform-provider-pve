@@ -13,8 +13,6 @@ Lists the local PCI devices of one node (`GET /nodes/{node}/hardware/pci`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_pci_devices" "pve1" {
   node = "pve1"
 }

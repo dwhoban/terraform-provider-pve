@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Approximation of HashiCorp PCI DSS Sentinel example: s3-block-public-access-bucket-level.sentinel
 # Exact conversion quality: Not convertible
 

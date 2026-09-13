@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # Built-in roles resolve through the same data source.
 data "pve_role" "pvevmadmin" {
   roleid = "PVEVMAdmin"

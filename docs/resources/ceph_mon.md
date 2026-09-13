@@ -13,8 +13,6 @@ Creates and destroys one Ceph monitor on a node (`POST/DELETE /nodes/{node}/ceph
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_ceph_mon" "pve1" {
   node        = "pve1"
   mon_address = "10.0.0.11"
@@ -50,7 +48,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing monitor by its node and monitor id:
 terraform import pve_ceph_mon.pve1 pve1:pve1
 ```

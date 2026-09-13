@@ -13,8 +13,6 @@ Reads an NFS storage definition from `GET /storage/{storage}`. Errors when the s
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_nfs" "media" {
   storage = "media"
 }

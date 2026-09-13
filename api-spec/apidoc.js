@@ -1,7 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- */
-
 const apiSchema = [
    {
       "children" : [

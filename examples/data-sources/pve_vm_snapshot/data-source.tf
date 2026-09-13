@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_vm_snapshot" "pre_upgrade" {
   node = "pve1"
   vmid = 100

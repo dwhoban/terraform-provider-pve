@@ -13,8 +13,6 @@ Manages the presence of one standard APT repository on a node (`PUT /nodes/{node
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Enable the no-subscription PVE repository on node pve1. Destroying this
 # resource only forgets it from state: the PVE API cannot remove repository
 # entries.
@@ -44,7 +42,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing standard repository by `<node>:<handle>`:
 terraform import pve_apt_standard_repository.no_subscription pve1:no-subscription
 ```

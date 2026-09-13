@@ -13,8 +13,6 @@ Reads a QinQ SDN zone from `GET /cluster/sdn/zones/{zone}`. Errors when the zone
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_sdn_zone_qinq" "zone1" {
   zone = "zone1"
 }

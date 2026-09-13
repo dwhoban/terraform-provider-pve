@@ -13,8 +13,6 @@ Lists every resource in the Proxmox VE cluster (nodes, storages, pools, guests, 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # List every resource in the Proxmox VE cluster.
 
 data "pve_cluster_resources" "all" {}

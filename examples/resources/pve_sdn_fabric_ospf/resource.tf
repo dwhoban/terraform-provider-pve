@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # OSPF SDN fabric with one node member. Changes stay pending until the
 # `pve_sdn_apply` action pushes them cluster-wide.
 resource "pve_sdn_fabric_ospf" "ospf1" {

@@ -13,8 +13,6 @@ Reads a Ceph RBD storage definition from `GET /storage/{storage}` (type `rbd`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_rbd" "rbd1" {
   storage = "rbd1"
 }

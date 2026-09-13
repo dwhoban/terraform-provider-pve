@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 # OpenFabric SDN fabric with one node member. Changes stay pending until
 # the `pve_sdn_apply` action pushes them cluster-wide.
 resource "pve_sdn_fabric_openfabric" "openfabric1" {

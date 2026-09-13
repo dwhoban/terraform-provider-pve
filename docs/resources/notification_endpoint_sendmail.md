@@ -13,8 +13,6 @@ Manages a sendmail notification endpoint (`POST/PUT/DELETE /cluster/notification
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_notification_endpoint_sendmail" "ops_mail" {
   name         = "ops-mail"
   mailto       = ["ops@example.com"]
@@ -48,7 +46,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing sendmail endpoint by its name:
 terraform import pve_notification_endpoint_sendmail.ops_mail ops-mail
 ```

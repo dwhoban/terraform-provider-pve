@@ -13,8 +13,6 @@ Manages a DNS ACME challenge plugin (`/cluster/acme/plugins` with the challenge 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Credentials must be base64 encoded before passing them to `data`. For a
 # PowerDNS provider the file holds `pdns_api_url=...` and `pdns_api_key=...`
 # lines; build the value with:
@@ -54,7 +52,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
 # Import an existing ACME DNS plugin by its identifier:
 terraform import pve_acme_dns_plugin.pdns pdns
 ```

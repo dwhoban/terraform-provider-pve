@@ -13,8 +13,6 @@ Reads a CephFS storage definition from `GET /storage/{storage}` (type `cephfs`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_storage_cephfs" "cephfs1" {
   storage = "cephfs1"
 }

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 variable "influx_token" {
   type      = string
   sensitive = true

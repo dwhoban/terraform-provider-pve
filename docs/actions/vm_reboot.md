@@ -13,8 +13,6 @@ Reboots a QEMU VM by shutting it down and starting it again, applying pending ch
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Reboot VM 100 on node pve1, waiting up to 60 seconds for the
 # shutdown half of the reboot.
 action "pve_vm_reboot" "reboot_web" {

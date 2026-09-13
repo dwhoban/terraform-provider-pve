@@ -13,8 +13,6 @@ Reads a realm-sync job definition (`/cluster/jobs/realm-sync/{id}`).
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_realm_sync_job" "corp_nightly" {
   id = "corp-nightly"
 }

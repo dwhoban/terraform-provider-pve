@@ -13,8 +13,6 @@ Reads the datacenter-wide cluster options singleton (`GET /cluster/options`). Al
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Read the datacenter-wide cluster options. All attributes are computed;
 # unset options are null.
 data "pve_cluster_options" "options" {}

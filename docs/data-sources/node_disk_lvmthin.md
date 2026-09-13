@@ -13,8 +13,6 @@ Looks up a single LVM thinpool on a Proxmox VE node (`GET /nodes/{node}/disks/lv
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_node_disk_lvmthin" "data" {
   node = "pve1"
   name = "data"

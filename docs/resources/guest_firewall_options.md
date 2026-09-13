@@ -13,8 +13,6 @@ Manages the firewall options singleton of one guest (`GET/PUT /nodes/{node}/{qem
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Firewall options of the qemu VM 100 on node pve1. One instance per guest
 # manages the listed options; removing an attribute clears it via the
 # `delete` parameter. Destroy only forgets the state.
@@ -66,8 +64,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import ID is `<node>:<guest_type>:<vmid>`.
 terraform import pve_guest_firewall_options.vm100 pve1:qemu:100
 ```

@@ -1,5 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_acme_account" "default" {
   name    = "default"
   contact = ["mailto:ops@example.com"]

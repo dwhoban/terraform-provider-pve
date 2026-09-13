@@ -13,8 +13,6 @@ Cluster-wide HA stack status from `GET /cluster/ha/status/current` and `GET /clu
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ha_status" "current" {}
 
 output "ha_quorate" {

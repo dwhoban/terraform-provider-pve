@@ -13,8 +13,6 @@ Manages an Active Directory authentication realm (`type=ad`) in Proxmox VE (`/ac
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 resource "pve_realm_ad" "ad" {
   realm          = "ad"
   comment        = "Active Directory"
@@ -67,8 +65,6 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Copyright (c) HashiCorp, Inc.
-
 # Import an existing AD realm by its realm ID.
 terraform import pve_realm_ad.ad ad
 ```

@@ -13,8 +13,6 @@ Reads a single HA resource from `GET /cluster/ha/resources/{sid}`.
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 data "pve_ha_resource" "web" {
   sid = "vm:100"
 }

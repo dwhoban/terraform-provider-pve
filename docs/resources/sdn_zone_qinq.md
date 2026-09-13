@@ -13,8 +13,6 @@ Manages a QinQ SDN zone (`/cluster/sdn/zones`, type `qinq`) stacking the vnets' 
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Manage a QinQ SDN zone with a service-VLAN tag.
 resource "pve_sdn_zone_qinq" "zone1" {
   zone          = "zone1"
@@ -58,8 +56,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
-# Copyright (c) HashiCorp, Inc.
-
 # Import a PVE SDN zone by its zone identifier.
 terraform import pve_sdn_zone_qinq.zone1 "zone1"
 ```

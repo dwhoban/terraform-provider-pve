@@ -1,4 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
 # A vnet is a virtual network bridged into an SDN zone. Run the
 # `pve_sdn_apply` action afterwards to activate pending SDN changes.
 

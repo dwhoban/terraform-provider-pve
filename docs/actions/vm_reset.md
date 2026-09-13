@@ -13,8 +13,6 @@ Hard-resets a QEMU VM, like pressing the reset button on a physical machine; the
 ## Example Usage
 
 ```terraform
-# Copyright (c) HashiCorp, Inc.
-
 # Hard-reset VM 100, like pressing the reset button. The guest OS
 # does not shut down cleanly.
 action "pve_vm_reset" "reset_vm" {
