@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository is a Terraform Plugin Framework provider targeting Proxmox Virtual Environment (PVE). The current implementation is still HashiCorp scaffold code: it serves the placeholder provider address `registry.terraform.io/hashicorp/scaffolding`, uses hardcoded example values, and has no Proxmox API client, authentication chain, or PVE resources yet.
+This repository is a Terraform Plugin Framework provider targeting Proxmox Virtual Environment (PVE), published as `registry.terraform.io/dwhoban/pve` (Go module `github.com/dwhoban/terraform-provider-pve`). It implements the full ADR-0001 API surface — 87 managed resources, 106 data sources, 41 actions, and the `next_id` function — backed by the internal client in `internal/provider/pveclient` with API-token and username/password credential chains, TLS controls, and `PROXMOX_VE_*` environment resolution. The authoritative API surface is the vendored spec pin `api-spec/apidoc.js`.
 
 Requirements are Go `1.25.8` from `go.mod` and Terraform `>= 1.0`. The provider uses Terraform protocol 6 and the Plugin Framework, not a completed SDKv2 provider.
 
@@ -76,7 +76,7 @@ After changing schemas or documentation examples, run `make generate`. CI reject
 ## Runtime/Tooling Preferences
 
 - Use Go modules only: the provider uses root `go.mod`; generation tools use the separate `tools/go.mod`. Do not introduce another package manager.
-- `make generate` requires Terraform on `PATH`; it runs `terraform fmt`, Copywrite, and `tfplugindocs`. Generated docs use provider name `scaffolding` until the provider address is renamed.
+- `make generate` requires Terraform on `PATH`; it runs `terraform fmt` and `tfplugindocs`. Generated docs use provider name `pve` (`registry.terraform.io/dwhoban/pve`). Copywrite was removed from the generate directives: without a `.copywrite.hcl` it ran with default copyright holder `HashiCorp, Inc.` and would have re-added the removed headers.
 - `make lint` builds `bin/custom-gcl` with golangci-lint `v2.10.1` and anti-slop-go `v1.4.0`; the `bin/` directory is ignored. CI uses the same pinned custom-linter build.
 - Release builds use GoReleaser from `.goreleaser.yml`, set `CGO_ENABLED=0`, use `-trimpath`, and inject version/commit metadata. Releases are triggered by `v*` tags.
 - Load the relevant local guidance before implementation: `.agents/skills/new-terraform-provider/SKILL.md`, `provider-configuration/SKILL.md`, `provider-resources/SKILL.md`, `provider-actions/SKILL.md`, `provider-ephemeral-resources/SKILL.md`, `provider-test-patterns/SKILL.md`, `provider-docs/SKILL.md`, `run-acceptance-tests/SKILL.md`, `terraform-style-guide/SKILL.md`, and `terraform-test/SKILL.md`.
