@@ -1,64 +1,65 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Terraform Provider PVE
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+A [Terraform](https://www.terraform.io) provider for [Proxmox Virtual Environment](https://pve.proxmox.com) built on the [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework). Goal: every declarative aspect of a Proxmox node and cluster configurable via Terraform — see [ROADMAP.md](ROADMAP.md) for the phased plan and current status.
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
-
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
-
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
-
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
-
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+**Status:** Phase 1 (foundation) — provider configuration, API client, task engine, and the `pve_version` data source.
 
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24
-
-## Building the Provider
-
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
-
-```shell
-go install
-```
-
-## Adding Dependencies
-
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
-
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
-
-```shell
-go get github.com/author/dependency
-go mod tidy
-```
-
-Then commit the changes to `go.mod` and `go.sum`.
+- [Go](https://golang.org/doc/install) >= 1.24 (development only)
+- Proxmox VE >= 8.0 with an API token or user credentials
 
 ## Using the Provider
 
-Fill this in for each provider
+Configure the endpoint and credentials explicitly, or via environment variables:
+
+```hcl
+provider "pve" {
+  api_url   = "https://pve.example.com:8006"
+  api_token = "root@pam!terraform=00000000-0000-0000-0000-000000000000"
+}
+```
+
+| Attribute | Environment variable | Notes |
+|---|---|---|
+| `api_url` | `PVE_API_URL` | Required; `https://`, port defaults to 8006 |
+| `api_token` | `PVE_API_TOKEN` | Recommended auth; `user@realm!tokenid=uuid` |
+| `username` / `password` (+ `totp`) | `PVE_USER` / `PVE_PASSWORD` / `PVE_TOTP` | Session-ticket auth; token takes precedence |
+| `insecure` | `PVE_INSECURE` | Skip TLS verification (self-signed certs) |
+| `ca_cert` | `PVE_CA_CERT` | PEM bundle to verify the endpoint |
+| `request_timeout` | `PVE_REQUEST_TIMEOUT` | Per-request timeout, seconds (default 30) |
+| `skip_credentials_validation` | — | Skip the plan-time auth check |
+
+Credentials are validated when the provider configures, so invalid credentials fail the plan with an actionable error instead of surfacing mid-apply.
+
+Data sources available so far:
+
+```hcl
+data "pve_version" "current" {}
+
+output "pve_version" {
+  value = data.pve_version.current.version
+}
+```
 
 ## Developing the Provider
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
+```shell
+make build      # go build ./...
+make test       # unit tests
+make generate   # regenerate docs/ from schemas + examples/
+```
 
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-To generate or update documentation, run `make generate`.
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
+Acceptance tests run against a live Proxmox VE endpoint:
 
 ```shell
+export PVE_API_URL=https://pve.example.com:8006
+export PVE_API_TOKEN='root@pam!terraform=uuid'
+export PVE_INSECURE=true   # if the endpoint uses a self-signed certificate
 make testacc
 ```
+
+## License
+
+[MPL-2.0](LICENSE)

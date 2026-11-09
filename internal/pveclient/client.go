@@ -1,0 +1,424 @@
+// Copyright dwhoban 2026
+// SPDX-License-Identifier: MPL-2.0
+
+package pveclient
+
+import (
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Environment variables consulted by the provider configuration. They are
+// defined here so the client package documents the full resolution contract.
+const (
+	EnvAPIToken   = "PVE_API_TOKEN"
+	EnvUser       = "PVE_USER"
+	EnvPassword   = "PVE_PASSWORD"
+	EnvTOTP       = "PVE_TOTP"
+	EnvAPIURL     = "PVE_API_URL"
+	EnvInsecure   = "PVE_INSECURE"
+	EnvCACert     = "PVE_CA_CERT"
+	EnvTimeout    = "PVE_REQUEST_TIMEOUT"
+	DefaultPort   = "8006"
+	apiPathPrefix = "/api2/json"
+)
+
+const (
+	defaultRequestTimeout = 30 * time.Second
+	defaultRetryMax       = 3
+	defaultRetryWait      = 250 * time.Millisecond
+	maxResponseSnippet    = 512
+)
+
+// Config constructs a Client.
+type Config struct {
+	// URL is the Proxmox API endpoint, e.g. https://pve.example.com:8006.
+	// https is required; port defaults to 8006.
+	URL string
+
+	Credentials Credentials
+
+	// Insecure skips TLS certificate verification.
+	Insecure bool
+
+	// CACertPEM is a PEM-encoded CA bundle used instead of the system pool.
+	CACertPEM string
+
+	// RequestTimeout bounds a single HTTP request. Defaults to 30s.
+	RequestTimeout time.Duration
+
+	// RetryMax is the number of retries for idempotent GET requests on
+	// connection errors or 5xx. Defaults to 3.
+	RetryMax int
+
+	// RetryBaseWait is the base for exponential backoff between retries.
+	RetryBaseWait time.Duration
+}
+
+// APIError is a non-2xx response from the PVE API.
+type APIError struct {
+	StatusCode int
+	Status     string
+	Message    string
+	Fields     map[string]string
+}
+
+func (e *APIError) Error() string {
+	if len(e.Fields) > 0 {
+		var parts []string
+		for k, v := range e.Fields {
+			parts = append(parts, fmt.Sprintf("%s: %s", k, v))
+		}
+		return fmt.Sprintf("pve api: %s: %s (%s)", e.Status, e.Message, strings.Join(parts, "; "))
+	}
+	return fmt.Sprintf("pve api: %s: %s", e.Status, e.Message)
+}
+
+// IsUnauthorized reports whether the error is an authentication or
+// authorization failure (HTTP 401/403).
+func IsUnauthorized(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && (apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden)
+}
+
+// Client is a Proxmox VE REST API client for /api2/json.
+type Client struct {
+	baseURL   *url.URL
+	http      *http.Client
+	creds     Credentials
+	retryMax  int
+	retryWait time.Duration
+
+	authMu     sync.Mutex
+	ticket     string
+	csrfToken  string
+	ticketOnce bool
+}
+
+// NewClient validates cfg and returns a ready Client. The returned error
+// wraps ErrNoCredentials when the credential set is incomplete.
+func NewClient(cfg Config) (*Client, error) {
+	if !cfg.Credentials.Complete() {
+		return nil, ErrNoCredentials
+	}
+	u, err := ParseAPIURL(cfg.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsCfg := &tls.Config{InsecureSkipVerify: cfg.Insecure} //nolint:gosec // opt-in via provider attribute
+	if cfg.CACertPEM != "" {
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM([]byte(cfg.CACertPEM)) {
+			return nil, errors.New("ca_cert: no PEM certificates could be parsed")
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	timeout := cfg.RequestTimeout
+	if timeout <= 0 {
+		timeout = defaultRequestTimeout
+	}
+	retryMax := cfg.RetryMax
+	if retryMax < 0 {
+		retryMax = defaultRetryMax
+	}
+	retryWait := cfg.RetryBaseWait
+	if retryWait <= 0 {
+		retryWait = defaultRetryWait
+	}
+
+	return &Client{
+		baseURL:   u,
+		http:      &http.Client{Timeout: timeout, Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment}},
+		creds:     cfg.Credentials,
+		retryMax:  retryMax,
+		retryWait: retryWait,
+	}, nil
+}
+
+// ParseAPIURL validates a PVE endpoint: scheme must be https (the PVE API is
+// TLS-only), the path must be empty, and the port defaults to 8006.
+func ParseAPIURL(raw string) (*url.URL, error) {
+	if raw == "" {
+		return nil, fmt.Errorf("api_url is required: set it in the provider block or via %s (e.g. https://pve.example.com:8006)", EnvAPIURL)
+	}
+	if !strings.Contains(raw, "://") {
+		return nil, fmt.Errorf("api_url %q must include the scheme, e.g. https://%s", raw, raw)
+	}
+	u, err := url.Parse(strings.TrimRight(raw, "/"))
+	if err != nil {
+		return nil, fmt.Errorf("api_url %q: %w", raw, err)
+	}
+	if u.Scheme != "https" {
+		return nil, fmt.Errorf("api_url %q: scheme must be https (the Proxmox VE API is TLS-only)", raw)
+	}
+	if u.Path != "" {
+		return nil, fmt.Errorf("api_url %q: must not contain a path", raw)
+	}
+	if u.Port() == "" {
+		u.Host = net.JoinHostPort(u.Hostname(), DefaultPort)
+	}
+	return u, nil
+}
+
+// Version is the response of GET /version.
+type Version struct {
+	Version string `json:"version"`
+	Release string `json:"release"`
+	Repoid  string `json:"repoid"`
+}
+
+// GetVersion returns the PVE version of the endpoint.
+func (c *Client) GetVersion(ctx context.Context) (*Version, error) {
+	out := &Version{}
+	if err := c.do(ctx, http.MethodGet, "/version", nil, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// do performs one API request with authentication and retry policy, then
+// decodes the {"data": ...} envelope into out (when non-nil).
+//
+// Retry policy: only GET requests are retried (on connection errors and
+// 500/502/503/504), because retrying a mutation that the server may have
+// started processing can duplicate work. All methods are retried on
+// connection errors where no response was received only when the request is
+// guaranteed not to have been sent, which cannot be distinguished reliably —
+// so mutations fail fast.
+func (c *Client) do(ctx context.Context, method, path string, params url.Values, out any) error {
+	var body io.Reader
+	if method == http.MethodGet || method == http.MethodDelete {
+		if len(params) > 0 {
+			path = path + "?" + params.Encode()
+		}
+	} else if len(params) > 0 {
+		body = strings.NewReader(params.Encode())
+	}
+
+	var lastErr error
+	reauthed := false
+	maxAttempts := 1
+	if method == http.MethodGet {
+		maxAttempts += c.retryMax
+	}
+	if !c.creds.UsesToken() {
+		// One spare attempt to re-authenticate an expired session ticket.
+		maxAttempts++
+	}
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			if err := sleepBackoff(ctx, c.retryWait, attempt); err != nil {
+				return err
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, method, c.baseURL.String()+apiPathPrefix+path, body)
+		if err != nil {
+			return err
+		}
+		if body != nil {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+		if err := c.authorize(ctx, req); err != nil {
+			return err
+		}
+
+		resp, err := c.http.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("%s %s: %w", method, path, err)
+			// Transport errors on idempotent GET are safe to retry — the
+			// request may not have been delivered. Mutations fail fast:
+			// the server may have started processing them.
+			if method == http.MethodGet && ctx.Err() == nil && attempt+1 < maxAttempts {
+				continue
+			}
+			return lastErr
+		}
+
+		apiErr := c.handleResponse(ctx, method, path, resp)
+		if apiErr != nil {
+			lastErr = apiErr
+			var ae *APIError
+			if errors.As(apiErr, &ae) {
+				// An expired session ticket yields 401: re-authenticate
+				// once (handleResponse already dropped the stale ticket).
+				if ae.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() && !reauthed {
+					reauthed = true
+					continue
+				}
+				if isRetryableStatus(ae.StatusCode) && method == http.MethodGet {
+					continue
+				}
+			}
+			return apiErr
+		}
+
+		payload, err := decodeEnvelope(resp.Body)
+		closeErr := resp.Body.Close()
+		if err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return fmt.Errorf("%s %s: %w", method, path, err)
+		}
+		if out != nil {
+			if err := json.Unmarshal(payload, out); err != nil {
+				return fmt.Errorf("%s %s: decoding response: %w", method, path, err)
+			}
+		}
+		return nil
+	}
+	return fmt.Errorf("%s %s: giving up after %d attempts: %w", method, path, maxAttempts, lastErr)
+}
+
+// handleResponse converts non-2xx responses into *APIError, consuming and
+// closing the body. On success it returns nil and leaves the body open for
+// the caller to decode.
+func (c *Client) handleResponse(ctx context.Context, method, path string, resp *http.Response) error {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseSnippet))
+	var errBody struct {
+		Message string            `json:"message"`
+		Errors  map[string]string `json:"errors"`
+	}
+	_ = json.Unmarshal(raw, &errBody)
+
+	msg := errBody.Message
+	if msg == "" {
+		msg = strings.TrimSpace(string(raw))
+		if msg == "" {
+			msg = resp.Status
+		}
+	}
+
+	apiErr := &APIError{
+		StatusCode: resp.StatusCode,
+		Status:     resp.Status,
+		Message:    msg,
+		Fields:     errBody.Errors,
+	}
+
+	// An expired session ticket surfaces as 401 on any method: invalidate
+	// and let do()'s caller see the error; ticket re-auth for non-GET
+	// happens on the next call because ensureTicket runs per request.
+	if resp.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() {
+		c.authMu.Lock()
+		c.ticket = ""
+		c.ticketOnce = false
+		c.authMu.Unlock()
+	}
+
+	return apiErr
+}
+
+func decodeEnvelope(r io.Reader) (json.RawMessage, error) {
+	raw, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return nil, fmt.Errorf("unexpected response body (not a /api2/json envelope): %.200s", strings.TrimSpace(string(raw)))
+	}
+	return envelope.Data, nil
+}
+
+// authorize attaches credentials: the token header for token auth, or the
+// session ticket cookie (+ CSRF header for mutating methods).
+func (c *Client) authorize(ctx context.Context, req *http.Request) error {
+	if c.creds.UsesToken() {
+		req.Header.Set("Authorization", "PVEAPIToken="+c.creds.APIToken)
+		return nil
+	}
+	if err := c.ensureTicket(ctx); err != nil {
+		return err
+	}
+	req.AddCookie(&http.Cookie{Name: "PVEAuthCookie", Value: c.ticket})
+	if req.Method != http.MethodGet && req.Method != http.MethodHead {
+		req.Header.Set("CSRFPreventionToken", c.csrfToken)
+	}
+	return nil
+}
+
+// ensureTicket obtains a session ticket via POST /access/ticket when ticket
+// credentials are configured. Callers must not hold authMu.
+func (c *Client) ensureTicket(ctx context.Context) error {
+	c.authMu.Lock()
+	defer c.authMu.Unlock()
+	if c.ticket != "" {
+		return nil
+	}
+
+	form := url.Values{}
+	form.Set("username", c.creds.Username)
+	form.Set("password", c.creds.Password)
+	if c.creds.TOTP != "" {
+		form.Set("totp", c.creds.TOTP)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL.String()+apiPathPrefix+"/access/ticket", strings.NewReader(form.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("requesting session ticket: %w", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseSnippet))
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("invalid credentials (%s): username/password rejected by %s", c.creds, c.baseURL.Host)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &APIError{StatusCode: resp.StatusCode, Status: resp.Status, Message: strings.TrimSpace(string(raw))}
+	}
+	var envelope struct {
+		Data struct {
+			Ticket              string `json:"ticket"`
+			CSRFPreventionToken string `json:"CSRFPreventionToken"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil || envelope.Data.Ticket == "" {
+		return fmt.Errorf("requesting session ticket: unexpected response: %.200s", strings.TrimSpace(string(raw)))
+	}
+	c.ticket = envelope.Data.Ticket
+	c.csrfToken = envelope.Data.CSRFPreventionToken
+	return nil
+}
+
+func isRetryableStatus(code int) bool {
+	return code == 500 || code == 502 || code == 503 || code == 504
+}
+
+func sleepBackoff(ctx context.Context, base time.Duration, attempt int) error {
+	wait := base << attempt // 250ms, 500ms, 1s, ...
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
