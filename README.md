@@ -24,7 +24,8 @@ provider "pve" {
 | Attribute | Environment variable | Notes |
 |---|---|---|
 | `api_url` | `PVE_API_URL` | Required; `https://`, port defaults to 8006 |
-| `api_token` | `PVE_API_TOKEN` | Recommended auth; `user@realm!tokenid=uuid` |
+| `api_token` | `PVE_API_TOKEN` | Recommended auth; `user@realm!tokenid=uuid`; alternative: split `api_token_id` + `api_secret` below |
+| `api_token_id` / `api_secret` | `PVE_API_TOKEN_ID` / `PVE_API_SECRET` | Alternative to `api_token`: paste the two dashboard values (Token ID + UUID secret) as-is; mutually exclusive with `api_token` |
 | `username` / `password` (+ `totp`) | `PVE_USER` / `PVE_PASSWORD` / `PVE_TOTP` | Session-ticket auth; token takes precedence |
 | `insecure` | `PVE_INSECURE` | Skip TLS verification (self-signed certs) |
 | `ca_cert` | `PVE_CA_CERT` | PEM bundle to verify the endpoint |

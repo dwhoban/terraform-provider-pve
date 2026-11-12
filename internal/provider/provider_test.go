@@ -33,8 +33,10 @@ func testAccPreCheckURL(t *testing.T) {
 }
 
 // TestAccPveProvider_invalidCredentials pins the plan-time diagnostic for a
-// rejected token: configure-time validation must fail the operation with an
-// actionable error naming the credential source, not a raw API error.
+// rejected token, in both the combined api_token form and the split
+// api_token_id/api_secret form: configure-time validation must fail the
+// operation with an actionable error naming the credential source, not a
+// raw API error.
 func TestAccPveProvider_invalidCredentials(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheckURL(t) },
@@ -44,6 +46,17 @@ func TestAccPveProvider_invalidCredentials(t *testing.T) {
 				Config: `
 provider "pve" {
   api_token = "root@pam!nonexistent=00000000-0000-0000-0000-000000000000"
+}
+
+data "pve_version" "current" {}
+`,
+				ExpectError: regexp.MustCompile(`Unconfigured Proxmox VE Client`),
+			},
+			{
+				Config: `
+provider "pve" {
+  api_token_id = "root@pam!nonexistent"
+  api_secret   = "00000000-0000-0000-0000-000000000000"
 }
 
 data "pve_version" "current" {}

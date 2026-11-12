@@ -23,6 +23,8 @@ import (
 // defined here so the client package documents the full resolution contract.
 const (
 	EnvAPIToken   = "PVE_API_TOKEN"
+	EnvAPITokenID = "PVE_API_TOKEN_ID"
+	EnvAPISecret  = "PVE_API_SECRET"
 	EnvUser       = "PVE_USER"
 	EnvPassword   = "PVE_PASSWORD"
 	EnvTOTP       = "PVE_TOTP"

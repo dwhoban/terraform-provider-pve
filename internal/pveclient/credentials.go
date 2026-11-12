@@ -53,34 +53,43 @@ func (c Credentials) GoString() string { return c.String() }
 // ResolveCredentials. Getenv is injectable for tests and defaults to
 // os.Getenv.
 type ResolveOptions struct {
-	APIToken string
-	Username string
-	Password string
-	TOTP     string
-	Getenv   func(string) string
+	APIToken   string
+	APITokenID string
+	APISecret  string
+	Username   string
+	Password   string
+	TOTP       string
+	Getenv     func(string) string
 }
 
-const credentialDocsHint = "Set api_token, or username and password, in the provider block; or export PVE_API_TOKEN, or PVE_USER and PVE_PASSWORD. See the provider authentication documentation in docs/index.md."
+const credentialDocsHint = "Set api_token (user@realm!tokenid=uuid), or api_token_id and api_secret, or username and password, in the provider block; or export PVE_API_TOKEN, or PVE_API_TOKEN_ID and PVE_API_SECRET, or PVE_USER and PVE_PASSWORD. See the provider authentication documentation in https://registry.terraform.io/dwhoban/pve/latest/docs."
 
 // ResolveCredentials resolves credentials by consulting, in order:
 //
 //  1. static provider configuration
-//  2. environment variables (PVE_API_TOKEN, or PVE_USER + PVE_PASSWORD, with optional PVE_TOTP)
+//  2. environment variables (PVE_API_TOKEN, or PVE_API_TOKEN_ID + PVE_API_SECRET, or PVE_USER + PVE_PASSWORD, with optional PVE_TOTP)
 //
-// Each source must yield a complete set — a token, or both username and
-// password. A partially populated source is a hard error naming the missing
-// fields, because silently mixing sources produces wrong-identity
-// authentication failures. When every source is empty, the returned error
-// wraps ErrNoCredentials and names each source tried.
+// Each source must yield a complete set — a token (combined, or split into
+// id + secret), or both username and password. A partially populated source
+// is a hard error naming the missing fields, because silently mixing
+// sources produces wrong-identity authentication failures; mixing the
+// combined and split token forms within one source is equally a hard error.
+// When every source is empty, the returned error wraps ErrNoCredentials and
+// names each source tried.
 func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 	if opts.Getenv == nil {
 		opts.Getenv = os.Getenv
 	}
 
 	// Source 1: static provider configuration.
-	if opts.APIToken != "" || opts.Username != "" || opts.Password != "" {
+	if opts.APIToken != "" || opts.APITokenID != "" || opts.APISecret != "" || opts.Username != "" || opts.Password != "" {
+		token, err := normalizeTokenForm(opts.APIToken, opts.APITokenID, opts.APISecret,
+			"provider configuration", "api_token", "api_token_id", "api_secret")
+		if err != nil {
+			return Credentials{}, err
+		}
 		creds := Credentials{
-			APIToken: opts.APIToken,
+			APIToken: token,
 			Username: opts.Username,
 			Password: opts.Password,
 			TOTP:     opts.TOTP,
@@ -94,11 +103,18 @@ func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 
 	// Source 2: environment variables.
 	envToken := opts.Getenv(EnvAPIToken)
+	envTokenID := opts.Getenv(EnvAPITokenID)
+	envSecret := opts.Getenv(EnvAPISecret)
 	envUser := opts.Getenv(EnvUser)
 	envPassword := opts.Getenv(EnvPassword)
-	if envToken != "" || envUser != "" || envPassword != "" {
+	if envToken != "" || envTokenID != "" || envSecret != "" || envUser != "" || envPassword != "" {
+		token, err := normalizeTokenForm(envToken, envTokenID, envSecret,
+			"environment variables", EnvAPIToken, EnvAPITokenID, EnvAPISecret)
+		if err != nil {
+			return Credentials{}, err
+		}
 		creds := Credentials{
-			APIToken: envToken,
+			APIToken: token,
 			Username: envUser,
 			Password: envPassword,
 			TOTP:     opts.Getenv(EnvTOTP),
@@ -112,6 +128,29 @@ func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 
 	return Credentials{}, fmt.Errorf("%w: sources tried: provider configuration (empty), environment variables %s/%s/%s (empty): %s",
 		ErrNoCredentials, EnvAPIToken, EnvUser, EnvPassword, credentialDocsHint)
+}
+
+// normalizeTokenForm folds the split token credentials (id + secret) into
+// the combined "<id>=<secret>" form used on the wire. Within a single
+// source, the combined and split forms are mutually exclusive and a half
+// pair is a hard error naming the missing field.
+func normalizeTokenForm(combined, id, secret string, sourceLabel, combinedName, idName, secretName string) (string, error) {
+	switch {
+	case combined != "":
+		if id != "" || secret != "" {
+			return "", fmt.Errorf("conflicting credentials in %s: %s cannot be combined with %s/%s. Set either %s, or %s and %s: %s",
+				sourceLabel, combinedName, idName, secretName, combinedName, idName, secretName, credentialDocsHint)
+		}
+		return combined, nil
+	case id != "" && secret != "":
+		return id + "=" + secret, nil
+	case id != "":
+		return "", fmt.Errorf("incomplete credentials in %s (missing %s): %s", sourceLabel, secretName, credentialDocsHint)
+	case secret != "":
+		return "", fmt.Errorf("incomplete credentials in %s (missing %s): %s", sourceLabel, idName, credentialDocsHint)
+	default:
+		return "", nil
+	}
 }
 
 func missingFields(c Credentials) string {

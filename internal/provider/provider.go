@@ -40,6 +40,8 @@ type pveProvider struct {
 type pveProviderModel struct {
 	APIURL       types.String `tfsdk:"api_url"`
 	APIToken     types.String `tfsdk:"api_token"`
+	APITokenID   types.String `tfsdk:"api_token_id"`
+	APISecret    types.String `tfsdk:"api_secret"`
 	Username     types.String `tfsdk:"username"`
 	Password     types.String `tfsdk:"password"`
 	TOTP         types.String `tfsdk:"totp"`
@@ -65,7 +67,16 @@ func (p *pveProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 			"api_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
-				MarkdownDescription: "API token in the form `user@realm!tokenid=uuid`. Takes precedence over username/password. May also be set via the `PVE_API_TOKEN` environment variable.",
+				MarkdownDescription: "API token in the form `user@realm!tokenid=uuid`. Takes precedence over username/password. May also be set via the `PVE_API_TOKEN` environment variable. Mutually exclusive with `api_token_id`/`api_secret`.",
+			},
+			"api_token_id": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "API token ID in the form `user@realm!tokenid`, as shown in the Proxmox dashboard, e.g. `root@pam!terraform`. Requires `api_secret`. Mutually exclusive with `api_token`. May also be set via the `PVE_API_TOKEN_ID` environment variable.",
+			},
+			"api_secret": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "API token secret (the UUID token value shown once at token generation). Requires `api_token_id`. Mutually exclusive with `api_token`. May also be set via the `PVE_API_SECRET` environment variable.",
 			},
 			"username": schema.StringAttribute{
 				Optional:            true,
@@ -111,12 +122,14 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Guard against unknown values (e.g. api_token = some_resource.output):
 	// resolving them as empty would silently authenticate as nobody.
 	for name, value := range map[string]types.String{
-		"api_url":   config.APIURL,
-		"api_token": config.APIToken,
-		"username":  config.Username,
-		"password":  config.Password,
-		"totp":      config.TOTP,
-		"ca_cert":   config.CACert,
+		"api_url":      config.APIURL,
+		"api_token":    config.APIToken,
+		"api_token_id": config.APITokenID,
+		"api_secret":   config.APISecret,
+		"username":     config.Username,
+		"password":     config.Password,
+		"totp":         config.TOTP,
+		"ca_cert":      config.CACert,
 	} {
 		if value.IsUnknown() {
 			resp.Diagnostics.AddAttributeError(
@@ -137,11 +150,13 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Credentials resolve as a set: static configuration first, then
 	// environment variables.
 	creds, err := pveclient.ResolveCredentials(pveclient.ResolveOptions{
-		APIToken: config.APIToken.ValueString(),
-		Username: config.Username.ValueString(),
-		Password: config.Password.ValueString(),
-		TOTP:     config.TOTP.ValueString(),
-		Getenv:   p.getenv,
+		APIToken:   config.APIToken.ValueString(),
+		APITokenID: config.APITokenID.ValueString(),
+		APISecret:  config.APISecret.ValueString(),
+		Username:   config.Username.ValueString(),
+		Password:   config.Password.ValueString(),
+		TOTP:       config.TOTP.ValueString(),
+		Getenv:     p.getenv,
 	})
 	if err != nil {
 		if errors.Is(err, pveclient.ErrNoCredentials) {

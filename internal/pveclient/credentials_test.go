@@ -109,3 +109,114 @@ func TestCredentialsRedacted(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveCredentials_staticBeatsEnv(t *testing.T) {
+	creds, err := ResolveCredentials(ResolveOptions{
+		APIToken: "root@pam!t=static",
+		Getenv: func(k string) string {
+			if k == EnvUser {
+				return "root@pam"
+			}
+			if k == EnvPassword {
+				return "hunter2"
+			}
+			return ""
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveCredentials: %v", err)
+	}
+	if !creds.UsesToken() {
+		t.Fatalf("static token must take precedence over environment user/password")
+	}
+	if creds.Source != "provider configuration" {
+		t.Fatalf("source = %q, want %q", creds.Source, "provider configuration")
+	}
+}
+
+func TestResolveCredentials_staticSplitToken(t *testing.T) {
+	creds, err := ResolveCredentials(ResolveOptions{
+		APITokenID: "root@pam!terraform",
+		APISecret:  "00000000-0000-0000-0000-000000000000",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds.APIToken != "root@pam!terraform=00000000-0000-0000-0000-000000000000" {
+		t.Errorf("APIToken = %q", creds.APIToken)
+	}
+	if !creds.Complete() || !creds.UsesToken() {
+		t.Fatalf("expected complete token credentials, got %+v", creds)
+	}
+	if creds.Source != "provider configuration" {
+		t.Errorf("Source = %q", creds.Source)
+	}
+}
+
+func TestResolveCredentials_staticSplitConflict(t *testing.T) {
+	_, err := ResolveCredentials(ResolveOptions{
+		APIToken:   "root@pam!t=secret",
+		APITokenID: "root@pam!t",
+	})
+	if err == nil {
+		t.Fatal("expected error for combined plus split token")
+	}
+	if errors.Is(err, ErrNoCredentials) {
+		t.Error("conflict must be a hard error, not ErrNoCredentials")
+	}
+	if !strings.Contains(err.Error(), "api_token cannot be combined with api_token_id/api_secret") {
+		t.Errorf("error should name the conflicting attributes: %v", err)
+	}
+}
+
+func TestResolveCredentials_staticSplitIncomplete(t *testing.T) {
+	_, err := ResolveCredentials(ResolveOptions{APITokenID: "root@pam!terraform"})
+	if err == nil || !strings.Contains(err.Error(), "api_secret") {
+		t.Fatalf("expected missing api_secret error, got %v", err)
+	}
+	_, err = ResolveCredentials(ResolveOptions{APISecret: "00000000-0000-0000-0000-000000000000"})
+	if err == nil || !strings.Contains(err.Error(), "api_token_id") {
+		t.Fatalf("expected missing api_token_id error, got %v", err)
+	}
+}
+
+func TestResolveCredentials_envSplitToken(t *testing.T) {
+	env := map[string]string{
+		EnvAPITokenID: "root@pam!terraform",
+		EnvAPISecret:  "00000000-0000-0000-0000-000000000000",
+	}
+	creds, err := ResolveCredentials(ResolveOptions{Getenv: func(k string) string { return env[k] }})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if creds.APIToken != "root@pam!terraform=00000000-0000-0000-0000-000000000000" || !creds.UsesToken() {
+		t.Fatalf("got %+v", creds)
+	}
+	if creds.Source != "environment variables" {
+		t.Errorf("Source = %q", creds.Source)
+	}
+}
+
+func TestResolveCredentials_staticCombinedBeatsEnvSplit(t *testing.T) {
+	creds, err := ResolveCredentials(ResolveOptions{
+		APIToken: "root@pam!t=static",
+		Getenv: func(k string) string {
+			if k == EnvAPITokenID {
+				return "root@pam!t"
+			}
+			if k == EnvAPISecret {
+				return "env-secret"
+			}
+			return ""
+		},
+	})
+	if err != nil {
+		t.Fatalf("ResolveCredentials: %v", err)
+	}
+	if creds.APIToken != "root@pam!t=static" || !creds.UsesToken() {
+		t.Fatalf("static combined token must take precedence over environment split pair, got %+v", creds)
+	}
+	if creds.Source != "provider configuration" {
+		t.Errorf("source = %q, want %q", creds.Source, "provider configuration")
+	}
+}
