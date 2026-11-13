@@ -9,6 +9,7 @@ import (
 
 	"encoding/json"
 	"github.com/dwhoban/terraform-provider-pve/internal/pveclient"
+	"net/url"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
@@ -70,10 +71,14 @@ func (a *genericAction) Invoke(ctx context.Context, req action.InvokeRequest, re
 	}
 	op := a.desc.Invoke
 	path, err := resolvePath(a.desc, op, values, nil)
+	var params url.Values
+	if err == nil {
+		params, err = buildParams(a.desc, op, values)
+	}
 	if err == nil {
 		start := time.Now()
 		lastReport := time.Time{}
-		payload, waited, err = executeOp(ctx, a.client, op, path, buildParams(a.desc, op, values), func(elapsed time.Duration, status string) {
+		payload, waited, err = executeOp(ctx, a.client, op, path, params, func(elapsed time.Duration, status string) {
 			// Poll fast, report slow: progress events cross the plugin
 			// protocol, so throttle them instead of emitting per poll.
 			if resp.SendProgress == nil || time.Since(lastReport) < 30*time.Second {

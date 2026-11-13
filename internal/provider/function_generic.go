@@ -103,7 +103,7 @@ func (f *genericFunction) Run(ctx context.Context, req function.RunRequest, resp
 			return
 		}
 	}
-	result, err := coerceValue(decoded, resultAttr)
+	result, err := decodeAttr(resultAttr, decoded)
 	if err != nil {
 		resp.Error = function.NewFuncError(fmt.Sprintf("%s: %s", f.desc.Name, err))
 		return

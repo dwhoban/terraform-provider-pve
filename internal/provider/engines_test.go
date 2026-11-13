@@ -37,6 +37,9 @@ type fakePVE struct {
 	requests  []string
 	forms     []string
 	applyHits int
+	// createExtra fields are merged into every created widget (server-side
+	// values the create form does not carry verbatim).
+	createExtra map[string]any
 }
 
 func newFakePVE() *fakePVE {
@@ -120,6 +123,9 @@ func (f *fakePVE) serve(w http.ResponseWriter, r *http.Request) {
 		id := fmt.Sprintf("%d", f.nextID)
 		f.nextID++
 		f.widgets[id] = map[string]any{"id": id, "name": name, "size": 5}
+		for k, v := range f.createExtra {
+			f.widgets[id][k] = v
+		}
 		f.mu.Unlock()
 		writeData(w, "UPID:node1:0000:0:0:widgetcreate:"+id+":")
 
@@ -271,7 +277,11 @@ func attrToTF(v attr.Value) tftypes.Value {
 	case types.Float64:
 		return tftypes.NewValue(tftypes.Number, t.ValueFloat64())
 	default:
-		panic(fmt.Sprintf("attrToTF: unsupported %T", v))
+		tv, err := v.ToTerraformValue(ctxbg())
+		if err != nil {
+			panic(fmt.Sprintf("attrToTF: %v", err))
+		}
+		return tv
 	}
 }
 
@@ -400,6 +410,67 @@ func TestEngineResourceImportRead(t *testing.T) {
 	var name types.String
 	if diags := readResp.State.GetAttribute(ctx, pathpkg.Root("name"), &name); diags.HasError() || name.ValueString() != "imported" {
 		t.Fatalf("imported name = %q (diags %v)", name.ValueString(), diags)
+	}
+}
+
+// PVE answers some string properties as JSON objects (cluster options
+// `migration`). A configured property string describing the same object is
+// kept verbatim after apply; reads from null adopt the sorted rendering.
+func TestEnginePropertyStringObjectEcho(t *testing.T) {
+	ctx := ctxbg()
+	f := newFakePVE()
+	f.createExtra = map[string]any{"migration": map[string]any{"type": "secure", "network": "10.0.100.0/24"}}
+	f.widgets["7"] = map[string]any{"id": "7", "name": "imported", "size": 3, "migration": f.createExtra["migration"]}
+	d := widgetDescriptor()
+	d.Create.Params = append(d.Create.Params, "migration")
+	d.Attributes = append(d.Attributes, Attr{Name: "migration", Type: AttrString, Optional: true})
+	r := newResourceTest(t, d, f)
+	schema := buildResourceSchema(d)
+
+	const configured = "type=secure,network=10.0.100.0/24"
+	createResp := &resource.CreateResponse{State: tfsdk.State{Schema: schema}}
+	r.Create(ctx, resource.CreateRequest{
+		Plan: tfsdk.Plan{Raw: toTF(d, map[string]attr.Value{
+			"node": types.StringValue("node1"), "name": types.StringValue("alpha"), "migration": types.StringValue(configured),
+		}), Schema: schema},
+	}, createResp)
+	if createResp.Diagnostics.HasError() {
+		t.Fatalf("Create: %v", createResp.Diagnostics)
+	}
+	var got types.String
+	if diags := createResp.State.GetAttribute(ctx, pathpkg.Root("migration"), &got); diags.HasError() || got.ValueString() != configured {
+		t.Fatalf("migration after create = %q, want %q (diags %v)", got.ValueString(), configured, diags)
+	}
+
+	values := map[string]attr.Value{"id": types.StringValue("node1/7")}
+	readResp := &resource.ReadResponse{State: tfsdk.State{Raw: toTF(d, values), Schema: schema}}
+	r.Read(ctx, resource.ReadRequest{State: tfsdk.State{Raw: toTF(d, values), Schema: schema}}, readResp)
+	if readResp.Diagnostics.HasError() {
+		t.Fatalf("Read: %v", readResp.Diagnostics)
+	}
+	if diags := readResp.State.GetAttribute(ctx, pathpkg.Root("migration"), &got); diags.HasError() || got.ValueString() != "network=10.0.100.0/24,type=secure" {
+		t.Fatalf("imported migration = %q (diags %v)", got.ValueString(), diags)
+	}
+}
+
+// A response field that cannot be decoded into its attribute type is an
+// error, not a silently kept stale value.
+func TestEngineReadDecodeFailureSurfaces(t *testing.T) {
+	ctx := ctxbg()
+	f := newFakePVE()
+	f.widgets["7"] = map[string]any{"id": "7", "name": "imported", "size": "abc"}
+	d := widgetDescriptor()
+	r := newResourceTest(t, d, f)
+	schema := buildResourceSchema(d)
+
+	values := map[string]attr.Value{"id": types.StringValue("node1/7")}
+	readResp := &resource.ReadResponse{State: tfsdk.State{Raw: toTF(d, values), Schema: schema}}
+	r.Read(ctx, resource.ReadRequest{State: tfsdk.State{Raw: toTF(d, values), Schema: schema}}, readResp)
+	if !readResp.Diagnostics.HasError() {
+		t.Fatal("Read should fail when size is not an integer")
+	}
+	if detail := readResp.Diagnostics[0].Detail(); !strings.Contains(detail, "attribute size") {
+		t.Fatalf("error should name the attribute, got: %s", detail)
 	}
 }
 

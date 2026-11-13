@@ -27,6 +27,53 @@ var Phase4 = []Type{
 			// Per-write conflict token.
 			{Name: "digest", Skip: true},
 			{Name: "clone_source_vmid", Type: "int64", Add: true, Optional: BoolPtr(true), ForceNew: true},
+			// Slot families not modeled as blocks.
+			{Name: "dev_n_", Skip: true},
+			{Name: "unused_n_", Skip: true},
+		},
+		Blocks: []Block{
+			{
+				Name:        "rootfs",
+				Description: "Root volume. PVE normalizes an allocation to the concrete volume path, which cannot be pre-stated; leave unset to use the create-time `storage` parameter.",
+				Families:    []string{"rootfs"},
+				Fixed:       true,
+				DefaultKey:  "volume",
+				Fields: []BlockField{
+					{Name: "storage", Key: "volume", Role: "volume-storage", CreateOnly: true, Description: "Storage to allocate the root volume from (with size_gb)."},
+					{Name: "size_gb", Key: "size", Role: "volume-size-gb", Type: "int64", Computed: true, CreateOnly: true, Description: "Root volume size in GiB."},
+					{Name: "volume_id", Key: "volume", Role: "volume-id", Computed: true, CreateOnly: true, Description: "Root volume (e.g. local-lvm:vm-120-disk-0)."},
+				},
+			},
+			{
+				Name:        "mount_point",
+				Description: "Additional mount point; list position is the PVE slot (mount_point[0] is mp0).",
+				Families:    []string{"mp"},
+				DefaultKey:  "volume",
+				Fields: []BlockField{
+					{Name: "path", Key: "mp", Required: true, Description: "Mount path inside the container."},
+					{Name: "storage", Key: "volume", Role: "volume-storage", CreateOnly: true, Description: "Storage to allocate a new volume from (with size_gb)."},
+					{Name: "size_gb", Key: "size", Role: "volume-size-gb", Type: "int64", Computed: true, CreateOnly: true, Description: "Volume size in GiB."},
+					{Name: "volume_id", Key: "volume", Role: "volume-id", Computed: true, CreateOnly: true, Description: "Mounted volume (e.g. local-lvm:vm-120-disk-1)."},
+					{Name: "backup", Key: "backup", Type: "bool", Description: "Include the volume in backups."},
+					{Name: "read_only", Key: "ro", Type: "bool", Description: "Mount read-only."},
+				},
+			},
+			{
+				Name:        "network",
+				Description: "Network interface; list position is the PVE slot (network[0] is net0).",
+				Families:    []string{"net"},
+				Fields: []BlockField{
+					{Name: "name", Key: "name", Required: true, Description: "Interface name inside the container (e.g. eth0)."},
+					{Name: "bridge", Key: "bridge", Description: "Bridge to attach to."},
+					{Name: "vlan", Key: "tag", Type: "int64", Description: "VLAN tag."},
+					{Name: "firewall", Key: "firewall", Type: "bool", Description: "Enable the firewall on this interface."},
+					{Name: "ipv4", Key: "ip", Description: "IPv4 (CIDR, dhcp or manual)."},
+					{Name: "gateway", Key: "gw", Description: "IPv4 gateway."},
+					{Name: "ipv6", Key: "ip6", Description: "IPv6 (CIDR, auto, dhcp or manual)."},
+					{Name: "gateway6", Key: "gw6", Description: "IPv6 gateway."},
+					{Name: "mac_address", Key: "hwaddr", Computed: true, Description: "MAC address (PVE assigns one when unset)."},
+				},
+			},
 		},
 	},
 	{
@@ -35,10 +82,13 @@ var Phase4 = []Type{
 		Reads: []*Endpoint{
 			{Path: "/nodes/{node}/lxc/{vmid}/config", ResultName: "config"},
 			{Path: "/nodes/{node}/lxc/{vmid}/pending", ResultName: "pending"},
-			{Path: "/nodes/{node}/lxc/{vmid}/feature", ResultName: "feature"},
+			{Path: "/nodes/{node}/lxc/{vmid}/feature", ResultName: "feature_support", SkipIfMissing: []string{"feature"}},
 			{Path: "/nodes/{node}/lxc/{vmid}/status", ResultName: "status"},
 			{Path: "/nodes/{node}/lxc/{vmid}/status/current", ResultName: "current"},
 			{Path: "/nodes/{node}/lxc/{vmid}/interfaces", ResultName: "interfaces"},
+		},
+		Attrs: []AttrRule{
+			{Name: "feature", Required: BoolPtr(false), Optional: BoolPtr(true), Description: "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset."},
 		},
 	},
 	{

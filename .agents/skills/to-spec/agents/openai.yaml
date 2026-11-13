@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "To Spec"
+  short_description: "Turn a conversation into a spec"
+policy:
+  allow_implicit_invocation: false

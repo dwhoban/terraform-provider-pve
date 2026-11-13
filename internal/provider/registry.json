@@ -625,9 +625,10 @@
         {
           "name": "data",
           "type": "string",
+          "format": "base64",
           "optional": true,
           "sensitive": true,
-          "description": "DNS plugin data. (base64 encoded)"
+          "description": "DNS plugin credentials as plaintext KEY=value lines, newline-separated, no trailing newline (the form PVE reads back); the provider base64-encodes it for the API."
         },
         {
           "name": "delete",
@@ -5525,7 +5526,7 @@
         "path": "/cluster/config",
         "params": [
           "clustername",
-          "link_n_",
+          "link",
           "nodeid",
           "token_coefficient",
           "votes"
@@ -5544,12 +5545,41 @@
           "description": "The name of the cluster."
         },
         {
-          "name": "link_n_",
-          "apiName": "link[n]",
-          "type": "string",
+          "name": "link",
+          "type": "list",
+          "block": {
+            "families": [
+              "link"
+            ],
+            "defaultKey": "address",
+            "fields": [
+              {
+                "name": "address",
+                "key": "address"
+              },
+              {
+                "name": "priority",
+                "key": "priority"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "address",
+              "type": "string",
+              "required": true,
+              "description": "Link address."
+            },
+            {
+              "name": "priority",
+              "type": "int64",
+              "optional": true,
+              "description": "Link priority."
+            }
+          ],
           "optional": true,
           "forceNew": true,
-          "description": "Address and priority information of a single corosync link. (up to 8 links supported; link0..link7)"
+          "description": "Corosync link; list position is the link number (link[0] is link0, up to link7)."
         },
         {
           "name": "nodeid",
@@ -5708,7 +5738,7 @@
           "fingerprint",
           "force",
           "hostname",
-          "link_n_",
+          "link",
           "nodeid",
           "password",
           "votes"
@@ -5742,11 +5772,40 @@
           "description": "Do not throw error if node already exists."
         },
         {
-          "name": "link_n_",
-          "apiName": "link[n]",
-          "type": "string",
+          "name": "link",
+          "type": "list",
+          "block": {
+            "families": [
+              "link"
+            ],
+            "defaultKey": "address",
+            "fields": [
+              {
+                "name": "address",
+                "key": "address"
+              },
+              {
+                "name": "priority",
+                "key": "priority"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "address",
+              "type": "string",
+              "required": true,
+              "description": "Link address."
+            },
+            {
+              "name": "priority",
+              "type": "int64",
+              "optional": true,
+              "description": "Link priority."
+            }
+          ],
           "optional": true,
-          "description": "Address and priority information of a single corosync link. (up to 8 links supported; link0..link7)"
+          "description": "Corosync link of the node to join with; list position is the link number (up to link7)."
         },
         {
           "name": "nodeid",
@@ -6333,7 +6392,6 @@
           "cpuunits",
           "debug",
           "description",
-          "dev_n_",
           "entrypoint",
           "env",
           "features",
@@ -6344,9 +6402,9 @@
           "ignore_unpack_errors",
           "lock",
           "memory",
-          "mp_n_",
+          "mount_point",
           "nameserver",
-          "net_n_",
+          "network",
           "node",
           "onboot",
           "ostemplate",
@@ -6368,7 +6426,6 @@
           "tty",
           "unique",
           "unprivileged",
-          "unused_n_",
           "vmid"
         ],
         "waitTask": true
@@ -6377,9 +6434,7 @@
         "method": "GET",
         "path": "/nodes/{node}/lxc/{vmid}/config",
         "params": [
-          "current",
           "node",
-          "snapshot",
           "vmid"
         ]
       },
@@ -6396,7 +6451,6 @@
           "debug",
           "delete",
           "description",
-          "dev_n_",
           "entrypoint",
           "env",
           "features",
@@ -6404,9 +6458,9 @@
           "hostname",
           "lock",
           "memory",
-          "mp_n_",
+          "mount_point",
           "nameserver",
-          "net_n_",
+          "network",
           "node",
           "onboot",
           "ostype",
@@ -6421,7 +6475,6 @@
           "timezone",
           "tty",
           "unprivileged",
-          "unused_n_",
           "vmid"
         ],
         "waitTask": true,
@@ -6573,13 +6626,6 @@
           "description": "If set, destroy additionally all disks with the VMID from all enabled storages which are not referenced in the config."
         },
         {
-          "name": "dev_n_",
-          "apiName": "dev[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Device to pass through to the container"
-        },
-        {
           "name": "entrypoint",
           "type": "string",
           "optional": true,
@@ -6665,11 +6711,88 @@
           "default": 512
         },
         {
-          "name": "mp_n_",
-          "apiName": "mp[n]",
-          "type": "string",
+          "name": "mount_point",
+          "type": "list",
+          "block": {
+            "families": [
+              "mp"
+            ],
+            "defaultKey": "volume",
+            "fields": [
+              {
+                "name": "path",
+                "key": "mp"
+              },
+              {
+                "name": "storage",
+                "key": "volume",
+                "role": "volume-storage",
+                "createOnly": true
+              },
+              {
+                "name": "size_gb",
+                "key": "size",
+                "role": "volume-size-gb",
+                "createOnly": true
+              },
+              {
+                "name": "volume_id",
+                "key": "volume",
+                "role": "volume-id",
+                "createOnly": true
+              },
+              {
+                "name": "backup",
+                "key": "backup"
+              },
+              {
+                "name": "read_only",
+                "key": "ro"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "path",
+              "type": "string",
+              "required": true,
+              "description": "Mount path inside the container."
+            },
+            {
+              "name": "storage",
+              "type": "string",
+              "optional": true,
+              "description": "Storage to allocate a new volume from (with size_gb)."
+            },
+            {
+              "name": "size_gb",
+              "type": "int64",
+              "optional": true,
+              "computed": true,
+              "description": "Volume size in GiB."
+            },
+            {
+              "name": "volume_id",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "Mounted volume (e.g. local-lvm:vm-120-disk-1)."
+            },
+            {
+              "name": "backup",
+              "type": "bool",
+              "optional": true,
+              "description": "Include the volume in backups."
+            },
+            {
+              "name": "read_only",
+              "type": "bool",
+              "optional": true,
+              "description": "Mount read-only."
+            }
+          ],
           "optional": true,
-          "description": "Use volume as container mount point. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume."
+          "description": "Additional mount point; list position is the PVE slot (mount_point[0] is mp0)."
         },
         {
           "name": "nameserver",
@@ -6678,11 +6801,110 @@
           "description": "Sets DNS server IP address for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver."
         },
         {
-          "name": "net_n_",
-          "apiName": "net[n]",
-          "type": "string",
+          "name": "network",
+          "type": "list",
+          "block": {
+            "families": [
+              "net"
+            ],
+            "fields": [
+              {
+                "name": "name",
+                "key": "name"
+              },
+              {
+                "name": "bridge",
+                "key": "bridge"
+              },
+              {
+                "name": "vlan",
+                "key": "tag"
+              },
+              {
+                "name": "firewall",
+                "key": "firewall"
+              },
+              {
+                "name": "ipv4",
+                "key": "ip"
+              },
+              {
+                "name": "gateway",
+                "key": "gw"
+              },
+              {
+                "name": "ipv6",
+                "key": "ip6"
+              },
+              {
+                "name": "gateway6",
+                "key": "gw6"
+              },
+              {
+                "name": "mac_address",
+                "key": "hwaddr"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "description": "Interface name inside the container (e.g. eth0)."
+            },
+            {
+              "name": "bridge",
+              "type": "string",
+              "optional": true,
+              "description": "Bridge to attach to."
+            },
+            {
+              "name": "vlan",
+              "type": "int64",
+              "optional": true,
+              "description": "VLAN tag."
+            },
+            {
+              "name": "firewall",
+              "type": "bool",
+              "optional": true,
+              "description": "Enable the firewall on this interface."
+            },
+            {
+              "name": "ipv4",
+              "type": "string",
+              "optional": true,
+              "description": "IPv4 (CIDR, dhcp or manual)."
+            },
+            {
+              "name": "gateway",
+              "type": "string",
+              "optional": true,
+              "description": "IPv4 gateway."
+            },
+            {
+              "name": "ipv6",
+              "type": "string",
+              "optional": true,
+              "description": "IPv6 (CIDR, auto, dhcp or manual)."
+            },
+            {
+              "name": "gateway6",
+              "type": "string",
+              "optional": true,
+              "description": "IPv6 gateway."
+            },
+            {
+              "name": "mac_address",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "MAC address (PVE assigns one when unset)."
+            }
+          ],
           "optional": true,
-          "description": "Specifies network interfaces for the container."
+          "description": "Network interface; list position is the PVE slot (network[0] is net0)."
         },
         {
           "name": "onboot",
@@ -6751,9 +6973,58 @@
         },
         {
           "name": "rootfs",
-          "type": "string",
+          "type": "object",
+          "block": {
+            "families": [
+              "rootfs"
+            ],
+            "fixed": true,
+            "defaultKey": "volume",
+            "fields": [
+              {
+                "name": "storage",
+                "key": "volume",
+                "role": "volume-storage",
+                "createOnly": true
+              },
+              {
+                "name": "size_gb",
+                "key": "size",
+                "role": "volume-size-gb",
+                "createOnly": true
+              },
+              {
+                "name": "volume_id",
+                "key": "volume",
+                "role": "volume-id",
+                "createOnly": true
+              }
+            ]
+          },
+          "attrs": [
+            {
+              "name": "storage",
+              "type": "string",
+              "optional": true,
+              "description": "Storage to allocate the root volume from (with size_gb)."
+            },
+            {
+              "name": "size_gb",
+              "type": "int64",
+              "optional": true,
+              "computed": true,
+              "description": "Root volume size in GiB."
+            },
+            {
+              "name": "volume_id",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "Root volume (e.g. local-lvm:vm-120-disk-0)."
+            }
+          ],
           "optional": true,
-          "description": "Use volume as container root."
+          "description": "Root volume. PVE normalizes an allocation to the concrete volume path, which cannot be pre-stated; leave unset to use the create-time `storage` parameter."
         },
         {
           "name": "searchdomain",
@@ -6833,13 +7104,6 @@
           "optional": true,
           "description": "Makes the container run as unprivileged user. For creation, the default is 1. For restore, the default is the value from the backup. (Should not be modified manually.)",
           "default": 0
-        },
-        {
-          "name": "unused_n_",
-          "apiName": "unused[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Reference to unused volumes. This is used internally, and should not be modified manually."
         }
       ]
     },
@@ -6857,7 +7121,6 @@
           "method": "GET",
           "path": "/nodes/{node}/lxc/{vmid}/config",
           "params": [
-            "current",
             "node",
             "snapshot",
             "vmid"
@@ -6882,7 +7145,10 @@
             "snapname",
             "vmid"
           ],
-          "resultName": "feature"
+          "resultName": "feature_support",
+          "skipIfMissing": [
+            "feature"
+          ]
         },
         {
           "method": "GET",
@@ -7297,6 +7563,17 @@
         },
         {
           "name": "feature",
+          "type": "string",
+          "optional": true,
+          "description": "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset.",
+          "enum": [
+            "snapshot",
+            "clone",
+            "copy"
+          ]
+        },
+        {
+          "name": "feature_support",
           "type": "object",
           "attrs": [
             {
@@ -7306,8 +7583,7 @@
               "computed": true
             }
           ],
-          "computed": true,
-          "description": "Feature to check."
+          "computed": true
         },
         {
           "name": "interfaces",
@@ -9980,7 +10256,7 @@
           "optional": true,
           "computed": true,
           "forceNew": true,
-          "description": "Volume identifier"
+          "description": "Source volume identifier"
         }
       ]
     },
@@ -14010,7 +14286,6 @@
         "path": "/nodes/{node}/config",
         "params": [
           "acme",
-          "acmedomain_n_",
           "ballooning_target",
           "delete",
           "description",
@@ -14026,8 +14301,7 @@
         "method": "GET",
         "path": "/nodes/{node}/config",
         "params": [
-          "node",
-          "property"
+          "node"
         ]
       },
       "update": {
@@ -14035,7 +14309,6 @@
         "path": "/nodes/{node}/config",
         "params": [
           "acme",
-          "acmedomain_n_",
           "ballooning_target",
           "delete",
           "description",
@@ -14060,13 +14333,6 @@
           "type": "string",
           "optional": true,
           "description": "Node specific ACME settings."
-        },
-        {
-          "name": "acmedomain_n_",
-          "apiName": "acmedomain[n]",
-          "type": "string",
-          "optional": true,
-          "description": "ACME domain and validation plugin"
         },
         {
           "name": "ballooning_target",
@@ -15484,8 +15750,7 @@
           "method": "PUT",
           "path": "/nodes/{node}/network",
           "params": [
-            "node",
-            "regenerate_frr"
+            "node"
           ],
           "waitTask": true
         }
@@ -15538,8 +15803,7 @@
           "method": "PUT",
           "path": "/nodes/{node}/network",
           "params": [
-            "node",
-            "regenerate_frr"
+            "node"
           ],
           "waitTask": true
         },
@@ -15557,8 +15821,7 @@
           "method": "PUT",
           "path": "/nodes/{node}/network",
           "params": [
-            "node",
-            "regenerate_frr"
+            "node"
           ],
           "waitTask": true
         }
@@ -17497,8 +17760,7 @@
         "method": "GET",
         "path": "/pools/{poolid}",
         "params": [
-          "poolid",
-          "type"
+          "poolid"
         ]
       },
       "update": {
@@ -18971,9 +19233,7 @@
         "method": "GET",
         "path": "/cluster/sdn/controllers/{controller}",
         "params": [
-          "controller",
-          "pending",
-          "running"
+          "controller"
         ]
       },
       "update": {
@@ -20682,7 +20942,7 @@
             "node",
             "zone"
           ],
-          "resultName": "zone",
+          "resultName": "zone_status",
           "skipIfMissingParam": true
         },
         {
@@ -20722,7 +20982,7 @@
             "node",
             "vnet"
           ],
-          "resultName": "vnet",
+          "resultName": "vnet_status",
           "skipIfMissingParam": true
         },
         {
@@ -20742,7 +21002,7 @@
             "fabric",
             "node"
           ],
-          "resultName": "fabric",
+          "resultName": "fabric_status",
           "skipIfMissingParam": true
         },
         {
@@ -20872,6 +21132,12 @@
         {
           "name": "fabric",
           "pathParam": "fabric",
+          "type": "string",
+          "optional": true,
+          "description": "Identifier for SDN fabrics"
+        },
+        {
+          "name": "fabric_status",
           "type": "list",
           "elemAttrs": [
             {
@@ -20880,9 +21146,8 @@
               "computed": true
             }
           ],
-          "optional": true,
           "computed": true,
-          "description": "Identifier for SDN fabrics"
+          "description": "Returned by /nodes/{node}/sdn/fabrics/{fabric}."
         },
         {
           "name": "index",
@@ -21025,6 +21290,12 @@
         {
           "name": "vnet",
           "pathParam": "vnet",
+          "type": "string",
+          "optional": true,
+          "description": "The SDN vnet object identifier."
+        },
+        {
+          "name": "vnet_status",
           "type": "list",
           "elemAttrs": [
             {
@@ -21033,13 +21304,18 @@
               "computed": true
             }
           ],
-          "optional": true,
           "computed": true,
-          "description": "The SDN vnet object identifier."
+          "description": "Returned by /nodes/{node}/sdn/vnets/{vnet}."
         },
         {
           "name": "zone",
           "pathParam": "zone",
+          "type": "string",
+          "optional": true,
+          "description": "The SDN zone object identifier."
+        },
+        {
+          "name": "zone_status",
           "type": "list",
           "elemAttrs": [
             {
@@ -21048,9 +21324,8 @@
               "computed": true
             }
           ],
-          "optional": true,
           "computed": true,
-          "description": "The SDN zone object identifier."
+          "description": "Returned by /nodes/{node}/sdn/zones/{zone}."
         },
         {
           "name": "zones",
@@ -21105,8 +21380,6 @@
         "method": "GET",
         "path": "/cluster/sdn/vnets/{vnet}/subnets",
         "params": [
-          "pending",
-          "running",
           "vnet"
         ],
         "filter": [
@@ -21241,8 +21514,6 @@
         "method": "GET",
         "path": "/cluster/sdn/vnets/{vnet}",
         "params": [
-          "pending",
-          "running",
           "vnet"
         ]
       },
@@ -21655,8 +21926,6 @@
         "method": "GET",
         "path": "/cluster/sdn/zones/{zone}",
         "params": [
-          "pending",
-          "running",
           "zone"
         ]
       },
@@ -22686,13 +22955,74 @@
             "storage",
             "vmid"
           ],
-          "resultName": "content",
+          "resultName": "volumes",
           "skipIfMissingParam": true
         }
       ],
       "attributes": [
         {
           "name": "content",
+          "type": "string",
+          "optional": true,
+          "description": "Only list content of this type."
+        },
+        {
+          "name": "node",
+          "pathParam": "node",
+          "type": "string",
+          "optional": true,
+          "description": "The cluster node name."
+        },
+        {
+          "name": "storage",
+          "pathParam": "storage",
+          "type": "string",
+          "optional": true,
+          "description": "The storage identifier."
+        },
+        {
+          "name": "storages",
+          "type": "list",
+          "elemAttrs": [
+            {
+              "name": "storage",
+              "type": "string",
+              "computed": true
+            }
+          ],
+          "computed": true,
+          "description": "Returned by /storage."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "optional": true,
+          "description": "Only list storage of specific type",
+          "enum": [
+            "btrfs",
+            "cephfs",
+            "cifs",
+            "dir",
+            "esxi",
+            "iscsi",
+            "iscsidirect",
+            "lvm",
+            "lvmthin",
+            "nfs",
+            "pbs",
+            "rbd",
+            "zfs",
+            "zfspool"
+          ]
+        },
+        {
+          "name": "vmid",
+          "type": "int64",
+          "optional": true,
+          "description": "Only list images for this VM"
+        },
+        {
+          "name": "volumes",
           "type": "list",
           "elemAttrs": [
             {
@@ -22784,62 +23114,7 @@
             }
           ],
           "computed": true,
-          "description": "Only list content of this type."
-        },
-        {
-          "name": "node",
-          "pathParam": "node",
-          "type": "string",
-          "optional": true,
-          "description": "The cluster node name."
-        },
-        {
-          "name": "storage",
-          "pathParam": "storage",
-          "type": "string",
-          "optional": true,
-          "description": "The storage identifier."
-        },
-        {
-          "name": "storages",
-          "type": "list",
-          "elemAttrs": [
-            {
-              "name": "storage",
-              "type": "string",
-              "computed": true
-            }
-          ],
-          "computed": true,
-          "description": "Returned by /storage."
-        },
-        {
-          "name": "type",
-          "type": "string",
-          "optional": true,
-          "description": "Only list storage of specific type",
-          "enum": [
-            "btrfs",
-            "cephfs",
-            "cifs",
-            "dir",
-            "esxi",
-            "iscsi",
-            "iscsidirect",
-            "lvm",
-            "lvmthin",
-            "nfs",
-            "pbs",
-            "rbd",
-            "zfs",
-            "zfspool"
-          ]
-        },
-        {
-          "name": "vmid",
-          "type": "int64",
-          "optional": true,
-          "description": "Only list images for this VM"
+          "description": "Returned by /nodes/{node}/storage/{storage}/content."
         }
       ]
     },
@@ -24384,7 +24659,6 @@
           "method": "GET",
           "path": "/nodes/{node}/qemu/{vmid}/config",
           "params": [
-            "current",
             "node",
             "snapshot",
             "vmid"
@@ -24409,7 +24683,10 @@
             "snapname",
             "vmid"
           ],
-          "resultName": "feature"
+          "resultName": "feature_support",
+          "skipIfMissing": [
+            "feature"
+          ]
         },
         {
           "method": "GET",
@@ -25458,6 +25735,17 @@
         },
         {
           "name": "feature",
+          "type": "string",
+          "optional": true,
+          "description": "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset.",
+          "enum": [
+            "snapshot",
+            "clone",
+            "copy"
+          ]
+        },
+        {
+          "name": "feature_support",
           "type": "object",
           "attrs": [
             {
@@ -25473,8 +25761,7 @@
               "computed": true
             }
           ],
-          "computed": true,
-          "description": "Feature to check."
+          "computed": true
         },
         {
           "name": "pending",
@@ -25560,7 +25847,7 @@
           "autostart",
           "balloon",
           "bios",
-          "boot",
+          "boot_order",
           "bootdisk",
           "bwlimit",
           "cdrom",
@@ -25574,18 +25861,16 @@
           "cpulimit",
           "cpuunits",
           "description",
+          "disk",
           "efidisk0",
           "force",
           "freeze",
           "ha_managed",
           "hookscript",
-          "hostpci_n_",
           "hotplug",
           "hugepages",
-          "ide_n_",
           "import_working_storage",
           "intel_tdx",
-          "ipconfig_n_",
           "ivshmem",
           "keephugepages",
           "keyboard",
@@ -25599,22 +25884,17 @@
           "migrate_speed",
           "name",
           "nameserver",
-          "net_n_",
+          "network",
           "node",
           "numa",
-          "numa_n_",
           "onboot",
           "ostype",
-          "parallel_n_",
           "pool",
           "protection",
           "reboot",
           "rng0",
-          "sata_n_",
-          "scsi_n_",
           "scsihw",
           "searchdomain",
-          "serial_n_",
           "shares",
           "smbios1",
           "smp",
@@ -25631,12 +25911,8 @@
           "template",
           "tpmstate0",
           "unique",
-          "unused_n_",
-          "usb_n_",
           "vcpus",
           "vga",
-          "virtio_n_",
-          "virtiofs_n_",
           "vmgenid",
           "vmid",
           "vmstatestorage",
@@ -25649,9 +25925,7 @@
         "method": "GET",
         "path": "/nodes/{node}/qemu/{vmid}/config",
         "params": [
-          "current",
           "node",
-          "snapshot",
           "vmid"
         ]
       },
@@ -25670,7 +25944,7 @@
           "autostart",
           "balloon",
           "bios",
-          "boot",
+          "boot_order",
           "bootdisk",
           "cdrom",
           "cicustom",
@@ -25684,16 +25958,14 @@
           "cpuunits",
           "delete",
           "description",
+          "disk",
           "efidisk0",
           "force",
           "freeze",
           "hookscript",
-          "hostpci_n_",
           "hotplug",
           "hugepages",
-          "ide_n_",
           "intel_tdx",
-          "ipconfig_n_",
           "ivshmem",
           "keephugepages",
           "keyboard",
@@ -25706,22 +25978,17 @@
           "migrate_speed",
           "name",
           "nameserver",
-          "net_n_",
+          "network",
           "node",
           "numa",
-          "numa_n_",
           "onboot",
           "ostype",
-          "parallel_n_",
           "protection",
           "reboot",
           "revert",
           "rng0",
-          "sata_n_",
-          "scsi_n_",
           "scsihw",
           "searchdomain",
-          "serial_n_",
           "shares",
           "skiplock",
           "smbios1",
@@ -25736,12 +26003,8 @@
           "tdf",
           "template",
           "tpmstate0",
-          "unused_n_",
-          "usb_n_",
           "vcpus",
           "vga",
-          "virtio_n_",
-          "virtiofs_n_",
           "vmgenid",
           "vmid",
           "vmstatestorage",
@@ -25886,10 +26149,13 @@
           ]
         },
         {
-          "name": "boot",
-          "type": "string",
+          "name": "boot_order",
+          "apiName": "boot",
+          "type": "list",
+          "format": "boot-order",
+          "elemType": "string",
           "optional": true,
-          "description": "Specify guest boot order. Use the 'order=' sub-property as usage with no key or 'legacy=' is deprecated."
+          "description": "Boot devices in order, as PVE device names (e.g. scsi0, ide2, net0)."
         },
         {
           "name": "bootdisk",
@@ -25906,9 +26172,51 @@
         },
         {
           "name": "cdrom",
-          "type": "string",
+          "type": "list",
+          "block": {
+            "families": [
+              "ide",
+              "sata",
+              "scsi"
+            ],
+            "defaultKey": "file",
+            "exclude": {
+              "file": "*cloudinit*"
+            },
+            "fields": [
+              {
+                "name": "interface",
+                "key": "interface",
+                "role": "index"
+              },
+              {
+                "name": "iso",
+                "key": "file"
+              },
+              {
+                "key": "media",
+                "const": "cdrom"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "interface",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "PVE device name (default ide2).",
+              "default": "ide2"
+            },
+            {
+              "name": "iso",
+              "type": "string",
+              "required": true,
+              "description": "ISO volume (e.g. local:iso/debian-12.iso)."
+            }
+          ],
           "optional": true,
-          "description": "This is an alias for option -ide2"
+          "description": "CD-ROM drive backed by an ISO (or ejected)."
         },
         {
           "name": "cicustom",
@@ -26002,6 +26310,137 @@
           "default": 0
         },
         {
+          "name": "disk",
+          "type": "list",
+          "block": {
+            "families": [
+              "ide",
+              "sata",
+              "scsi",
+              "virtio"
+            ],
+            "defaultKey": "file",
+            "exclude": {
+              "file": "*cloudinit*",
+              "media": "cdrom"
+            },
+            "fields": [
+              {
+                "name": "interface",
+                "key": "interface",
+                "role": "index"
+              },
+              {
+                "name": "storage",
+                "key": "file",
+                "role": "volume-storage",
+                "createOnly": true
+              },
+              {
+                "name": "size_gb",
+                "key": "size",
+                "role": "volume-size-gb",
+                "createOnly": true
+              },
+              {
+                "name": "volume_id",
+                "key": "file",
+                "role": "volume-id",
+                "createOnly": true
+              },
+              {
+                "name": "iothread",
+                "key": "iothread"
+              },
+              {
+                "name": "discard",
+                "key": "discard",
+                "true": "on",
+                "false": "ignore"
+              },
+              {
+                "name": "ssd",
+                "key": "ssd"
+              },
+              {
+                "name": "backup",
+                "key": "backup"
+              },
+              {
+                "name": "cache",
+                "key": "cache"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "interface",
+              "type": "string",
+              "required": true,
+              "description": "PVE device name: ide0..3, sata0..5, scsi0..30, virtio0..15."
+            },
+            {
+              "name": "storage",
+              "type": "string",
+              "optional": true,
+              "description": "Storage to allocate a new volume from (with size_gb)."
+            },
+            {
+              "name": "size_gb",
+              "type": "int64",
+              "optional": true,
+              "computed": true,
+              "description": "Size in GiB. Resizing an existing disk is not supported here; use action `pve_vm_disk_resize`."
+            },
+            {
+              "name": "volume_id",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "Allocated volume (e.g. local-lvm:vm-120-disk-0)."
+            },
+            {
+              "name": "iothread",
+              "type": "bool",
+              "optional": true,
+              "description": "Use iothread for the disk (scsi/virtio only)."
+            },
+            {
+              "name": "discard",
+              "type": "bool",
+              "optional": true,
+              "description": "Enable discard/TRIM support."
+            },
+            {
+              "name": "ssd",
+              "type": "bool",
+              "optional": true,
+              "description": "Report the disk as SSD (ide/sata/scsi only)."
+            },
+            {
+              "name": "backup",
+              "type": "bool",
+              "optional": true,
+              "description": "Include the disk in backups."
+            },
+            {
+              "name": "cache",
+              "type": "string",
+              "optional": true,
+              "description": "Cache mode.",
+              "enum": [
+                "none",
+                "writethrough",
+                "writeback",
+                "unsafe",
+                "directsync"
+              ]
+            }
+          ],
+          "optional": true,
+          "description": "Virtual disk on one IDE/SATA/SCSI/VirtIO slot. New volumes are allocated from storage; use action `pve_vm_disk_resize` to resize and `pve_vm_disk_move` to move an existing disk."
+        },
+        {
           "name": "efidisk0",
           "type": "string",
           "optional": true,
@@ -26034,13 +26473,6 @@
           "description": "Script that will be executed during various steps in the vms lifetime."
         },
         {
-          "name": "hostpci_n_",
-          "apiName": "hostpci[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Map host PCI devices into guest."
-        },
-        {
           "name": "hotplug",
           "type": "string",
           "optional": true,
@@ -26059,41 +26491,6 @@
           ]
         },
         {
-          "name": "ide0",
-          "apiName": "ide0",
-          "type": "string",
-          "optional": true,
-          "description": "IDE slot 0 volume/options."
-        },
-        {
-          "name": "ide1",
-          "apiName": "ide1",
-          "type": "string",
-          "optional": true,
-          "description": "IDE slot 1 volume/options."
-        },
-        {
-          "name": "ide2",
-          "apiName": "ide2",
-          "type": "string",
-          "optional": true,
-          "description": "IDE slot 2 volume/options."
-        },
-        {
-          "name": "ide3",
-          "apiName": "ide3",
-          "type": "string",
-          "optional": true,
-          "description": "IDE slot 3 volume/options."
-        },
-        {
-          "name": "ide_n_",
-          "apiName": "ide[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Use volume as IDE hard disk or CD-ROM (n is 0 to 3). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume."
-        },
-        {
           "name": "import_working_storage",
           "apiName": "import-working-storage",
           "type": "string",
@@ -26106,13 +26503,6 @@
           "type": "string",
           "optional": true,
           "description": "Trusted Domain Extension (TDX) features by Intel CPUs"
-        },
-        {
-          "name": "ipconfig_n_",
-          "apiName": "ipconfig[n]",
-          "type": "string",
-          "optional": true,
-          "description": "cloud-init: Specify IP addresses and gateways for the corresponding interface.\n\nIP addresses use CIDR notation, gateways are optional but need an IP of the same type specified.\n\nThe special string 'dhcp' can be used for IP addresses to use DHCP, in which case no explicit\ngateway should be provided.\nFor IPv6 the special string 'auto' can be used to use stateless autoconfiguration. This requires\ncloud-init 19.4 or newer.\n\nIf cloud-init is enabled and neither an IPv4 nor an IPv6 address is specified, it defaults to using\ndhcp on IPv4.\n"
         },
         {
           "name": "ivshmem",
@@ -26242,39 +26632,135 @@
           "description": "cloud-init: Sets DNS server IP address for a container. Create will automatically use the setting from the host if neither searchdomain nor nameserver are set."
         },
         {
-          "name": "net0",
-          "apiName": "net0",
-          "type": "string",
+          "name": "network",
+          "type": "list",
+          "block": {
+            "families": [
+              "net"
+            ],
+            "defaultKey": "model",
+            "fields": [
+              {
+                "name": "model",
+                "key": "model",
+                "role": "model"
+              },
+              {
+                "name": "mac_address",
+                "key": "macaddr",
+                "role": "mac"
+              },
+              {
+                "name": "bridge",
+                "key": "bridge"
+              },
+              {
+                "name": "vlan",
+                "key": "tag"
+              },
+              {
+                "name": "firewall",
+                "key": "firewall"
+              },
+              {
+                "name": "ipv4",
+                "family": "ipconfig",
+                "key": "ip"
+              },
+              {
+                "name": "gateway",
+                "family": "ipconfig",
+                "key": "gw"
+              },
+              {
+                "name": "ipv6",
+                "family": "ipconfig",
+                "key": "ip6"
+              },
+              {
+                "name": "gateway6",
+                "family": "ipconfig",
+                "key": "gw6"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "model",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "NIC model.",
+              "default": "virtio",
+              "enum": [
+                "e1000",
+                "e1000-82540em",
+                "e1000-82544gc",
+                "e1000-82545em",
+                "e1000e",
+                "i82551",
+                "i82557b",
+                "i82559er",
+                "ne2k_isa",
+                "ne2k_pci",
+                "pcnet",
+                "rtl8139",
+                "virtio",
+                "vmxnet3"
+              ]
+            },
+            {
+              "name": "mac_address",
+              "type": "string",
+              "optional": true,
+              "computed": true,
+              "description": "MAC address (PVE assigns one when unset)."
+            },
+            {
+              "name": "bridge",
+              "type": "string",
+              "optional": true,
+              "description": "Bridge to attach to."
+            },
+            {
+              "name": "vlan",
+              "type": "int64",
+              "optional": true,
+              "description": "VLAN tag."
+            },
+            {
+              "name": "firewall",
+              "type": "bool",
+              "optional": true,
+              "description": "Enable the firewall on this NIC."
+            },
+            {
+              "name": "ipv4",
+              "type": "string",
+              "optional": true,
+              "description": "Cloud-init IPv4 (CIDR, dhcp or manual)."
+            },
+            {
+              "name": "gateway",
+              "type": "string",
+              "optional": true,
+              "description": "Cloud-init IPv4 gateway."
+            },
+            {
+              "name": "ipv6",
+              "type": "string",
+              "optional": true,
+              "description": "Cloud-init IPv6 (CIDR, auto, dhcp or manual)."
+            },
+            {
+              "name": "gateway6",
+              "type": "string",
+              "optional": true,
+              "description": "Cloud-init IPv6 gateway."
+            }
+          ],
           "optional": true,
-          "description": "NET slot 0 volume/options."
-        },
-        {
-          "name": "net1",
-          "apiName": "net1",
-          "type": "string",
-          "optional": true,
-          "description": "NET slot 1 volume/options."
-        },
-        {
-          "name": "net2",
-          "apiName": "net2",
-          "type": "string",
-          "optional": true,
-          "description": "NET slot 2 volume/options."
-        },
-        {
-          "name": "net3",
-          "apiName": "net3",
-          "type": "string",
-          "optional": true,
-          "description": "NET slot 3 volume/options."
-        },
-        {
-          "name": "net_n_",
-          "apiName": "net[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Specify network devices."
+          "description": "Network interface; list position is the PVE slot (network[0] is net0). Cloud-init addresses (ipv4/ipv6) land on the matching ipconfig slot."
         },
         {
           "name": "numa",
@@ -26282,13 +26768,6 @@
           "optional": true,
           "description": "Enable/disable NUMA.",
           "default": 0
-        },
-        {
-          "name": "numa_n_",
-          "apiName": "numa[n]",
-          "type": "string",
-          "optional": true,
-          "description": "NUMA topology."
         },
         {
           "name": "onboot",
@@ -26318,13 +26797,6 @@
             "l26",
             "solaris"
           ]
-        },
-        {
-          "name": "parallel_n_",
-          "apiName": "parallel[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Map host parallel devices (n is 0 to 2)."
         },
         {
           "name": "parent",
@@ -26390,20 +26862,6 @@
           "description": "Specifies the QEMU machine type of the running vm. This is used internally for snapshots."
         },
         {
-          "name": "sata_n_",
-          "apiName": "sata[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Use volume as SATA hard disk or CD-ROM (n is 0 to 5). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume."
-        },
-        {
-          "name": "scsi_n_",
-          "apiName": "scsi[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Use volume as SCSI hard disk or CD-ROM (n is 0 to 30). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume."
-        },
-        {
           "name": "scsihw",
           "type": "string",
           "optional": true,
@@ -26423,13 +26881,6 @@
           "type": "string",
           "optional": true,
           "description": "cloud-init: Sets DNS search domains for a container. Create will automatically use the setting from the host if neither searchdomain nor nameserver are set."
-        },
-        {
-          "name": "serial_n_",
-          "apiName": "serial[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Create a serial device inside the VM (n is 0 to 3)"
         },
         {
           "name": "shares",
@@ -26548,20 +26999,6 @@
           "description": "Assign a unique random ethernet address."
         },
         {
-          "name": "unused_n_",
-          "apiName": "unused[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Reference to unused volumes. This is used internally, and should not be modified manually."
-        },
-        {
-          "name": "usb_n_",
-          "apiName": "usb[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Configure an USB device (n is 0 to 4, for machine version >= 7.1 and ostype l26 or windows > 7, n can be up to 14)."
-        },
-        {
           "name": "vcpus",
           "type": "int64",
           "optional": true,
@@ -26572,20 +27009,6 @@
           "type": "string",
           "optional": true,
           "description": "Configure the VGA hardware."
-        },
-        {
-          "name": "virtio_n_",
-          "apiName": "virtio[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Use volume as VIRTIO hard disk (n is 0 to 15). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume."
-        },
-        {
-          "name": "virtiofs_n_",
-          "apiName": "virtiofs[n]",
-          "type": "string",
-          "optional": true,
-          "description": "Configuration for sharing a directory between host and guest using Virtio-fs."
         },
         {
           "name": "vmgenid",

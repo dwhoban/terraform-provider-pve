@@ -14,7 +14,7 @@ Cluster creation on the seed node (create-only lifecycle; destroy removes it fro
 
 ```terraform
 resource "pve_cluster" "example" {
-clustername = "CHANGE_ME"
+  clustername = "CHANGE_ME"
 }
 ```
 
@@ -27,7 +27,7 @@ clustername = "CHANGE_ME"
 
 ### Optional
 
-- `link_n_` (String) Address and priority information of a single corosync link. (up to 8 links supported; link0..link7)
+- `link` (Block List) Corosync link; list position is the link number (link[0] is link0, up to link7). (see [below for nested schema](#nestedblock--link))
 - `nodeid` (Number) Node id for this node.
 - `token_coefficient` (Number) Coefficient used to determine Corosync's token timeout. See the corosync.conf(5) manual for more details. (default: 125)
 - `votes` (Number) Number of votes for this node.
@@ -35,3 +35,14 @@ clustername = "CHANGE_ME"
 ### Read-Only
 
 - `id` (String) Opaque identifier: clustername (also the `terraform import` format).
+
+<a id="nestedblock--link"></a>
+### Nested Schema for `link`
+
+Required:
+
+- `address` (String) Link address.
+
+Optional:
+
+- `priority` (Number) Link priority.

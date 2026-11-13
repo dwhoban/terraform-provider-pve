@@ -23,7 +23,10 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 	if m.Type == "" || m.Phase == 0 || m.Summary == "" {
 		return nil, fmt.Errorf("mapping type needs Type, Phase and Summary")
 	}
-	var cloneParamNames []string
+	var cloneWire []string
+	// wire records each derived op's API parameter names; Params are bound
+	// to the final attribute set once all rules have applied.
+	wire := map[*provider.Op][]string{}
 	d := &provider.TypeDescriptor{
 		Name:     m.Type,
 		Phase:    m.Phase,
@@ -47,19 +50,19 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 	switch m.Kind {
 	case "resource":
 		d.Kind = provider.KindResource
-		if d.Create, err = deriveOp(doc, m, m.Create, "POST", m.Phase); err != nil {
+		if d.Create, err = deriveOp(doc, m, m.Create, "POST", m.Phase, wire); err != nil {
 			return nil, fmt.Errorf("create: %w", err)
 		}
-		if d.Read, err = deriveOp(doc, m, m.Read, "GET", m.Phase); err != nil {
+		if d.Read, err = deriveOp(doc, m, m.Read, "GET", m.Phase, wire); err != nil {
 			return nil, fmt.Errorf("read: %w", err)
 		}
 		if m.Update != nil {
-			if d.Update, err = deriveOp(doc, m, m.Update, "PUT", m.Phase); err != nil {
+			if d.Update, err = deriveOp(doc, m, m.Update, "PUT", m.Phase, wire); err != nil {
 				return nil, fmt.Errorf("update: %w", err)
 			}
 		}
 		if m.Delete != nil {
-			if d.Delete, err = deriveOp(doc, m, m.Delete, "DELETE", m.Phase); err != nil {
+			if d.Delete, err = deriveOp(doc, m, m.Delete, "DELETE", m.Phase, wire); err != nil {
 				return nil, fmt.Errorf("delete: %w", err)
 			}
 		}
@@ -74,7 +77,7 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 						if name == m.Clone.NewIDParam || name == m.Clone.SourceAttr || prm.Name == m.Clone.SourceParam {
 							continue // engine supplies these; the source id lives in the URI
 						}
-						cloneParamNames = append(cloneParamNames, name)
+						cloneWire = append(cloneWire, prm.Name)
 					}
 				}
 			}
@@ -166,7 +169,7 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 	case "data_source":
 		d.Kind = provider.KindDataSource
 		for _, r := range m.Reads {
-			op, err := deriveOp(doc, m, r, "GET", m.Phase)
+			op, err := deriveOp(doc, m, r, "GET", m.Phase, wire)
 			if err != nil {
 				return nil, fmt.Errorf("read %s: %w", r.Path, err)
 			}
@@ -183,7 +186,13 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 				}
 				add(a)
 			}
-			for _, p := range paramsOf(doc, r, "GET") {
+			readParams := paramsOf(doc, r, "GET")
+			for _, p := range readParams {
+				if r.ResultName != "" && attrNameOfParam(p.Name) == r.ResultName {
+					return nil, fmt.Errorf("type %s: read %s: result attribute %q shadows a request parameter of the same name", m.Type, r.Path, r.ResultName)
+				}
+			}
+			for _, p := range readParams {
 				if !p.Optional {
 					// Required query parameters are rare; treat as inputs.
 					a := attrFromParam(p)
@@ -221,7 +230,7 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 
 	case "action":
 		d.Kind = provider.KindAction
-		if d.Invoke, err = deriveOp(doc, m, m.Invoke, "POST", m.Phase); err != nil {
+		if d.Invoke, err = deriveOp(doc, m, m.Invoke, "POST", m.Phase, wire); err != nil {
 			return nil, fmt.Errorf("invoke: %w", err)
 		}
 		for _, ph := range placeholdersOf(m.Invoke) {
@@ -246,9 +255,12 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 
 	case "function":
 		d.Kind = provider.KindFunction
-		if d.Call, err = deriveOp(doc, m, m.Call, "GET", m.Phase); err != nil {
+		if d.Call, err = deriveOp(doc, m, m.Call, "GET", m.Phase, wire); err != nil {
 			return nil, fmt.Errorf("call: %w", err)
 		}
+		// Call params are positional function arguments, not attributes:
+		// they keep their derived names.
+		delete(wire, d.Call)
 		d.FuncArgs, d.FuncResult, err = deriveFunction(doc, m)
 		if err != nil {
 			return nil, err
@@ -258,38 +270,26 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 		return nil, fmt.Errorf("type %s: unknown kind %q", m.Type, m.Kind)
 	}
 
-	// Apply overrides; track skipped attributes so the operations stop
-	// sending them.
-	skipped := map[string]bool{}
+	// Apply overrides, then bind every op's params to the final attribute
+	// set: skipped attributes stop being sent, added and slot-expanded
+	// attributes start being sent where the endpoint accepts them.
 	if m.Kind == "resource" {
 		// "digest" is PVE's optimistic-concurrency token. Every server-side
 		// change rewrites it, so as a managed attribute it can only produce
 		// import/refresh drift; resources never expose it.
 		delete(attrs, "digest")
-		skipped["digest"] = true
 	}
 	for _, rule := range m.Attrs {
-		if rule.Skip {
-			skipped[rule.Name] = true
-		}
 		if err := applyRule(attrs, rule); err != nil {
 			return nil, fmt.Errorf("type %s attr %s: %w", m.Type, rule.Name, err)
 		}
 	}
-	dropSkipped := func(op *provider.Op) *provider.Op {
-		if op == nil {
-			return op
-		}
-		kept := op.Params[:0]
-		for _, n := range op.Params {
-			if !skipped[n] {
-				kept = append(kept, n)
-			}
-		}
-		op.Params = kept
-		return op
+	if err := applyBlocks(m, attrs); err != nil {
+		return nil, fmt.Errorf("type %s: %w", m.Type, err)
 	}
-	d.Create, d.Update, d.Delete = dropSkipped(d.Create), dropSkipped(d.Update), dropSkipped(d.Delete)
+	for op, apiNames := range wire {
+		op.Params = bindParams(apiNames, attrs)
+	}
 
 	if m.AllForceNew {
 		for _, a := range attrs {
@@ -320,12 +320,11 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 	}
 	if d.Clone != nil && d.Clone.Op != nil {
 		var forwarded []string
-		for _, n := range cloneParamNames {
-			if _, isAttr := attrs[n]; isAttr && !attrs[n].Computed {
+		for _, n := range bindParams(cloneWire, attrs) {
+			if !attrs[n].Computed {
 				forwarded = append(forwarded, n)
 			}
 		}
-		sort.Strings(forwarded)
 		d.Clone.Op.Params = forwarded
 	}
 	for _, n := range names {
@@ -342,7 +341,7 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 
 // deriveOp validates one endpoint against the parsed schema and produces the
 // engine Op, including the parameter name list.
-func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defaultMethod string, phase int) (*provider.Op, error) {
+func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defaultMethod string, phase int, wire map[*provider.Op][]string) (*provider.Op, error) {
 	if e == nil {
 		return nil, nil
 	}
@@ -361,6 +360,7 @@ func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defa
 		paths[scope] = p
 	}
 	paramNames := []string{}
+	apiNames := []string{}
 	for scope, p := range paths {
 		fam, ok := doc.Find(p)
 		if !ok {
@@ -383,6 +383,9 @@ func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defa
 			if !contains(paramNames, tfName) {
 				paramNames = append(paramNames, tfName)
 			}
+			if !contains(apiNames, prm.Name) {
+				apiNames = append(apiNames, prm.Name)
+			}
 		}
 	}
 	if len(paths) > 0 {
@@ -396,6 +399,7 @@ func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defa
 	}
 	sort.Strings(paramNames)
 	op.Params = paramNames
+	wire[op] = apiNames
 	// The endpoint accepts PVE's canonical unset parameter on update.
 	if method == "PUT" {
 		for _, scope := range paths {
@@ -418,7 +422,7 @@ func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defa
 		op.Filter = append(op.Filter, provider.FilterRule{Field: pair[0], Attr: pair[1]})
 	}
 	if e.Apply != nil {
-		ap, err := deriveOp(doc, m, e.Apply, "PUT", phase)
+		ap, err := deriveOp(doc, m, e.Apply, "PUT", phase, wire)
 		if err != nil {
 			return nil, fmt.Errorf("apply: %w", err)
 		}

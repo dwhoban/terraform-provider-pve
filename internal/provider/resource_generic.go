@@ -273,6 +273,10 @@ func (r *genericResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if err := createOnlyChange(r.desc, values, state); err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Error Updating %s", r.desc.Name), err.Error())
+		return
+	}
 	if r.desc.Update != nil {
 		var extras []url.Values
 		if r.desc.Update.DeleteParam {
@@ -318,6 +322,43 @@ func (r *genericResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	values["id"] = types.StringValue(id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, objectValue(r.desc, values))...)
+}
+
+// createOnlyChange reports a create-only block field (a disk's storage or
+// size) that the plan changes on an element the state already has: PVE
+// would ignore or reject it, and the dedicated actions (resize, move)
+// perform those changes.
+func createOnlyChange(d *TypeDescriptor, plan, state map[string]attr.Value) error {
+	for _, a := range d.Attributes {
+		if a.Block == nil {
+			continue
+		}
+		existing := map[string]map[string]attr.Value{}
+		for pos, e := range blockElems(state[a.Name]) {
+			if key, err := blockElemKey(a.Block, e, pos); err == nil {
+				existing[key] = e
+			}
+		}
+		for pos, pe := range blockElems(plan[a.Name]) {
+			key, err := blockElemKey(a.Block, pe, pos)
+			if err != nil {
+				continue
+			}
+			se, ok := existing[key]
+			if !ok {
+				continue
+			}
+			for _, f := range a.Block.Fields {
+				if !f.CreateOnly || f.Name == "" {
+					continue
+				}
+				if pv, sv := pe[f.Name], se[f.Name]; usable(pv) && usable(sv) && !pv.Equal(sv) {
+					return fmt.Errorf("%s %s: %s cannot change on an existing %s (was %s, now %s)", a.Name, key, f.Name, a.Name, scalarString(sv), scalarString(pv))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *genericResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -375,7 +416,7 @@ func (r *genericResource) fillAllocatedID(payload json.RawMessage, waited bool, 
 			// Only fill server-allocated ids: never overwrite a concrete
 			// value (a clone UPID carries the SOURCE id, not the new one).
 			if cur := values[a.Name]; cur == nil || !usable(cur) {
-				if v, err := coerceValue(id, a); err == nil {
+				if v, err := decodeAttr(a, id); err == nil {
 					values[a.Name] = v
 				}
 			}
@@ -385,7 +426,7 @@ func (r *genericResource) fillAllocatedID(payload json.RawMessage, waited bool, 
 	for _, name := range r.desc.IDAttrs {
 		if v := values[name]; v == nil || !usable(v) {
 			if a, found := r.desc.Attr(name); found {
-				if cv, err := coerceValue(s, a); err == nil {
+				if cv, err := decodeAttr(a, s); err == nil {
 					values[name] = cv
 				}
 			}

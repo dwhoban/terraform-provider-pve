@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
 	"strings"
@@ -39,7 +40,10 @@ func runOp(ctx context.Context, client *pveclient.Client, d *TypeDescriptor, op 
 	if err != nil {
 		return nil, false, err
 	}
-	params := buildParams(d, op, values)
+	params, err := buildParams(d, op, values)
+	if err != nil {
+		return nil, false, err
+	}
 	for _, extra := range extraParams {
 		for k, vs := range extra {
 			params[k] = vs
@@ -192,7 +196,7 @@ func opPathTemplates(op *Op) []string {
 	return out
 }
 
-func buildParams(d *TypeDescriptor, op *Op, values map[string]attr.Value) url.Values {
+func buildParams(d *TypeDescriptor, op *Op, values map[string]attr.Value) (url.Values, error) {
 	params := url.Values{}
 	for _, name := range op.Params {
 		a, ok := d.Attr(name)
@@ -216,7 +220,15 @@ func buildParams(d *TypeDescriptor, op *Op, values map[string]attr.Value) url.Va
 		if a.PathParam != "" && opBindsPlaceholder(op, a.PathParam) {
 			continue
 		}
-		ss, err := valueParamStrings(values[name])
+		if a.Block != nil {
+			slots, err := encodeBlock(a, values[name])
+			if err != nil {
+				return nil, fmt.Errorf("type %s: %w", d.Name, err)
+			}
+			maps.Copy(params, slots)
+			continue
+		}
+		ss, err := encodeAttr(a, values[name])
 		if err != nil || len(ss) == 0 {
 			continue
 		}
@@ -225,18 +237,24 @@ func buildParams(d *TypeDescriptor, op *Op, values map[string]attr.Value) url.Va
 	for k, v := range op.ConstParams {
 		params[k] = []string{v}
 	}
-	return params
+	return params, nil
 }
 
 // removedParams lists API field names that were concrete in state but are
 // null/absent in the plan: attribute removals that must be unset
-// server-side via PVE's canonical `delete` request parameter.
+// server-side via PVE's canonical `delete` request parameter. Block
+// attributes contribute every slot (and secondary slot) of an element
+// removed from configuration.
 func removedParams(d *TypeDescriptor, op *Op, plan, state map[string]attr.Value) []string {
 	var removed []string
 	for _, name := range op.Params {
 		a, ok := d.Attr(name)
 		if !ok || a.Required {
 			continue // required attributes are always configured
+		}
+		if a.Block != nil {
+			removed = append(removed, removedSlots(a, plan[name], state[name])...)
+			continue
 		}
 		if usable(state[name]) && !usable(plan[name]) {
 			removed = append(removed, a.TFName())
@@ -245,16 +263,42 @@ func removedParams(d *TypeDescriptor, op *Op, plan, state map[string]attr.Value)
 	return removed
 }
 
-// payloadString reports the payload as a bare JSON string, if it is one.
-func payloadString(payload json.RawMessage) (string, bool) {
-	if len(payload) == 0 {
-		return "", false
+// removedSlots lists the wire keys of block elements present in state but
+// not in the plan, plus secondary-family slots (ipconfig1) that state set
+// and the plan no longer does.
+func removedSlots(a Attr, plan, state attr.Value) []string {
+	planned := map[string]map[string]attr.Value{}
+	for pos, e := range blockElems(plan) {
+		if key, err := blockElemKey(a.Block, e, pos); err == nil {
+			planned[key] = e
+		}
 	}
-	var s string
-	if err := json.Unmarshal(payload, &s); err != nil {
-		return "", false
+	setsFamily := func(e map[string]attr.Value, fam string) bool {
+		for _, f := range a.Block.Fields {
+			if f.Family == fam && usable(e[f.Name]) {
+				return true
+			}
+		}
+		return false
 	}
-	return s, true
+	var removed []string
+	for pos, e := range blockElems(state) {
+		key, err := blockElemKey(a.Block, e, pos)
+		if err != nil {
+			continue
+		}
+		pe, kept := planned[key]
+		if !kept {
+			removed = append(removed, key)
+		}
+		idx := slotSuffix(a.Block, key)
+		for _, fam := range secondaryFamilies(a.Block) {
+			if setsFamily(e, fam) && (!kept || !setsFamily(pe, fam)) {
+				removed = append(removed, fam+idx)
+			}
+		}
+	}
+	return removed
 }
 
 // upidID extracts the id component of a raw UPID (the server-allocated
@@ -333,7 +377,7 @@ func stringToValue(s string, a Attr) (attr.Value, error) {
 	if s == "" {
 		return nullValue(a), nil
 	}
-	return coerceValue(s, a)
+	return decodeAttr(a, s)
 }
 
 // applyReadResponse merges a read response payload into values. See
@@ -362,7 +406,7 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 	// schema does not describe the response shape.
 	if op.ResultName != "" {
 		if a, ok := d.Attr(op.ResultName); ok && a.Type == AttrString {
-			values[op.ResultName] = types.StringValue(string(payload))
+			values[op.ResultName] = types.StringValue(decodeResultString(payload))
 			return true, nil
 		}
 	}
@@ -377,8 +421,10 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 			if !isObj {
 				continue
 			}
-			if filterMatches(op, m, values) {
-				mergeObject(d, m, values, honorPlanNulls)
+			if filterMatches(d, op, m, values) {
+				if err := mergeObject(d, m, values, honorPlanNulls); err != nil {
+					return false, err
+				}
 				return true, nil
 			}
 		}
@@ -390,7 +436,7 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 		if !ok {
 			return false, fmt.Errorf("type %s: array response but no result attribute %q", d.Name, op.ResultName)
 		}
-		coerced, err := coerceValue(arr, a)
+		coerced, err := decodeAttr(a, arr)
 		if err != nil {
 			return false, err
 		}
@@ -407,28 +453,34 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 		if !ok {
 			return false, fmt.Errorf("type %s: no result attribute %q", d.Name, op.ResultName)
 		}
-		coerced, err := coerceValue(m, a)
+		coerced, err := decodeAttr(a, m)
 		if err != nil {
 			return false, err
 		}
 		values[op.ResultName] = coerced
 		return true, nil
 	}
-	mergeObject(d, m, values, honorPlanNulls)
+	if err := mergeObject(d, m, values, honorPlanNulls); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
-func filterMatches(op *Op, item map[string]any, values map[string]attr.Value) bool {
+func filterMatches(d *TypeDescriptor, op *Op, item map[string]any, values map[string]attr.Value) bool {
 	for _, rule := range op.Filter {
 		field, ok := item[rule.Field]
 		if !ok {
 			return false
 		}
-		want, err := valueParamStrings(values[rule.Attr])
+		a, ok := d.Attr(rule.Attr)
+		if !ok {
+			return false
+		}
+		want, err := encodeAttr(a, values[rule.Attr])
 		if err != nil || len(want) != 1 {
 			return false
 		}
-		got, err := coerceValue(field, Attr{Name: rule.Attr, Type: AttrString})
+		got, err := decodeAttr(Attr{Name: rule.Attr, Type: AttrString}, field)
 		if err != nil {
 			return false
 		}
@@ -440,10 +492,14 @@ func filterMatches(op *Op, item map[string]any, values map[string]attr.Value) bo
 	return true
 }
 
-// mergeObject merges response object fields into attribute values.
+// mergeObject merges response object fields into attribute values. A
+// response field that cannot be decoded into its attribute is an error.
 //
 //   - Unknown current values (unset Optional+Computed attributes) become
-//     null — state must never contain unknowns after apply.
+//     null when the response omits them — state must never contain
+//     unknowns after apply.
+//   - A configured property string that already describes an
+//     object-valued response field is kept as configured.
 //   - Attributes carrying one-time results (an op's ResultAttr, e.g. an
 //     API token value the server never echoes again) keep their current
 //     value when the response omits them.
@@ -453,20 +509,30 @@ func filterMatches(op *Op, item map[string]any, values map[string]attr.Value) bo
 //     attributes, so server-side defaults are not adopted. Without it
 //     (Read/refresh, import), present response fields are always adopted —
 //     that is how state is populated and drift surfaces.
-func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Value, honorPlanNulls bool) {
+func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Value, honorPlanNulls bool) error {
 	preserve := d.resultAttrs()
 	for _, a := range d.Attributes {
 		cur, hasCur := values[a.Name]
 		field, present := m[a.EchoKey()]
+		if a.Block != nil {
+			merged, err := mergeBlock(a, cur, m, honorPlanNulls)
+			if err != nil {
+				return fmt.Errorf("type %s: attribute %s: %w", d.Name, a.Name, err)
+			}
+			values[a.Name] = merged
+			continue
+		}
 		if hasCur && cur != nil && cur.IsUnknown() {
 			// Unset Optional+Computed attributes are unknown in plans;
 			// the response (server default) resolves them, otherwise they
 			// become null — state never carries unknowns.
 			if present {
-				if cv, err := coerceValue(field, a); err == nil {
-					values[a.Name] = cv
-					continue
+				cv, err := decodeAttr(a, field)
+				if err != nil {
+					return fmt.Errorf("type %s: attribute %s: %w", d.Name, a.Name, err)
 				}
+				values[a.Name] = cv
+				continue
 			}
 			values[a.Name] = nullValue(a)
 			continue
@@ -483,9 +549,14 @@ func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Val
 					continue
 				}
 			}
-			if cv, err := coerceValue(field, a); err == nil {
-				values[a.Name] = cv
+			if wireEqual(a, cur, field) {
+				continue
 			}
+			cv, err := decodeAttr(a, field)
+			if err != nil {
+				return fmt.Errorf("type %s: attribute %s: %w", d.Name, a.Name, err)
+			}
+			values[a.Name] = cv
 			continue
 		}
 		if preserve[a.Name] {
@@ -495,6 +566,7 @@ func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Val
 			values[a.Name] = nullValue(a)
 		}
 	}
+	return nil
 }
 
 // captureResultAttr stores a one-time operation result into its attribute:

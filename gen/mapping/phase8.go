@@ -22,6 +22,18 @@ var Phase8 = []Type{
 		Create:      &Endpoint{Path: "/cluster/config"},
 		Read:        &Endpoint{Path: "/cluster/config"},
 		IDAttrs:     []string{"clustername"},
+		Blocks: []Block{
+			{
+				Name:        "link",
+				Description: "Corosync link; list position is the link number (link[0] is link0, up to link7).",
+				Families:    []string{"link"},
+				DefaultKey:  "address",
+				Fields: []BlockField{
+					{Name: "address", Key: "address", Required: true, Description: "Link address."},
+					{Name: "priority", Key: "priority", Type: "int64", Description: "Link priority."},
+				},
+			},
+		},
 	},
 	{
 		Type: "pve_cluster_join_info", Kind: "data_source", Phase: 8,
@@ -32,6 +44,18 @@ var Phase8 = []Type{
 		Type: "pve_cluster_join", Kind: "action", Phase: 8,
 		Summary: "Join this node to an existing cluster.",
 		Invoke:  &Endpoint{Path: "/cluster/config/join"},
+		Blocks: []Block{
+			{
+				Name:        "link",
+				Description: "Corosync link of the node to join with; list position is the link number (up to link7).",
+				Families:    []string{"link"},
+				DefaultKey:  "address",
+				Fields: []BlockField{
+					{Name: "address", Key: "address", Required: true, Description: "Link address."},
+					{Name: "priority", Key: "priority", Type: "int64", Description: "Link priority."},
+				},
+			},
+		},
 	},
 	{
 		Type: "pve_cluster_node_remove", Kind: "action", Phase: 8,

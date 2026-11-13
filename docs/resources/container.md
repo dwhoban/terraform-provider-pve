@@ -14,9 +14,9 @@ LXC container on a node: configuration, lifecycle, clone-at-create.
 
 ```terraform
 resource "pve_container" "example" {
-node = "pve1"
-ostemplate = "CHANGE_ME"
-vmid = 100
+  node       = "pve1"
+  ostemplate = "CHANGE_ME"
+  vmid       = 100
 }
 ```
 
@@ -45,7 +45,6 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 - `delete` (String) A list of settings you want to delete.
 - `description` (String) Description for the Container. Shown in the web-interface CT's summary. This is saved as comment inside the configuration file.
 - `destroy_unreferenced_disks` (Boolean) If set, destroy additionally all disks with the VMID from all enabled storages which are not referenced in the config.
-- `dev_n_` (String) Device to pass through to the container
 - `entrypoint` (String) Command to run as init, optionally with arguments; may start with an absolute path, relative path, or a binary in $PATH. (default: /sbin/init)
 - `env` (String) The container runtime environment as NUL-separated list. Replaces any lxc.environment.runtime entries in the config.
 - `features` (String) Allow containers access to advanced features.
@@ -56,9 +55,9 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 - `ignore_unpack_errors` (Boolean) Ignore errors when extracting the template.
 - `lock` (String) Lock/unlock the container. One of: `backup`, `create`, `destroyed`, `disk`, `fstrim`, `migrate`, `mounted`, `rollback`, `snapshot`, `snapshot-delete`.
 - `memory` (Number) Amount of RAM for the container in MB. (default: 512)
-- `mp_n_` (String) Use volume as container mount point. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume.
+- `mount_point` (Block List) Additional mount point; list position is the PVE slot (mount_point[0] is mp0). (see [below for nested schema](#nestedblock--mount_point))
 - `nameserver` (String) Sets DNS server IP address for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver.
-- `net_n_` (String) Specifies network interfaces for the container.
+- `network` (Block List) Network interface; list position is the PVE slot (network[0] is net0). (see [below for nested schema](#nestedblock--network))
 - `onboot` (Boolean) Specifies whether a container will be started during system bootup. (default: 0)
 - `ostype` (String) OS type. This is used to setup configuration inside the container, and corresponds to lxc setup scripts in /usr/share/lxc/config/<ostype>.common.conf. Value 'unmanaged' can be used to skip and OS specific setup. One of: `debian`, `devuan`, `ubuntu`, `centos`, `fedora`, `opensuse`, `archlinux`, `alpine`, `gentoo`, `nixos`, `unmanaged`.
 - `password` (String, Sensitive) Sets root password inside container.
@@ -67,7 +66,7 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 - `purge` (Boolean) Remove container from all related configurations. For example, backup jobs, replication jobs or HA. Related ACLs and Firewall entries will *always* be removed. (default: 0)
 - `restore` (Boolean) Mark this as restore task.
 - `revert` (String) Revert a pending change.
-- `rootfs` (String) Use volume as container root.
+- `rootfs` (Block, Optional) Root volume. PVE normalizes an allocation to the concrete volume path, which cannot be pre-stated; leave unset to use the create-time `storage` parameter. (see [below for nested schema](#nestedblock--rootfs))
 - `searchdomain` (String) Sets DNS search domains for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver.
 - `ssh_public_keys` (String) Setup public SSH keys (one key per line, OpenSSH format).
 - `start` (Boolean) Start the CT after its creation finished successfully. (default: 0)
@@ -80,9 +79,52 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 - `tty` (Number) Specify the number of tty available to the container (default: 2)
 - `unique` (Boolean) Assign a unique random ethernet address.
 - `unprivileged` (Boolean) Makes the container run as unprivileged user. For creation, the default is 1. For restore, the default is the value from the backup. (Should not be modified manually.) (default: 0)
-- `unused_n_` (String) Reference to unused volumes. This is used internally, and should not be modified manually.
 
 ### Read-Only
 
 - `id` (String) Opaque identifier: node/vmid (also the `terraform import` format).
 - `lxc` (List of String) Array of lxc low-level configurations ([[key1, value1], [key2, value2] ...]).
+
+<a id="nestedblock--mount_point"></a>
+### Nested Schema for `mount_point`
+
+Required:
+
+- `path` (String) Mount path inside the container.
+
+Optional:
+
+- `backup` (Boolean) Include the volume in backups.
+- `read_only` (Boolean) Mount read-only.
+- `size_gb` (Number) Volume size in GiB.
+- `storage` (String) Storage to allocate a new volume from (with size_gb).
+- `volume_id` (String) Mounted volume (e.g. local-lvm:vm-120-disk-1).
+
+
+<a id="nestedblock--network"></a>
+### Nested Schema for `network`
+
+Required:
+
+- `name` (String) Interface name inside the container (e.g. eth0).
+
+Optional:
+
+- `bridge` (String) Bridge to attach to.
+- `firewall` (Boolean) Enable the firewall on this interface.
+- `gateway` (String) IPv4 gateway.
+- `gateway6` (String) IPv6 gateway.
+- `ipv4` (String) IPv4 (CIDR, dhcp or manual).
+- `ipv6` (String) IPv6 (CIDR, auto, dhcp or manual).
+- `mac_address` (String) MAC address (PVE assigns one when unset).
+- `vlan` (Number) VLAN tag.
+
+
+<a id="nestedblock--rootfs"></a>
+### Nested Schema for `rootfs`
+
+Optional:
+
+- `size_gb` (Number) Root volume size in GiB.
+- `storage` (String) Storage to allocate the root volume from (with size_gb).
+- `volume_id` (String) Root volume (e.g. local-lvm:vm-120-disk-0).

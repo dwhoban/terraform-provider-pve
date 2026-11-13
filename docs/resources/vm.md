@@ -14,8 +14,8 @@ QEMU virtual machine on a node: full config lifecycle, cloud-init parameters, cl
 
 ```terraform
 resource "pve_vm" "example" {
-node = "pve1"
-vmid = 100
+  node = "pve1"
+  vmid = 100
 }
 ```
 
@@ -41,10 +41,10 @@ vmid = 100
 - `autostart` (Boolean) Automatic restart after crash (currently ignored). (default: 0)
 - `balloon` (Number) Amount of target RAM for the VM in MiB. The balloon driver is enabled by default, unless it is explicitly disabled by setting the value to zero.
 - `bios` (String) Select BIOS implementation. (default: seabios) One of: `seabios`, `ovmf`.
-- `boot` (String) Specify guest boot order. Use the 'order=' sub-property as usage with no key or 'legacy=' is deprecated.
+- `boot_order` (List of String) Boot devices in order, as PVE device names (e.g. scsi0, ide2, net0).
 - `bootdisk` (String) Enable booting from specified disk. Deprecated: Use 'boot: order=foo;bar' instead.
 - `bwlimit` (Number) Override I/O bandwidth limit (in KiB/s). (default: restore limit from datacenter or storage config)
-- `cdrom` (String) This is an alias for option -ide2
+- `cdrom` (Block List) CD-ROM drive backed by an ISO (or ejected). (see [below for nested schema](#nestedblock--cdrom))
 - `cicustom` (String) cloud-init: Specify custom files to replace the automatically generated ones at start.
 - `cipassword` (String, Sensitive) cloud-init: Password to assign the user. Using this is generally not recommended. Use ssh keys instead. Also note that older cloud-init versions do not support hashed passwords.
 - `citype` (String) Specifies the cloud-init configuration format. The default depends on the configured operating system type (`ostype`. We use the `nocloud` format for Linux, and `configdrive2` for windows. One of: `configdrive2`, `nocloud`, `opennebula`.
@@ -58,34 +58,18 @@ vmid = 100
 - `delete` (String) A list of settings you want to delete.
 - `description` (String) Description for the VM. Shown in the web-interface VM's summary. This is saved as comment inside the configuration file.
 - `destroy_unreferenced_disks` (Boolean) If set, destroy additionally all disks not referenced in the config but with a matching VMID from all enabled storages. (default: 0)
+- `disk` (Block List) Virtual disk on one IDE/SATA/SCSI/VirtIO slot. New volumes are allocated from storage; use action `pve_vm_disk_resize` to resize and `pve_vm_disk_move` to move an existing disk. (see [below for nested schema](#nestedblock--disk))
 - `efidisk0` (String) Configure a disk for storing EFI vars. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Note that SIZE_IN_GiB is ignored here and that the default EFI vars are copied to the volume instead. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
 - `force` (Boolean) Allow to overwrite existing VM.
 - `freeze` (Boolean) Freeze CPU at startup (use 'c' monitor command to start execution).
 - `ha_managed` (Boolean) Add the VM as a HA resource after it was created. (default: 0)
 - `hookscript` (String) Script that will be executed during various steps in the vms lifetime.
-- `hostpci_n_` (String) Map host PCI devices into guest.
 - `hotplug` (String) Selectively enable hotplug features. This is a comma separated list of hotplug features: 'network', 'disk', 'cpu', 'memory', 'usb' and 'cloudinit'. Use '0' to disable hotplug completely. Using '1' as value is an alias for the default `network,disk,usb`. USB hotplugging is possible for guests with machine version >= 7.1 and ostype l26 or windows > 7. (default: network,disk,usb)
 - `hugepages` (String) Enables hugepages memory.
 
 Sets the size of hugepages in MiB. If the value is set to 'any' then 1 GiB hugepages will be used if possible, otherwise the size will fall back to 2 MiB. One of: `any`, `2`, `1024`.
-- `ide0` (String) IDE slot 0 volume/options.
-- `ide1` (String) IDE slot 1 volume/options.
-- `ide2` (String) IDE slot 2 volume/options.
-- `ide3` (String) IDE slot 3 volume/options.
-- `ide_n_` (String) Use volume as IDE hard disk or CD-ROM (n is 0 to 3). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
 - `import_working_storage` (String) A file-based storage with 'images' content-type enabled, which is used as an intermediary extraction storage during import. Defaults to the source storage.
 - `intel_tdx` (String) Trusted Domain Extension (TDX) features by Intel CPUs
-- `ipconfig_n_` (String) cloud-init: Specify IP addresses and gateways for the corresponding interface.
-
-IP addresses use CIDR notation, gateways are optional but need an IP of the same type specified.
-
-The special string 'dhcp' can be used for IP addresses to use DHCP, in which case no explicit
-gateway should be provided.
-For IPv6 the special string 'auto' can be used to use stateless autoconfiguration. This requires
-cloud-init 19.4 or newer.
-
-If cloud-init is enabled and neither an IPv4 nor an IPv6 address is specified, it defaults to using
-dhcp on IPv4.
 - `ivshmem` (String) Inter-VM shared memory. Useful for direct communication between VMs, or to the host.
 - `keephugepages` (Boolean) Use together with hugepages. If enabled, hugepages will not not be deleted after VM shutdown and can be used for subsequent starts. (default: 0)
 - `keyboard` (String) Keyboard layout for VNC server. This option is generally not required and is often better handled from within the guest OS. One of: `de`, `de-ch`, `da`, `en-gb`, `en-us`, `es`, `fi`, `fr`, `fr-be`, `fr-ca`, `fr-ch`, `hu`, `is`, `it`, `ja`, `lt`, `mk`, `nl`, `no`, `pl`, `pt`, `pt-br`, `sv`, `sl`, `tr`.
@@ -99,27 +83,18 @@ dhcp on IPv4.
 - `migrate_speed` (Number) Set maximum speed (in MB/s) for migrations. Value 0 is no limit. (default: 0)
 - `name` (String) Set a name for the VM. Only used on the configuration web interface.
 - `nameserver` (String) cloud-init: Sets DNS server IP address for a container. Create will automatically use the setting from the host if neither searchdomain nor nameserver are set.
-- `net0` (String) NET slot 0 volume/options.
-- `net1` (String) NET slot 1 volume/options.
-- `net2` (String) NET slot 2 volume/options.
-- `net3` (String) NET slot 3 volume/options.
-- `net_n_` (String) Specify network devices.
+- `network` (Block List) Network interface; list position is the PVE slot (network[0] is net0). Cloud-init addresses (ipv4/ipv6) land on the matching ipconfig slot. (see [below for nested schema](#nestedblock--network))
 - `numa` (Boolean) Enable/disable NUMA. (default: 0)
-- `numa_n_` (String) NUMA topology.
 - `onboot` (Boolean) Specifies whether a VM will be started during system bootup. (default: 0)
 - `ostype` (String) Specify guest operating system. (default: other) One of: `other`, `wxp`, `w2k`, `w2k3`, `w2k8`, `wvista`, `win7`, `win8`, `win10`, `win11`, `l24`, `l26`, `solaris`.
-- `parallel_n_` (String) Map host parallel devices (n is 0 to 2).
 - `pool` (String) Add the VM to the specified pool.
 - `protection` (Boolean) Sets the protection flag of the VM. This will disable the remove VM and remove disk operations. (default: 0)
 - `purge` (Boolean) Remove VMID from configurations, like backup & replication jobs and HA.
 - `reboot` (Boolean) Allow reboot. If set to '0' the VM exit on reboot. (default: 1)
 - `revert` (String) Revert a pending change.
 - `rng0` (String) Configure a VirtIO-based Random Number Generator.
-- `sata_n_` (String) Use volume as SATA hard disk or CD-ROM (n is 0 to 5). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
-- `scsi_n_` (String) Use volume as SCSI hard disk or CD-ROM (n is 0 to 30). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
 - `scsihw` (String) SCSI controller model (default: lsi) One of: `lsi`, `lsi53c810`, `virtio-scsi-pci`, `virtio-scsi-single`, `megasas`, `pvscsi`.
 - `searchdomain` (String) cloud-init: Sets DNS search domains for a container. Create will automatically use the setting from the host if neither searchdomain nor nameserver are set.
-- `serial_n_` (String) Create a serial device inside the VM (n is 0 to 3)
 - `shares` (Number) Amount of memory shares for auto-ballooning. The larger the number is, the more memory this VM gets. Number is relative to weights of all other running VMs. Using zero disables auto-ballooning. Auto-ballooning is done by pvestatd. (default: 1000)
 - `skiplock` (Boolean) Ignore locks - only root is allowed to use this option.
 - `smbios1` (String) Specify SMBIOS type 1 fields.
@@ -137,12 +112,8 @@ dhcp on IPv4.
 - `template` (Boolean) Enable/disable Template. (default: 0)
 - `tpmstate0` (String) Configure a Disk for storing TPM state. The format is fixed to 'raw'. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Note that SIZE_IN_GiB is ignored here and 4 MiB will be used instead. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
 - `unique` (Boolean) Assign a unique random ethernet address.
-- `unused_n_` (String) Reference to unused volumes. This is used internally, and should not be modified manually.
-- `usb_n_` (String) Configure an USB device (n is 0 to 4, for machine version >= 7.1 and ostype l26 or windows > 7, n can be up to 14).
 - `vcpus` (Number) Number of hotplugged vcpus.
 - `vga` (String) Configure the VGA hardware.
-- `virtio_n_` (String) Use volume as VIRTIO hard disk (n is 0 to 15). Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume. Use STORAGE_ID:0 and the 'import-from' parameter to import from an existing volume.
-- `virtiofs_n_` (String) Configuration for sharing a directory between host and guest using Virtio-fs.
 - `vmgenid` (String) Set VM Generation ID. Use '1' to autogenerate on create or update, pass '0' to disable explicitly.
 - `vmstatestorage` (String) Default storage for VM state volumes/files.
 - `watchdog` (String) Create a virtual hardware watchdog device.
@@ -157,3 +128,49 @@ dhcp on IPv4.
 - `runningmachine` (String) Specifies the QEMU machine type of the running vm. This is used internally for snapshots.
 - `snaptime` (Number) Timestamp for snapshots.
 - `vmstate` (String) Reference to a volume which stores the VM state. This is used internally for snapshots.
+
+<a id="nestedblock--cdrom"></a>
+### Nested Schema for `cdrom`
+
+Required:
+
+- `iso` (String) ISO volume (e.g. local:iso/debian-12.iso).
+
+Optional:
+
+- `interface` (String) PVE device name (default ide2). (default: ide2)
+
+
+<a id="nestedblock--disk"></a>
+### Nested Schema for `disk`
+
+Required:
+
+- `interface` (String) PVE device name: ide0..3, sata0..5, scsi0..30, virtio0..15.
+
+Optional:
+
+- `backup` (Boolean) Include the disk in backups.
+- `cache` (String) Cache mode. One of: `none`, `writethrough`, `writeback`, `unsafe`, `directsync`.
+- `discard` (Boolean) Enable discard/TRIM support.
+- `iothread` (Boolean) Use iothread for the disk (scsi/virtio only).
+- `size_gb` (Number) Size in GiB. Resizing an existing disk is not supported here; use action `pve_vm_disk_resize`.
+- `ssd` (Boolean) Report the disk as SSD (ide/sata/scsi only).
+- `storage` (String) Storage to allocate a new volume from (with size_gb).
+- `volume_id` (String) Allocated volume (e.g. local-lvm:vm-120-disk-0).
+
+
+<a id="nestedblock--network"></a>
+### Nested Schema for `network`
+
+Optional:
+
+- `bridge` (String) Bridge to attach to.
+- `firewall` (Boolean) Enable the firewall on this NIC.
+- `gateway` (String) Cloud-init IPv4 gateway.
+- `gateway6` (String) Cloud-init IPv6 gateway.
+- `ipv4` (String) Cloud-init IPv4 (CIDR, dhcp or manual).
+- `ipv6` (String) Cloud-init IPv6 (CIDR, auto, dhcp or manual).
+- `mac_address` (String) MAC address (PVE assigns one when unset).
+- `model` (String) NIC model. (default: virtio) One of: `e1000`, `e1000-82540em`, `e1000-82544gc`, `e1000-82545em`, `e1000e`, `i82551`, `i82557b`, `i82559er`, `ne2k_isa`, `ne2k_pci`, `pcnet`, `rtl8139`, `virtio`, `vmxnet3`.
+- `vlan` (Number) VLAN tag.

@@ -1,0 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "Migrate to Shoehorn"
+  short_description: "Replace test assertions with shoehorn"

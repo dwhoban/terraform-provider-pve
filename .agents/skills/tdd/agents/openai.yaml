@@ -1,0 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "TDD"
+  short_description: "Test-driven red-green-refactor"

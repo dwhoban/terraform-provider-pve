@@ -69,6 +69,11 @@ func audit(doc *pveapidoc.Document, reg *provider.Registry) []string {
 		if !strings.HasPrefix(t.Name, "pve_") {
 			errs = append(errs, fmt.Sprintf("type %s: name must start with pve_", t.Name))
 		}
+		switch t.Behavior {
+		case provider.BehaviorCollection, provider.BehaviorSingleton, provider.BehaviorACL, provider.BehaviorStateOnlyDelete:
+		default:
+			errs = append(errs, fmt.Sprintf("type %s: unknown behavior %q", t.Name, t.Behavior))
+		}
 		switch t.Kind {
 		case provider.KindResource:
 			if t.Create == nil {
@@ -122,22 +127,26 @@ func audit(doc *pveapidoc.Document, reg *provider.Registry) []string {
 			if op.Apply != nil {
 				collect(op.Apply.Path)
 			}
-			// 3. Params must resolve to attributes (function call
-			// params resolve to positional arguments instead; GET
-			// params without attributes are simply never sent — the
-			// engine builds params from attributes it has).
-			if (t.Kind != provider.KindFunction || op != t.Call) && op.Method != "GET" {
-				for _, pn := range op.Params {
-					if _, ok := t.Attr(pn); !ok {
-						errs = append(errs, fmt.Sprintf("type %s: op param %q has no attribute", t.Name, pn))
-					}
-				}
-			}
 		}
+		// 3. Attr ⇄ Params: every required API parameter is satisfiable
+		// and every writable attribute reaches the API.
+		errs = append(errs, auditWiring(doc, t)...)
 		// 4. IDAttrs resolve.
 		for _, n := range t.IDAttrs {
 			if _, ok := t.Attr(n); !ok {
 				errs = append(errs, fmt.Sprintf("type %s: id attr %q has no attribute", t.Name, n))
+			}
+		}
+		// 4b. Attribute wire formats are known to the codec.
+		for _, a := range t.Attributes {
+			if a.Format != "" && a.Format != provider.FormatBase64 && a.Format != provider.FormatBootOrder {
+				errs = append(errs, fmt.Sprintf("type %s: attribute %s: unknown format %q", t.Name, a.Name, a.Format))
+			}
+		}
+		// 4c. Wire names are real PVE parameter names.
+		for _, a := range t.Attributes {
+			if strings.ContainsAny(a.TFName(), "[]") {
+				errs = append(errs, fmt.Sprintf("type %s: attribute %s: wire name %q is a slot pattern (declare a Block or Skip it)", t.Name, a.Name, a.TFName()))
 			}
 		}
 		// 5. Path params of every op resolve.
@@ -169,6 +178,129 @@ func audit(doc *pveapidoc.Document, reg *provider.Registry) []string {
 	}
 	sort.Strings(errs)
 	return errs
+}
+
+// auditWiring checks attributes and operation params in both directions:
+// every required API parameter of an operation binds to a writable
+// attribute (or a placeholder, constant, or engine-supplied value), and
+// every writable attribute reaches some operation. Function calls bind
+// positional arguments, not attributes.
+func auditWiring(doc *pveapidoc.Document, t *provider.TypeDescriptor) []string {
+	if t.Kind == provider.KindFunction {
+		return nil
+	}
+	var errs []string
+	ops := wiredOps(t)
+
+	reach := map[string]bool{}
+	if t.Scoped {
+		reach["scope"] = true // selects the scoped path
+	}
+	if t.Clone != nil {
+		reach[t.Clone.SourceAttr] = true
+	}
+	for _, n := range t.IDAttrs {
+		reach[n] = true // ID composition (e.g. a constant singleton anchor)
+	}
+	for _, op := range ops {
+		for _, n := range op.Params {
+			reach[n] = true
+		}
+		for _, f := range op.Filter {
+			reach[f.Attr] = true
+		}
+		for _, n := range op.SkipIfMissing {
+			reach[n] = true
+		}
+		for _, path := range opPaths(op) {
+			for _, ph := range placeholders(path) {
+				for _, a := range t.Attributes {
+					if a.PathParam == ph || a.Name == ph {
+						reach[a.Name] = true
+					}
+				}
+			}
+		}
+	}
+	for _, a := range t.Attributes {
+		if (a.Required || a.Optional) && !reach[a.Name] {
+			errs = append(errs, fmt.Sprintf("type %s: writable attribute %s is sent by no operation", t.Name, a.Name))
+		}
+	}
+
+	for _, op := range ops {
+		engine := map[string]bool{}
+		if t.Clone != nil && op == t.Clone.Op {
+			engine[t.Clone.NewIDParam], engine[t.Clone.SourceParam] = true, true
+		}
+		for _, path := range opPaths(op) {
+			fam, ok := doc.Find(path)
+			if !ok {
+				continue
+			}
+			mi, ok := fam.Methods[op.Method]
+			if !ok {
+				continue
+			}
+			phs := placeholders(path)
+			for _, p := range mi.Parameters {
+				if p.Optional || contains(phs, p.Name) || engine[p.Name] {
+					continue
+				}
+				if _, isConst := op.ConstParams[p.Name]; isConst {
+					continue
+				}
+				if !opBinds(t, op, p.Name) {
+					errs = append(errs, fmt.Sprintf("type %s: %s %s: required parameter %q has no writable attribute", t.Name, op.Method, path, p.Name))
+				}
+			}
+		}
+	}
+	return errs
+}
+
+// wiredOps lists every operation of a type that sends attribute params,
+// staged-apply follow-ups included.
+func wiredOps(t *provider.TypeDescriptor) []*provider.Op {
+	all := []*provider.Op{t.Create, t.Read, t.Update, t.Delete, t.Invoke}
+	if t.Clone != nil {
+		all = append(all, t.Clone.Op)
+	}
+	all = append(all, t.Reads...)
+	var ops []*provider.Op
+	for _, op := range all {
+		for ; op != nil; op = op.Apply {
+			ops = append(ops, op)
+		}
+	}
+	return ops
+}
+
+// opPaths lists an operation's path templates, scoped variants included.
+func opPaths(op *provider.Op) []string {
+	var out []string
+	if op.Path != "" {
+		out = append(out, op.Path)
+	}
+	scoped := valuesOf(op.Paths)
+	sort.Strings(scoped)
+	for _, p := range scoped {
+		if !contains(out, p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// opBinds reports whether one of the operation's params carries API
+// parameter api.
+func opBinds(t *provider.TypeDescriptor, op *provider.Op, api string) bool {
+	for _, n := range op.Params {
+		if a, ok := t.Attr(n); ok && acceptsAttr([]string{api}, &a) {
+			return true
+		}
+	}
+	return false
 }
 
 func valuesOf(m map[string]string) []string {

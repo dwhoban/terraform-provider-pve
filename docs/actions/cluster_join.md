@@ -15,9 +15,9 @@ Join this node to an existing cluster.
 ```terraform
 action "pve_cluster_join" "example" {
   config {
-  fingerprint = "CHANGE_ME"
-  hostname = "CHANGE_ME"
-  password = "CHANGE_ME"
+    fingerprint = "CHANGE_ME"
+    hostname    = "CHANGE_ME"
+    password    = "CHANGE_ME"
   }
 }
 
@@ -45,6 +45,17 @@ resource "terraform_data" "trigger" {
 ### Optional
 
 - `force` (Boolean) Do not throw error if node already exists.
-- `link_n_` (String) Address and priority information of a single corosync link. (up to 8 links supported; link0..link7)
+- `link` (Block List) Corosync link of the node to join with; list position is the link number (up to link7). (see [below for nested schema](#nestedblock--link))
 - `nodeid` (Number) Node id for this node.
 - `votes` (Number) Number of votes for this node
+
+<a id="nestedblock--link"></a>
+### Nested Schema for `link`
+
+Required:
+
+- `address` (String) Link address.
+
+Optional:
+
+- `priority` (Number) Link priority.

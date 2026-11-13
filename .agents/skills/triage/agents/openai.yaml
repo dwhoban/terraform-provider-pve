@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "Triage"
+  short_description: "Move issues through triage roles"
+policy:
+  allow_implicit_invocation: false

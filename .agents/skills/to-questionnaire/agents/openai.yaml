@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "To Questionnaire"
+  short_description: "Front-load questions into a doc for someone to answer"
+policy:
+  allow_implicit_invocation: false

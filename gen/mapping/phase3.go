@@ -30,20 +30,72 @@ var Phase3 = []Type{
 			{Name: "vmgenid", NoDefault: true},
 			// Per-write conflict token.
 			{Name: "digest", Skip: true},
-			// apidoc models indexed slots as pattern params (ide[n], net[n]);
-			// expose the common slots explicitly.
-			{Name: "ide0", APIName: "ide0", Type: "string", Add: true, Optional: BoolPtr(true), Description: "IDE slot 0 volume/options."},
-			{Name: "ide1", APIName: "ide1", Type: "string", Add: true, Optional: BoolPtr(true), Description: "IDE slot 1 volume/options."},
-			{Name: "ide2", APIName: "ide2", Type: "string", Add: true, Optional: BoolPtr(true), Description: "IDE slot 2 volume/options."},
-			{Name: "ide3", APIName: "ide3", Type: "string", Add: true, Optional: BoolPtr(true), Description: "IDE slot 3 volume/options."},
-			{Name: "net0", APIName: "net0", Type: "string", Add: true, Optional: BoolPtr(true), Description: "NET slot 0 volume/options."},
-			{Name: "net1", APIName: "net1", Type: "string", Add: true, Optional: BoolPtr(true), Description: "NET slot 1 volume/options."},
-			{Name: "net2", APIName: "net2", Type: "string", Add: true, Optional: BoolPtr(true), Description: "NET slot 2 volume/options."},
-			{Name: "net3", APIName: "net3", Type: "string", Add: true, Optional: BoolPtr(true), Description: "NET slot 3 volume/options."},
+			// The ide2 alias and boot are covered by the cdrom block and
+			// boot_order.
+			{Name: "cdrom", Skip: true},
+			{Name: "boot", Skip: true},
+			// Slot families not yet modeled as blocks.
+			{Name: "hostpci_n_", Skip: true},
+			{Name: "numa_n_", Skip: true},
+			{Name: "parallel_n_", Skip: true},
+			{Name: "serial_n_", Skip: true},
+			{Name: "unused_n_", Skip: true},
+			{Name: "usb_n_", Skip: true},
+			{Name: "virtiofs_n_", Skip: true},
+			{Name: "boot_order", APIName: "boot", Type: "list", Elem: "string", Add: true, Optional: BoolPtr(true), Format: "boot-order", Description: "Boot devices in order, as PVE device names (e.g. scsi0, ide2, net0)."},
 			// Server-allocated VMID (create returns a UPID when vmid is
 			// omitted; the engine extracts the id component).
 			{Name: "vmid", Required: BoolPtr(true), ForceNew: true, Description: "Guest id; use provider::pve::nextid() to allocate a free one."},
 			{Name: "clone_source_vmid", Type: "int64", Add: true, Optional: BoolPtr(true), ForceNew: true, Description: "Source guest id to clone from at creation time; when set, the VM is created via the clone endpoint instead of a fresh install."},
+		},
+		Blocks: []Block{
+			{
+				Name:        "disk",
+				Description: "Virtual disk on one IDE/SATA/SCSI/VirtIO slot. New volumes are allocated from storage; use action `pve_vm_disk_resize` to resize and `pve_vm_disk_move` to move an existing disk.",
+				Families:    []string{"ide", "sata", "scsi", "virtio"},
+				DefaultKey:  "file",
+				Exclude:     map[string]string{"media": "cdrom", "file": "*cloudinit*"},
+				Fields: []BlockField{
+					{Name: "interface", Key: "interface", Role: "index", Required: true, Description: "PVE device name: ide0..3, sata0..5, scsi0..30, virtio0..15."},
+					{Name: "storage", Key: "file", Role: "volume-storage", CreateOnly: true, Description: "Storage to allocate a new volume from (with size_gb)."},
+					{Name: "size_gb", Key: "size", Role: "volume-size-gb", Type: "int64", Computed: true, CreateOnly: true, Description: "Size in GiB. Resizing an existing disk is not supported here; use action `pve_vm_disk_resize`."},
+					{Name: "volume_id", Key: "file", Role: "volume-id", Computed: true, CreateOnly: true, Description: "Allocated volume (e.g. local-lvm:vm-120-disk-0)."},
+					{Name: "iothread", Key: "iothread", Type: "bool", Description: "Use iothread for the disk (scsi/virtio only)."},
+					{Name: "discard", Key: "discard", Type: "bool", True: "on", False: "ignore", Description: "Enable discard/TRIM support."},
+					{Name: "ssd", Key: "ssd", Type: "bool", Description: "Report the disk as SSD (ide/sata/scsi only)."},
+					{Name: "backup", Key: "backup", Type: "bool", Description: "Include the disk in backups."},
+					{Name: "cache", Key: "cache", Enum: []string{"none", "writethrough", "writeback", "unsafe", "directsync"}, Description: "Cache mode."},
+				},
+			},
+			{
+				Name:        "cdrom",
+				Description: "CD-ROM drive backed by an ISO (or ejected).",
+				Families:    []string{"ide", "sata", "scsi"},
+				DefaultKey:  "file",
+				Exclude:     map[string]string{"file": "*cloudinit*"},
+				Fields: []BlockField{
+					{Name: "interface", Key: "interface", Role: "index", Computed: true, Default: "ide2", Description: "PVE device name (default ide2)."},
+					{Name: "iso", Key: "file", Required: true, Description: "ISO volume (e.g. local:iso/debian-12.iso)."},
+					{Key: "media", Const: "cdrom"},
+				},
+			},
+			{
+				Name:        "network",
+				Description: "Network interface; list position is the PVE slot (network[0] is net0). Cloud-init addresses (ipv4/ipv6) land on the matching ipconfig slot.",
+				Families:    []string{"net"},
+				DefaultKey:  "model",
+				Fields: []BlockField{
+					{Name: "model", Key: "model", Role: "model", Computed: true, Default: "virtio", Enum: []string{"e1000", "e1000-82540em", "e1000-82544gc", "e1000-82545em", "e1000e", "i82551", "i82557b", "i82559er", "ne2k_isa", "ne2k_pci", "pcnet", "rtl8139", "virtio", "vmxnet3"}, Description: "NIC model."},
+					{Name: "mac_address", Key: "macaddr", Role: "mac", Computed: true, Description: "MAC address (PVE assigns one when unset)."},
+					{Name: "bridge", Key: "bridge", Description: "Bridge to attach to."},
+					{Name: "vlan", Key: "tag", Type: "int64", Description: "VLAN tag."},
+					{Name: "firewall", Key: "firewall", Type: "bool", Description: "Enable the firewall on this NIC."},
+					{Name: "ipv4", Family: "ipconfig", Key: "ip", Description: "Cloud-init IPv4 (CIDR, dhcp or manual)."},
+					{Name: "gateway", Family: "ipconfig", Key: "gw", Description: "Cloud-init IPv4 gateway."},
+					{Name: "ipv6", Family: "ipconfig", Key: "ip6", Description: "Cloud-init IPv6 (CIDR, auto, dhcp or manual)."},
+					{Name: "gateway6", Family: "ipconfig", Key: "gw6", Description: "Cloud-init IPv6 gateway."},
+				},
+			},
 		},
 	},
 	{
@@ -52,7 +104,7 @@ var Phase3 = []Type{
 		Reads: []*Endpoint{
 			{Path: "/nodes/{node}/qemu/{vmid}/config", ResultName: "config"},
 			{Path: "/nodes/{node}/qemu/{vmid}/pending", ResultName: "pending"},
-			{Path: "/nodes/{node}/qemu/{vmid}/feature", ResultName: "feature"},
+			{Path: "/nodes/{node}/qemu/{vmid}/feature", ResultName: "feature_support", SkipIfMissing: []string{"feature"}},
 			{Path: "/nodes/{node}/qemu/{vmid}/status", ResultName: "status"},
 			{Path: "/nodes/{node}/qemu/{vmid}/status/current", ResultName: "current"},
 			{Path: "/nodes/{node}/qemu/{vmid}/cloudinit", ResultName: "cloudinit"},
@@ -71,6 +123,9 @@ var Phase3 = []Type{
 			{Path: "/nodes/{node}/qemu/{vmid}/agent/get-fsinfo", ResultName: "agent_fsinfo"},
 			{Path: "/nodes/{node}/qemu/{vmid}/agent/get-memory-blocks", ResultName: "agent_memory_blocks"},
 			{Path: "/nodes/{node}/qemu/{vmid}/agent/get-memory-block-info", ResultName: "agent_memory_block_info"},
+		},
+		Attrs: []AttrRule{
+			{Name: "feature", Required: BoolPtr(false), Optional: BoolPtr(true), Description: "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset."},
 		},
 	},
 	{

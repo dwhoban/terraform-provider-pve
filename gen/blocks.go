@@ -1,0 +1,105 @@
+// Copyright dwhoban 2026
+// SPDX-License-Identifier: MPL-2.0
+
+package main
+
+import (
+	"fmt"
+
+	"github.com/dwhoban/terraform-provider-pve/gen/mapping"
+	"github.com/dwhoban/terraform-provider-pve/internal/provider"
+)
+
+// applyBlocks folds declared slot-family blocks into the attribute set:
+// each block consumes its families' derived slot-pattern attributes
+// (apidoc `x[n]`) and adds one block attribute in their place. Called
+// after the AttrRules and before op params bind to the final attrs.
+func applyBlocks(m mapping.Type, attrs map[string]*provider.Attr) error {
+	// consumed tracks families already taken by an earlier block of this
+	// type: sibling blocks may share a family (disk and cdrom share ide).
+	consumed := map[string]bool{}
+	for _, b := range m.Blocks {
+		take := func(fam string, primary bool) error {
+			key := attrNameOfParam(fam + "[n]")
+			if b.Fixed {
+				key = attrNameOfParam(fam)
+			}
+			a, ok := attrs[key]
+			if !ok {
+				if primary && !consumed[fam] {
+					return fmt.Errorf("block %s: family %s has no slot parameter in the API schema", b.Name, fam)
+				}
+				return nil
+			}
+			if want := fam + "[n]"; a.TFName() != want && (!b.Fixed || a.TFName() != fam) {
+				return nil // same-named attribute with another wire name: keep it
+			}
+			delete(attrs, key)
+			consumed[fam] = true
+			return nil
+		}
+		for _, fam := range b.Families {
+			if err := take(fam, true); err != nil {
+				return err
+			}
+		}
+		for _, f := range b.Fields {
+			if f.Family != "" && !consumed[f.Family] {
+				if err := take(f.Family, false); err != nil {
+					return err
+				}
+			}
+		}
+		// The collision check runs after the takes: a Fixed block's own
+		// family attribute (rootfs) is consumed, not a collision.
+		if _, exists := attrs[b.Name]; exists {
+			return fmt.Errorf("block %s collides with attribute %s", b.Name, b.Name)
+		}
+
+		spec := &provider.BlockSpec{
+			Families: b.Families, Fixed: b.Fixed,
+			DefaultKey: b.DefaultKey, Exclude: b.Exclude,
+		}
+		var elems []provider.Attr
+		for _, f := range b.Fields {
+			if f.Const != "" {
+				spec.Fields = append(spec.Fields, provider.BlockField{Key: f.Key, Const: f.Const})
+				continue
+			}
+			if f.Name == "" {
+				return fmt.Errorf("block %s: field with key %q needs a name", b.Name, f.Key)
+			}
+			ea := provider.Attr{Name: f.Name, Description: f.Description, Enum: f.Enum, Type: provider.AttrString}
+			if f.Type != "" {
+				ea.Type = provider.AttrType(f.Type)
+			}
+			if f.Required {
+				ea.Required = true
+			} else {
+				ea.Optional = true
+				if f.Computed {
+					ea.Computed = true
+				}
+			}
+			if f.Default != "" {
+				ea.Default = f.Default
+			}
+			elems = append(elems, ea)
+			spec.Fields = append(spec.Fields, provider.BlockField{
+				Name: f.Name, Family: f.Family, Key: f.Key,
+				Role: provider.FieldRole(f.Role), True: f.True, False: f.False,
+				CreateOnly: f.CreateOnly,
+			})
+		}
+		a := provider.Attr{Name: b.Name, Description: b.Description, Optional: true, Block: spec}
+		if b.Fixed {
+			a.Type = provider.AttrObject
+			a.Attrs = elems
+		} else {
+			a.Type = provider.AttrList
+			a.ElemAttrs = elems
+		}
+		attrs[b.Name] = &a
+	}
+	return nil
+}

@@ -98,6 +98,16 @@ Detail reads (run only when a parameter is set):
 
 `SkipIfMissingParam: true` does the same for the endpoint's path placeholders.
 
+## Slot-family blocks
+
+Indexed PVE parameters (apidoc `ide[n]`, `net[n]`, `mp[n]`, `link[n]`) are
+declared as `Blocks: []Block{…}`; the audit rejects any family left
+unmodeled or Skipped. Each element renders as one slot's property string;
+`Role` gives volume/index/model semantics, `Family` names a secondary slot
+sharing the element index (`ipconfig1`), and `Fixed` models a single slot
+(`rootfs`). See `phase3.go` (`disk`/`cdrom`/`network`) and `phase4.go`
+(`rootfs`/`mount_point`/`network`) for the reference declarations.
+
 ## Cross-phase families
 
 When a type uses a family Appendix A assigns to a different phase (e.g.

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/dwhoban/terraform-provider-pve/internal/provider"
@@ -181,13 +182,6 @@ func mergeAttr(a *provider.Attr, b provider.Attr) {
 
 // applyRule applies one AttrRule to the derived attribute set.
 func applyRule(attrs map[string]*provider.Attr, rule mapping.AttrRule) error {
-	set := func(b *bool, v bool) {
-		if b != nil {
-			v = *b
-		}
-		_ = v
-	}
-	_ = set
 	a, ok := attrs[rule.Name]
 	if !ok {
 		if rule.Skip {
@@ -203,6 +197,11 @@ func applyRule(attrs map[string]*provider.Attr, rule mapping.AttrRule) error {
 		delete(attrs, rule.Name)
 		return nil
 	}
+	applyRuleFields(a, rule)
+	return nil
+}
+
+func applyRuleFields(a *provider.Attr, rule mapping.AttrRule) {
 	if rule.APIName != "" {
 		a.APIName = rule.APIName
 	}
@@ -241,6 +240,9 @@ func applyRule(attrs map[string]*provider.Attr, rule mapping.AttrRule) error {
 	if rule.ForceNew {
 		a.ForceNew = true
 	}
+	if rule.Format != "" {
+		a.Format = provider.AttrFormat(rule.Format)
+	}
 	if rule.Description != "" {
 		a.Description = rule.Description
 	}
@@ -256,7 +258,49 @@ func applyRule(attrs map[string]*provider.Attr, rule mapping.AttrRule) error {
 	if rule.NoDefault {
 		a.Default = nil
 	}
-	return nil
+}
+
+// bindParams lists, sorted, the attributes an endpoint accepts given its
+// API parameter names, by derived name or wire name. Computed-only
+// attributes are response fields (e.g. `api_id` echoing `id`) and never
+// request parameters.
+func bindParams(apiNames []string, attrs map[string]*provider.Attr) []string {
+	var out []string
+	for name, a := range attrs {
+		if acceptsAttr(apiNames, a) {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func acceptsAttr(apiNames []string, a *provider.Attr) bool {
+	if a.Computed && !a.Optional && !a.Required {
+		return false
+	}
+	if a.Block != nil {
+		for _, p := range apiNames {
+			for _, fam := range a.Block.Families {
+				if p == fam+"[n]" || (a.Block.Fixed && p == fam) {
+					return true
+				}
+			}
+			for _, f := range a.Block.Fields {
+				if f.Family != "" && p == f.Family+"[n]" {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	wire := a.TFName()
+	for _, p := range apiNames {
+		if a.Name == attrNameOfParam(p) || wire == p {
+			return true
+		}
+	}
+	return false
 }
 
 // deriveFunction builds function args and result from the call endpoint.

@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+interface:
+  display_name: "Loop Me"
+  short_description: "Spec the workflows you want to build"
+policy:
+  allow_implicit_invocation: false

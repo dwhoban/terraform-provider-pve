@@ -67,6 +67,7 @@ var Phase6 = []Type{
 		Create:   &Endpoint{Path: "/nodes/{node}/config", Method: "PUT"},
 		Read:     &Endpoint{Path: "/nodes/{node}/config"},
 		Update:   &Endpoint{Path: "/nodes/{node}/config", Method: "PUT"},
+		Attrs:    []AttrRule{{Name: "acmedomain_n_", Skip: true}},
 	},
 	{
 		Type: "pve_node_disk_lvm", Kind: "resource", Phase: 6,

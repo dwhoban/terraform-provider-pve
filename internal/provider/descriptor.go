@@ -52,6 +52,52 @@ const (
 	AttrObject  AttrType = "object"
 )
 
+// AttrFormat names a wire encoding applied to an attribute's request value.
+type AttrFormat string
+
+const (
+	// FormatBase64 marks an attribute sent base64-encoded; PVE reads it
+	// back decoded.
+	FormatBase64 AttrFormat = "base64"
+	// FormatBootOrder marks a list sent as order=a;b;c.
+	FormatBootOrder AttrFormat = "boot-order"
+)
+
+// BlockSpec maps Terraform blocks onto an indexed PVE slot family: each
+// block element is one slot (e.g. scsi0) whose value is a property string.
+type BlockSpec struct {
+	Families   []string          `json:"families"`             // slot prefixes; element wire key = family+index
+	Fixed      bool              `json:"fixed,omitempty"`      // one block; wire key = Families[0], no index (rootfs)
+	DefaultKey string            `json:"defaultKey,omitempty"` // property key PVE writes without "key=" (file, model, volume, address)
+	Exclude    map[string]string `json:"exclude,omitempty"`    // read filter: drop slots whose property key matches the path.Match pattern
+	Fields     []BlockField      `json:"fields"`
+}
+
+// BlockField maps one block element attribute onto a property key.
+type BlockField struct {
+	Name       string    `json:"name,omitempty"`   // element attribute; empty only for Const fields
+	Family     string    `json:"family,omitempty"` // secondary family sharing the element index (ipconfig); "" = the element's own slot
+	Key        string    `json:"key"`              // property key in the slot value
+	Role       FieldRole `json:"role,omitempty"`
+	Const      string    `json:"const,omitempty"` // always sent; a slot is this block's only when it carries Key=Const
+	True       string    `json:"true,omitempty"`  // bool wire value, default "1"
+	False      string    `json:"false,omitempty"` // bool wire value, default "0"
+	CreateOnly bool      `json:"createOnly,omitempty"`
+}
+
+// FieldRole gives a block field special encode/decode semantics.
+type FieldRole string
+
+const (
+	RolePlain         FieldRole = ""
+	RoleIndex         FieldRole = "index"          // value is the full wire key (disk.interface = "scsi0")
+	RoleVolumeStorage FieldRole = "volume-storage" // storage part of DefaultKey; with size allocates "storage:size"
+	RoleVolumeSizeGB  FieldRole = "volume-size-gb" // GiB; read from property key "size"
+	RoleVolumeID      FieldRole = "volume-id"      // DefaultKey value of an allocated volume
+	RoleModel         FieldRole = "model"          // DefaultKey enum; PVE writes "<model>=<mac>"
+	RoleMAC           FieldRole = "mac"            // the <mac> of "<model>=<mac>"
+)
+
 // Attr describes one attribute of a generated type.
 type Attr struct {
 	// Name is the Terraform attribute name (snake_case).
@@ -67,8 +113,12 @@ type Attr struct {
 	// fills, if any (e.g. "node", "vmid").
 	PathParam string `json:"pathParam,omitempty"`
 
-	Type     AttrType `json:"type"`
-	ElemType AttrType `json:"elemType,omitempty"` // element type of list/set
+	Type   AttrType   `json:"type"`
+	Format AttrFormat `json:"format,omitempty"` // request wire encoding
+	// Block declares a slot-family block (list of elements, or one
+	// element when Fixed): ElemAttrs (list) or Attrs (Fixed) describe it.
+	Block    *BlockSpec `json:"block,omitempty"`
+	ElemType AttrType   `json:"elemType,omitempty"` // element type of list/set
 	// ElemAttrs describes the element shape when elements are objects
 	// (list/set of objects, e.g. data source result rows).
 	ElemAttrs []Attr `json:"elemAttrs,omitempty"`

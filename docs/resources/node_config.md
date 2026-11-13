@@ -14,7 +14,7 @@ Node-specific configuration (ACME, description, wake-on-LAN, …) (singleton).
 
 ```terraform
 resource "pve_node_config" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 
@@ -28,7 +28,6 @@ node = "pve1"
 ### Optional
 
 - `acme` (String) Node specific ACME settings.
-- `acmedomain_n_` (String) ACME domain and validation plugin
 - `ballooning_target` (Number) RAM usage target for ballooning (in percent of total memory) (default: 80)
 - `delete` (String) A list of settings you want to delete.
 - `description` (String) Description for the Node. Shown in the web-interface node notes panel. This is saved as comment inside the configuration file.

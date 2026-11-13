@@ -111,7 +111,7 @@ var Phase13 = []Type{
 		IDAttrs: []string{"item_id"},
 		Attrs: []AttrRule{
 			{Name: "item_id", PathParam: "id", ForceNew: true},
-			{Name: "data", Sensitive: true}, // base64 DNS API credentials
+			{Name: "data", Sensitive: true, Format: "base64", Description: "DNS plugin credentials as plaintext KEY=value lines, newline-separated, no trailing newline (the form PVE reads back); the provider base64-encodes it for the API."},
 		},
 	},
 

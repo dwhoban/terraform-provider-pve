@@ -4,9 +4,13 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"maps"
 	"math"
 	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	actionschema "github.com/hashicorp/terraform-plugin-framework/action/schema"
@@ -25,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // The framework ships structurally identical (but distinct) schema packages
@@ -114,12 +119,109 @@ func buildResourceSchema(d *TypeDescriptor) schema.Schema {
 		MarkdownDescription: fmt.Sprintf("Opaque identifier: %s (also the `terraform import` format).", joinSlash(d.IDAttrs)),
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 	}
-	return schema.Schema{MarkdownDescription: d.Summary, Attributes: attrs}
+	return schema.Schema{MarkdownDescription: d.Summary, Attributes: attrs, Blocks: buildResourceBlocks(d.Attributes)}
+}
+
+// buildResourceBlocks renders slot-family block attributes (Attr.Block) as
+// nested blocks: a list block per family, a single block when Fixed.
+func buildResourceBlocks(list []Attr) map[string]schema.Block {
+	out := map[string]schema.Block{}
+	for _, a := range list {
+		if a.Block == nil {
+			continue
+		}
+		desc := attrDescription(a)
+		keep := blockKeepComputed{a: a}
+		if a.Block.Fixed {
+			out[a.Name] = schema.SingleNestedBlock{
+				Attributes:          buildResourceAttrs(a.Attrs),
+				MarkdownDescription: desc,
+				PlanModifiers:       []planmodifier.Object{keep},
+			}
+			continue
+		}
+		out[a.Name] = schema.ListNestedBlock{
+			NestedObject:        schema.NestedBlockObject{Attributes: buildResourceAttrs(a.ElemAttrs)},
+			MarkdownDescription: desc,
+			PlanModifiers:       []planmodifier.List{keep},
+		}
+	}
+	return out
+}
+
+// blockKeepComputed carries server-computed block fields (volume ids, MAC
+// addresses, sizes) from state into plan elements that keep their slot.
+// It matches elements by wire key, not list position, so a reordered disk
+// never inherits another disk's volume.
+type blockKeepComputed struct{ a Attr }
+
+var (
+	_ planmodifier.List   = blockKeepComputed{}
+	_ planmodifier.Object = blockKeepComputed{}
+)
+
+func (m blockKeepComputed) Description(context.Context) string {
+	return "Keeps server-computed fields of block elements that keep their slot."
+}
+
+func (m blockKeepComputed) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m blockKeepComputed) PlanModifyList(_ context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if v, ok := keepBlockComputed(m.a, req.PlanValue, req.StateValue).(types.List); ok {
+		resp.PlanValue = v
+	}
+}
+
+func (m blockKeepComputed) PlanModifyObject(_ context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	if v, ok := keepBlockComputed(m.a, req.PlanValue, req.StateValue).(types.Object); ok {
+		resp.PlanValue = v
+	}
+}
+
+// keepBlockComputed fills unknown computed fields of plan elements from the
+// state element with the same wire key; plan is returned unchanged when
+// it or the state is not concrete.
+func keepBlockComputed(a Attr, plan, state attr.Value) attr.Value {
+	if !usable(plan) || !usable(state) {
+		return plan
+	}
+	planElems := blockElems(plan)
+	if l, ok := plan.(types.List); ok && len(l.Elements()) != len(planElems) {
+		return plan // an unknown element: nothing to match yet
+	}
+	existing := map[string]map[string]attr.Value{}
+	for pos, e := range blockElems(state) {
+		if key, err := blockElemKey(a.Block, e, pos); err == nil {
+			existing[key] = e
+		}
+	}
+	out := make([]map[string]attr.Value, len(planElems))
+	for pos, pe := range planElems {
+		out[pos] = pe
+		key, err := blockElemKey(a.Block, pe, pos)
+		se, ok := existing[key]
+		if err != nil || !ok {
+			continue
+		}
+		kept := maps.Clone(pe)
+		for _, ea := range blockElemAttrs(a) {
+			if v := kept[ea.Name]; ea.Computed && v != nil && v.IsUnknown() {
+				kept[ea.Name] = se[ea.Name]
+			}
+		}
+		out[pos] = kept
+	}
+	return blockValue(a, out)
 }
 
 func buildResourceAttrs(list []Attr) map[string]schema.Attribute {
 	out := make(map[string]schema.Attribute, len(list))
 	for _, a := range list {
+		if a.Block != nil {
+			continue // rendered by buildResourceBlocks
+		}
 		desc := attrDescription(a)
 		switch {
 		case a.Type == AttrString:
@@ -320,12 +422,36 @@ func buildActionSchema(d *TypeDescriptor) actionschema.Schema {
 	return actionschema.Schema{
 		MarkdownDescription: d.Summary,
 		Attributes:          buildActionAttrs(d.Attributes),
+		Blocks:              buildActionBlocks(d.Attributes),
 	}
+}
+
+// buildActionBlocks renders slot-family block attributes as nested blocks.
+func buildActionBlocks(list []Attr) map[string]actionschema.Block {
+	out := map[string]actionschema.Block{}
+	for _, a := range list {
+		if a.Block == nil {
+			continue
+		}
+		desc := attrDescription(a)
+		if a.Block.Fixed {
+			out[a.Name] = actionschema.SingleNestedBlock{Attributes: buildActionAttrs(a.Attrs), MarkdownDescription: desc}
+			continue
+		}
+		out[a.Name] = actionschema.ListNestedBlock{
+			NestedObject:        actionschema.NestedBlockObject{Attributes: buildActionAttrs(a.ElemAttrs)},
+			MarkdownDescription: desc,
+		}
+	}
+	return out
 }
 
 func buildActionAttrs(list []Attr) map[string]actionschema.Attribute {
 	out := make(map[string]actionschema.Attribute, len(list))
 	for _, a := range list {
+		if a.Block != nil {
+			continue // rendered by buildActionBlocks
+		}
 		desc := attrDescription(a)
 		switch {
 		case a.Type == AttrString:

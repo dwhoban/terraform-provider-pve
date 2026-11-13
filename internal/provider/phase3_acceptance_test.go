@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dwhoban/terraform-provider-pve/internal/pveclient"
@@ -144,8 +145,10 @@ resource "pve_vm" "test" {
   vmid   = %d
   name   = %q
   memory = 512
-  ide2   = "local-btrfs:iso/alpine-virt.iso,media=cdrom"
-  boot   = "order=ide2"
+  cdrom {
+    iso = "local-btrfs:iso/alpine-virt.iso"
+  }
+  boot_order = ["ide2"]
 }
 
 action "pve_vm_start" "a" {
@@ -173,7 +176,10 @@ resource "terraform_data" "start_trigger" {
 		Steps: []resource.TestStep{
 			{
 				Config: config(false),
-				Check:  vmRunning(true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					vmRunning(true),
+					testAccConfigHasCDROM(t, node, vmid),
+				),
 			},
 			{
 				Config: config(true),
@@ -181,6 +187,31 @@ resource "terraform_data" "start_trigger" {
 			},
 		},
 	})
+}
+
+// testAccConfigHasCDROM asserts the cdrom block actually reached PVE —
+// before the block engine, ide2 was accepted but never sent.
+func testAccConfigHasCDROM(t *testing.T, node string, vmid int) resource.TestCheckFunc {
+	t.Helper()
+	return func(s *terraform.State) error {
+		payload, err := testAccClient(t).DoRequest(context.Background(), "GET",
+			fmt.Sprintf("/nodes/%s/qemu/%d/config", node, vmid), nil)
+		if err != nil {
+			return err
+		}
+		var env struct {
+			Data struct {
+				Ide2 string `json:"ide2"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(payload, &env); err != nil {
+			return err
+		}
+		if !strings.Contains(env.Data.Ide2, "media=cdrom") {
+			return fmt.Errorf("ide2 = %q, want media=cdrom", env.Data.Ide2)
+		}
+		return nil
+	}
 }
 
 func TestAccPhase3VmSnapshotRollback(t *testing.T) {

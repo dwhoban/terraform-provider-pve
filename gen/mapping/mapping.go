@@ -41,6 +41,45 @@ type Type struct {
 	// AllForceNew marks every optional attribute as force-new (for
 	// resources without an update endpoint, e.g. cluster creation).
 	AllForceNew bool
+
+	// Blocks declare slot-family blocks (see Block).
+	Blocks []Block
+}
+
+// Block declares a slot-family block: a list of blocks (or a single block
+// when Fixed) whose elements are the slots of an indexed PVE parameter
+// family (apidoc `x[n]`), each rendered as a property string. The
+// generator consumes the family's derived slot-pattern attribute and adds
+// the block attribute in its place; the audit rejects any family left
+// unmodeled.
+type Block struct {
+	Name        string
+	Description string
+	Families    []string          // slot prefixes (ide, sata, scsi, virtio)
+	Fixed       bool              // one block; the wire key is Families[0] itself (rootfs)
+	DefaultKey  string            // property key PVE writes without "key=" (file, model, volume, address)
+	Exclude     map[string]string // read filter: drop slots whose property key matches (path.Match)
+	Fields      []BlockField
+}
+
+// BlockField maps one block attribute onto a property key of the slot
+// value. Family names a secondary slot family sharing the element index
+// (net1 ⇄ ipconfig1); Role gives volume/model/index semantics.
+type BlockField struct {
+	Name        string
+	Description string
+	Type        string // string | bool | int64 | float64
+	Required    bool
+	Computed    bool // Optional+Computed: filled by the server
+	Enum        []string
+	Default     string
+	Family      string
+	Key         string
+	Role        string // "" | index | volume-storage | volume-size-gb | volume-id | model | mac
+	Const       string
+	True        string
+	False       string
+	CreateOnly  bool
 }
 
 // Endpoint wires one operation to an API family.
@@ -113,6 +152,7 @@ type AttrRule struct {
 	Computed  *bool
 	Sensitive bool
 	ForceNew  bool
+	Format    string // "" | "base64" (provider.AttrFormat)
 	// Description overrides or sets the attribute description.
 	Description string
 	// NoDefault drops an apidoc default that PVE itself would reject

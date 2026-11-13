@@ -28,7 +28,7 @@ var Phase5 = []Type{
 		Summary: "All cluster storages; optionally the content overview of one storage on one node.",
 		Reads: []*Endpoint{
 			{Path: "/storage", ResultName: "storages"},
-			{Path: "/nodes/{node}/storage/{storage}/content", ResultName: "content", SkipIfMissingParam: true},
+			{Path: "/nodes/{node}/storage/{storage}/content", ResultName: "volumes", SkipIfMissingParam: true},
 		},
 		Attrs: []AttrRule{
 			{Name: "node", Required: BoolPtr(false), Optional: BoolPtr(true)},
