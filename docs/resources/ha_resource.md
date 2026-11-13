@@ -14,7 +14,7 @@ HA-managed resource (guest) with restart/relocate constraints.
 
 ```terraform
 resource "pve_ha_resource" "example" {
-sid = "CHANGE_ME"
+  sid = "CHANGE_ME"
 }
 ```
 

@@ -14,8 +14,8 @@ ACL grant of one role on one path to users and/or groups. Declare one resource p
 
 ```terraform
 resource "pve_acl" "example" {
-path = "CHANGE_ME"
-roles = "CHANGE_ME"
+  path  = "CHANGE_ME"
+  roles = "CHANGE_ME"
 }
 ```
 

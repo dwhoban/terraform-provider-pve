@@ -15,8 +15,8 @@ Stop a container (hard power-off).
 ```terraform
 action "pve_container_stop" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

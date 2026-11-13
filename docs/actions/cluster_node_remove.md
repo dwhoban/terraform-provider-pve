@@ -15,7 +15,7 @@ Remove a node from the cluster (risky).
 ```terraform
 action "pve_cluster_node_remove" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

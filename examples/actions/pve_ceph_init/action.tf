@@ -1,6 +1,6 @@
 action "pve_ceph_init" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

@@ -14,10 +14,10 @@ Heuristical Ceph safety check for a destructive action (stop/destroy) on one ser
 
 ```terraform
 data "pve_ceph_cmd_safety" "example" {
-action = "stop"
-item_id = "CHANGE_ME"
-node = "pve1"
-service = "osd"
+  action  = "stop"
+  item_id = "CHANGE_ME"
+  node    = "pve1"
+  service = "osd"
 }
 ```
 

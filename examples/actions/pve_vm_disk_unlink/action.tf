@@ -1,8 +1,8 @@
 action "pve_vm_disk_unlink" "example" {
   config {
-  idlist = "CHANGE_ME"
-  node = "pve1"
-  vmid = 100
+    idlist = "CHANGE_ME"
+    node   = "pve1"
+    vmid   = 100
   }
 }
 

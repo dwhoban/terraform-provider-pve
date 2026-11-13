@@ -14,7 +14,7 @@ Passthrough inventory of a node: PCI devices, USB devices, and (for one PCI devi
 
 ```terraform
 data "pve_node_hardware" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

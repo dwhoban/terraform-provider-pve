@@ -15,8 +15,8 @@ Stop a service on a node.
 ```terraform
 action "pve_service_stop" "example" {
   config {
-  node = "pve1"
-  service = "CHANGE_ME"
+    node    = "pve1"
+    service = "CHANGE_ME"
   }
 }
 

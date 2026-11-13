@@ -14,7 +14,7 @@ HA constraint rule over resources.
 
 ```terraform
 resource "pve_ha_rule" "example" {
-rule = "CHANGE_ME"
+  rule = "CHANGE_ME"
 }
 ```
 

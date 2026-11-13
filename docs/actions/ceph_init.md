@@ -15,7 +15,7 @@ Create the initial Ceph default configuration on a node (idempotent). Ceph must 
 ```terraform
 action "pve_ceph_init" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

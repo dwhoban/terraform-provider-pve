@@ -15,8 +15,8 @@ Reboot a node (POST /status with command=reboot).
 ```terraform
 action "pve_node_reboot" "example" {
   config {
-  command = "reboot"
-  node = "pve1"
+    command = "reboot"
+    node    = "pve1"
   }
 }
 

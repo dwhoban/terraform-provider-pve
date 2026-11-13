@@ -14,8 +14,8 @@ Authentication realm (PAM, PVE, LDAP, OpenID, …).
 
 ```terraform
 resource "pve_realm" "example" {
-realm = "CHANGE_ME"
-type = "ad"
+  realm = "CHANGE_ME"
+  type  = "ad"
 }
 ```
 

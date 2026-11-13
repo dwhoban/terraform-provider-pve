@@ -15,8 +15,8 @@ Initialize a disk with a fresh GPT (destructive).
 ```terraform
 action "pve_node_disk_initgpt" "example" {
   config {
-  disk = "CHANGE_ME"
-  node = "pve1"
+    disk = "CHANGE_ME"
+    node = "pve1"
   }
 }
 

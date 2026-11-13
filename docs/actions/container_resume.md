@@ -15,8 +15,8 @@ Resume a suspended container.
 ```terraform
 action "pve_container_resume" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

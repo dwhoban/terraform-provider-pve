@@ -15,7 +15,7 @@ Run a vzdump backup on a node (one-shot, waits for the task).
 ```terraform
 action "pve_backup_run" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

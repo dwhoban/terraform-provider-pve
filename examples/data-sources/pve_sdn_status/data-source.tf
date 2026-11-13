@@ -1,3 +1,3 @@
 data "pve_sdn_status" "example" {
-node = "pve1"
+  node = "pve1"
 }

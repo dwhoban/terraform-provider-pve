@@ -15,8 +15,8 @@ Mark one OSD in (ceph osd in).
 ```terraform
 action "pve_ceph_osd_in" "example" {
   config {
-  node = "pve1"
-  osdid = 1
+    node  = "pve1"
+    osdid = 1
   }
 }
 

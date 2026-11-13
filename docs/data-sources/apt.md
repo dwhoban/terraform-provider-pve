@@ -14,7 +14,7 @@ APT package index of a node (package entries).
 
 ```terraform
 data "pve_apt" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

@@ -14,9 +14,9 @@ LVM-thin pool created on a node's disk(s). Read filters the list endpoint on the
 
 ```terraform
 resource "pve_node_disk_lvmthin" "example" {
-device = "CHANGE_ME"
-name = "CHANGE_ME"
-node = "pve1"
+  device = "CHANGE_ME"
+  name   = "CHANGE_ME"
+  node   = "pve1"
 }
 ```
 

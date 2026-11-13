@@ -14,8 +14,8 @@ Extract the guest configuration stored in a vzdump backup archive.
 
 ```terraform
 data "pve_vzdump_extractconfig" "example" {
-node = "pve1"
-volume = "CHANGE_ME"
+  node   = "pve1"
+  volume = "CHANGE_ME"
 }
 ```
 

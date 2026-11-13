@@ -15,8 +15,8 @@ Run fstrim inside the VM via the guest agent.
 ```terraform
 action "pve_vm_fstrim" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

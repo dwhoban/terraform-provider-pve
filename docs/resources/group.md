@@ -14,7 +14,7 @@ Access control group.
 
 ```terraform
 resource "pve_group" "example" {
-groupid = "CHANGE_ME"
+  groupid = "CHANGE_ME"
 }
 ```
 

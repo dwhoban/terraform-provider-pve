@@ -14,8 +14,8 @@ API token of a user. The full token value is captured into token_value (sensitiv
 
 ```terraform
 resource "pve_api_token" "example" {
-tokenid = "CHANGE_ME"
-userid = "CHANGE_ME"
+  tokenid = "CHANGE_ME"
+  userid  = "CHANGE_ME"
 }
 ```
 

@@ -14,8 +14,8 @@ Custom certificate chain and key uploaded to a node's pveproxy.
 
 ```terraform
 resource "pve_node_certificate_custom" "example" {
-certificates = "CHANGE_ME"
-node = "pve1"
+  certificates = "CHANGE_ME"
+  node         = "pve1"
 }
 ```
 

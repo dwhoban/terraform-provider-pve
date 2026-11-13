@@ -14,7 +14,7 @@ Firewall options singleton at cluster, node, vm, or container scope.
 
 ```terraform
 resource "pve_firewall_options" "example" {
-scope = "cluster"
+  scope = "cluster"
 }
 ```
 

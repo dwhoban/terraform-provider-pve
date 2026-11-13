@@ -14,7 +14,7 @@ Notification matcher routing notifications to targets by metadata, severity, and
 
 ```terraform
 resource "pve_notification_matcher" "example" {
-name = "CHANGE_ME"
+  name = "CHANGE_ME"
 }
 ```
 

@@ -1,7 +1,7 @@
 action "pve_node_reboot" "example" {
   config {
-  command = "reboot"
-  node = "pve1"
+    command = "reboot"
+    node    = "pve1"
   }
 }
 

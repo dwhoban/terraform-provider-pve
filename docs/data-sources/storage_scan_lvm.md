@@ -14,7 +14,7 @@ LVM volume groups discovered by scanning from a node.
 
 ```terraform
 data "pve_storage_scan_lvm" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

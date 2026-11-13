@@ -14,9 +14,9 @@ Directory-formatted disk mounted via systemd unit on a node. Read filters the li
 
 ```terraform
 resource "pve_node_disk_directory" "example" {
-device = "CHANGE_ME"
-name = "CHANGE_ME"
-node = "pve1"
+  device = "CHANGE_ME"
+  name   = "CHANGE_ME"
+  node   = "pve1"
 }
 ```
 

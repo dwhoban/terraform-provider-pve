@@ -14,9 +14,9 @@ Import metadata for a volume (how to import it as a guest).
 
 ```terraform
 data "pve_storage_import_metadata" "example" {
-node = "pve1"
-storage = "local"
-volume = "CHANGE_ME"
+  node    = "pve1"
+  storage = "local"
+  volume  = "CHANGE_ME"
 }
 ```
 

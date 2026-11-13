@@ -22,6 +22,7 @@ data "pve_storage" "example" {
 
 ### Optional
 
+- `content` (String) Only list content of this type.
 - `node` (String) The cluster node name.
 - `storage` (String) The storage identifier.
 - `type` (String) Only list storage of specific type One of: `btrfs`, `cephfs`, `cifs`, `dir`, `esxi`, `iscsi`, `iscsidirect`, `lvm`, `lvmthin`, `nfs`, `pbs`, `rbd`, `zfs`, `zfspool`.
@@ -29,12 +30,20 @@ data "pve_storage" "example" {
 
 ### Read-Only
 
-- `content` (Attributes List) Only list content of this type. (see [below for nested schema](#nestedatt--content))
 - `id` (String) Identifier: <node>/<storage>.
 - `storages` (Attributes List) Returned by /storage. (see [below for nested schema](#nestedatt--storages))
+- `volumes` (Attributes List) Returned by /nodes/{node}/storage/{storage}/content. (see [below for nested schema](#nestedatt--volumes))
 
-<a id="nestedatt--content"></a>
-### Nested Schema for `content`
+<a id="nestedatt--storages"></a>
+### Nested Schema for `storages`
+
+Read-Only:
+
+- `storage` (String)
+
+
+<a id="nestedatt--volumes"></a>
+### Nested Schema for `volumes`
 
 Read-Only:
 
@@ -47,23 +56,14 @@ Read-Only:
 - `protected` (Boolean) Protection status. Currently only supported for backups.
 - `size` (Number) Volume size in bytes.
 - `used` (Number) Used space. Please note that most storage plugins do not report anything useful here.
-- `verification` (Attributes) Last backup verification result, only useful for PBS storages. (see [below for nested schema](#nestedatt--content--verification))
+- `verification` (Attributes) Last backup verification result, only useful for PBS storages. (see [below for nested schema](#nestedatt--volumes--verification))
 - `vmid` (Number) Associated Owner VMID.
 - `volid` (String) Volume identifier.
 
-<a id="nestedatt--content--verification"></a>
-### Nested Schema for `content.verification`
+<a id="nestedatt--volumes--verification"></a>
+### Nested Schema for `volumes.verification`
 
 Read-Only:
 
 - `state` (String) Last backup verification state.
 - `upid` (String) Last backup verification UPID.
-
-
-
-<a id="nestedatt--storages"></a>
-### Nested Schema for `storages`
-
-Read-Only:
-
-- `storage` (String)

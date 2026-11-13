@@ -14,7 +14,7 @@ API user with realm, groups, TFA settings, and account expiry.
 
 ```terraform
 resource "pve_user" "example" {
-userid = "CHANGE_ME"
+  userid = "CHANGE_ME"
 }
 ```
 

@@ -14,8 +14,8 @@ HA group: a set of nodes with priorities for fencing guests.
 
 ```terraform
 resource "pve_ha_group" "example" {
-group = "CHANGE_ME"
-nodes = "CHANGE_ME"
+  group = "CHANGE_ME"
+  nodes = "CHANGE_ME"
 }
 ```
 

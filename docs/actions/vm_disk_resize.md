@@ -15,10 +15,10 @@ Resize a VM volume.
 ```terraform
 action "pve_vm_disk_resize" "example" {
   config {
-  disk = "ide0"
-  node = "pve1"
-  size = "CHANGE_ME"
-  vmid = 100
+    disk = "ide0"
+    node = "pve1"
+    size = "CHANGE_ME"
+    vmid = 100
   }
 }
 

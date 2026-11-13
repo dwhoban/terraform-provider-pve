@@ -14,8 +14,8 @@ SDN VNet (virtual bridge) configuration attached to a zone.
 
 ```terraform
 resource "pve_sdn_vnet" "example" {
-vnet = "CHANGE_ME"
-zone = "CHANGE_ME"
+  vnet = "CHANGE_ME"
+  zone = "CHANGE_ME"
 }
 ```
 

@@ -14,7 +14,7 @@ All cluster-wide Ceph flags at once (nobackfill, noout, noup, ...); cluster is a
 
 ```terraform
 resource "pve_ceph_flags" "example" {
-cluster = "CHANGE_ME"
+  cluster = "CHANGE_ME"
 }
 ```
 

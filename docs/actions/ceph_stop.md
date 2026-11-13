@@ -15,7 +15,7 @@ Stop Ceph services on a node.
 ```terraform
 action "pve_ceph_stop" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

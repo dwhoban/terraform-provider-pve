@@ -14,11 +14,11 @@ Storage content volume/file: created empty or by name on a node's storage, attri
 
 ```terraform
 resource "pve_file" "example" {
-filename = "CHANGE_ME"
-node = "pve1"
-size = "CHANGE_ME"
-storage = "local"
-vmid = 100
+  filename = "CHANGE_ME"
+  node     = "pve1"
+  size     = "CHANGE_ME"
+  storage  = "local"
+  vmid     = 100
 }
 ```
 
@@ -39,7 +39,7 @@ vmid = 100
 - `format` (String) Format of the image. One of: `raw`, `qcow2`, `subvol`, `vmdk`.
 - `notes` (String) The new notes.
 - `protected` (Boolean) Protection status. Currently only supported for backups.
-- `volume` (String) Volume identifier
+- `volume` (String) Source volume identifier
 
 ### Read-Only
 

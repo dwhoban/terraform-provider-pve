@@ -14,9 +14,9 @@ Webhook notification endpoint.
 
 ```terraform
 resource "pve_notification_endpoint_webhook" "example" {
-method = "post"
-name = "CHANGE_ME"
-url = "CHANGE_ME"
+  method = "post"
+  name   = "CHANGE_ME"
+  url    = "CHANGE_ME"
 }
 ```
 

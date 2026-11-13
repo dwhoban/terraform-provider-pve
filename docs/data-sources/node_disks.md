@@ -14,7 +14,7 @@ Physical disks of a node (list) with optional S.M.A.R.T. health for one disk.
 
 ```terraform
 data "pve_node_disks" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

@@ -15,8 +15,8 @@ Migrate all guests of a node to another node.
 ```terraform
 action "pve_node_migrate_all" "example" {
   config {
-  node = "pve1"
-  target = "CHANGE_ME"
+    node   = "pve1"
+    target = "CHANGE_ME"
   }
 }
 

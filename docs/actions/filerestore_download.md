@@ -15,10 +15,10 @@ Download one file from a backup volume via file-restore.
 ```terraform
 action "pve_filerestore_download" "example" {
   config {
-  filepath = "CHANGE_ME"
-  node = "pve1"
-  storage = "local"
-  volume = "CHANGE_ME"
+    filepath = "CHANGE_ME"
+    node     = "pve1"
+    storage  = "local"
+    volume   = "CHANGE_ME"
   }
 }
 

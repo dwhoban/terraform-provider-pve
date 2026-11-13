@@ -14,7 +14,7 @@ Pending APT package updates of a node (the readable counterpart of the update ac
 
 ```terraform
 data "pve_apt_update_status" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

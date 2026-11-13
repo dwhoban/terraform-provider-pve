@@ -14,7 +14,7 @@ One API user's configuration.
 
 ```terraform
 data "pve_user" "example" {
-userid = "CHANGE_ME"
+  userid = "CHANGE_ME"
 }
 ```
 

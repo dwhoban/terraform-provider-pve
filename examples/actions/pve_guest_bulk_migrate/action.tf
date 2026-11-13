@@ -1,6 +1,6 @@
 action "pve_guest_bulk_migrate" "example" {
   config {
-  target = "CHANGE_ME"
+    target = "CHANGE_ME"
   }
 }
 

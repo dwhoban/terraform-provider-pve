@@ -1,10 +1,10 @@
 action "pve_file_download_url" "example" {
   config {
-  content = "iso"
-  filename = "CHANGE_ME"
-  node = "pve1"
-  storage = "local"
-  url = "CHANGE_ME"
+    content  = "iso"
+    filename = "CHANGE_ME"
+    node     = "pve1"
+    storage  = "local"
+    url      = "CHANGE_ME"
   }
 }
 

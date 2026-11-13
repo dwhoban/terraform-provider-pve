@@ -1,11 +1,11 @@
 action "pve_realm_sync" "example" {
   config {
-  enable_new = true
-  full = true
-  purge = true
-  realm = "CHANGE_ME"
-  remove_vanished = "CHANGE_ME"
-  scope = "users"
+    enable_new      = true
+    full            = true
+    purge           = true
+    realm           = "CHANGE_ME"
+    remove_vanished = "CHANGE_ME"
+    scope           = "users"
   }
 }
 

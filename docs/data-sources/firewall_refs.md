@@ -14,7 +14,7 @@ Firewall object references (ipsets, aliases, groups) usable in rules.
 
 ```terraform
 data "pve_firewall_refs" "example" {
-scope = "cluster"
+  scope = "cluster"
 }
 ```
 

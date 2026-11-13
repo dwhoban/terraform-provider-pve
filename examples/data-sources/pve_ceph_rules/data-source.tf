@@ -1,3 +1,3 @@
 data "pve_ceph_rules" "example" {
-node = "pve1"
+  node = "pve1"
 }

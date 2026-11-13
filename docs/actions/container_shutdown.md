@@ -15,8 +15,8 @@ Shut a container down gracefully.
 ```terraform
 action "pve_container_shutdown" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

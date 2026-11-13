@@ -1,8 +1,8 @@
 action "pve_cluster_join" "example" {
   config {
-  fingerprint = "CHANGE_ME"
-  hostname = "CHANGE_ME"
-  password = "CHANGE_ME"
+    fingerprint = "CHANGE_ME"
+    hostname    = "CHANGE_ME"
+    password    = "CHANGE_ME"
   }
 }
 

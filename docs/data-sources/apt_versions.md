@@ -14,7 +14,7 @@ Installed/available package versions on a node.
 
 ```terraform
 data "pve_apt_versions" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

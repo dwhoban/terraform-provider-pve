@@ -14,8 +14,8 @@ CIFS shares discovered by scanning from a node.
 
 ```terraform
 data "pve_storage_scan_cifs" "example" {
-node = "pve1"
-server = "CHANGE_ME"
+  node   = "pve1"
+  server = "CHANGE_ME"
 }
 ```
 

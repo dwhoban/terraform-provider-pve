@@ -15,7 +15,7 @@ Start Ceph services on a node.
 ```terraform
 action "pve_ceph_start" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

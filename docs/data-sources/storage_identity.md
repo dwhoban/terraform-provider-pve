@@ -14,8 +14,8 @@ Identity of a storage backend instance (unique id, sysfs/cluster identity info).
 
 ```terraform
 data "pve_storage_identity" "example" {
-node = "pve1"
-storage = "local"
+  node    = "pve1"
+  storage = "local"
 }
 ```
 

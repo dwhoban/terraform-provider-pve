@@ -14,7 +14,7 @@ ZFS pools discovered by scanning from a node.
 
 ```terraform
 data "pve_storage_scan_zfs" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

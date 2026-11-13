@@ -1,3 +1,3 @@
 data "pve_vzdump_defaults" "example" {
-node = "pve1"
+  node = "pve1"
 }

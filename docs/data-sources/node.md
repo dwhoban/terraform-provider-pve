@@ -14,7 +14,7 @@ One node: inventory entry, runtime status, and PVE version.
 
 ```terraform
 data "pve_node" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

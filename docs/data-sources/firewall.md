@@ -14,7 +14,7 @@ Firewall sub-system index of one scope (cluster, node, vm, container).
 
 ```terraform
 data "pve_firewall" "example" {
-scope = "cluster"
+  scope = "cluster"
 }
 ```
 

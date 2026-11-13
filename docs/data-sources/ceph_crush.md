@@ -14,7 +14,7 @@ The Ceph CRUSH map of the cluster.
 
 ```terraform
 data "pve_ceph_crush" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

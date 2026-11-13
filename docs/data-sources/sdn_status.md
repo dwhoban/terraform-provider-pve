@@ -14,7 +14,7 @@ Runtime SDN state on a node: zones (plus bridges/content/ip-vrf per zone), vnets
 
 ```terraform
 data "pve_sdn_status" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 
@@ -27,14 +27,15 @@ node = "pve1"
 
 ### Optional
 
-- `fabric` (Attributes List) Identifier for SDN fabrics (see [below for nested schema](#nestedatt--fabric))
-- `vnet` (Attributes List) The SDN vnet object identifier. (see [below for nested schema](#nestedatt--vnet))
-- `zone` (Attributes List) The SDN zone object identifier. (see [below for nested schema](#nestedatt--zone))
+- `fabric` (String) Identifier for SDN fabrics
+- `vnet` (String) The SDN vnet object identifier.
+- `zone` (String) The SDN zone object identifier.
 
 ### Read-Only
 
 - `bridges` (Attributes List) Returned by /nodes/{node}/sdn/zones/{zone}/bridges. (see [below for nested schema](#nestedatt--bridges))
 - `content` (Attributes List) Returned by /nodes/{node}/sdn/zones/{zone}/content. (see [below for nested schema](#nestedatt--content))
+- `fabric_status` (Attributes List) Returned by /nodes/{node}/sdn/fabrics/{fabric}. (see [below for nested schema](#nestedatt--fabric_status))
 - `id` (String) Identifier: <node>/<zone>/<vnet>/<fabric>.
 - `index` (String) Raw JSON payload returned by /nodes/{node}/sdn (the API schema does not describe its shape).
 - `interfaces` (Attributes List) Returned by /nodes/{node}/sdn/fabrics/{fabric}/interfaces. (see [below for nested schema](#nestedatt--interfaces))
@@ -42,31 +43,9 @@ node = "pve1"
 - `mac_vrf` (Attributes List) Returned by /nodes/{node}/sdn/vnets/{vnet}/mac-vrf. (see [below for nested schema](#nestedatt--mac_vrf))
 - `neighbors` (Attributes List) Returned by /nodes/{node}/sdn/fabrics/{fabric}/neighbors. (see [below for nested schema](#nestedatt--neighbors))
 - `routes` (Attributes List) Returned by /nodes/{node}/sdn/fabrics/{fabric}/routes. (see [below for nested schema](#nestedatt--routes))
+- `vnet_status` (Attributes List) Returned by /nodes/{node}/sdn/vnets/{vnet}. (see [below for nested schema](#nestedatt--vnet_status))
+- `zone_status` (Attributes List) Returned by /nodes/{node}/sdn/zones/{zone}. (see [below for nested schema](#nestedatt--zone_status))
 - `zones` (Attributes List) Returned by /nodes/{node}/sdn/zones. (see [below for nested schema](#nestedatt--zones))
-
-<a id="nestedatt--fabric"></a>
-### Nested Schema for `fabric`
-
-Read-Only:
-
-- `subdir` (String)
-
-
-<a id="nestedatt--vnet"></a>
-### Nested Schema for `vnet`
-
-Read-Only:
-
-- `subdir` (String)
-
-
-<a id="nestedatt--zone"></a>
-### Nested Schema for `zone`
-
-Read-Only:
-
-- `subdir` (String)
-
 
 <a id="nestedatt--bridges"></a>
 ### Nested Schema for `bridges`
@@ -98,6 +77,14 @@ Read-Only:
 - `status` (String) Status.
 - `statusmsg` (String) Status details
 - `vnet` (String) Vnet identifier.
+
+
+<a id="nestedatt--fabric_status"></a>
+### Nested Schema for `fabric_status`
+
+Read-Only:
+
+- `subdir` (String)
 
 
 <a id="nestedatt--interfaces"></a>
@@ -148,6 +135,22 @@ Read-Only:
 
 - `route` (String) The CIDR block for this routing table entry.
 - `via` (List of String) A list of nexthops for that route.
+
+
+<a id="nestedatt--vnet_status"></a>
+### Nested Schema for `vnet_status`
+
+Read-Only:
+
+- `subdir` (String)
+
+
+<a id="nestedatt--zone_status"></a>
+### Nested Schema for `zone_status`
+
+Read-Only:
+
+- `subdir` (String)
 
 
 <a id="nestedatt--zones"></a>

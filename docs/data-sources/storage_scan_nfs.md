@@ -14,8 +14,8 @@ NFS exports discovered by scanning from a node (server optionally constrained).
 
 ```terraform
 data "pve_storage_scan_nfs" "example" {
-node = "pve1"
-server = "CHANGE_ME"
+  node   = "pve1"
+  server = "CHANGE_ME"
 }
 ```
 

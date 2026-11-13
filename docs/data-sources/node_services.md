@@ -14,7 +14,7 @@ Services of a node: list, and per-service detail/state when a service is specifi
 
 ```terraform
 data "pve_node_services" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

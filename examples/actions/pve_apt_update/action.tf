@@ -1,6 +1,6 @@
 action "pve_apt_update" "example" {
   config {
-  node = "pve1"
+    node = "pve1"
   }
 }
 

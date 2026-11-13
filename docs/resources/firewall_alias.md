@@ -14,9 +14,9 @@ Firewall alias (name to CIDR/IP mapping) at cluster, vm, or container scope.
 
 ```terraform
 resource "pve_firewall_alias" "example" {
-cidr = "CHANGE_ME"
-name = "CHANGE_ME"
-scope = "cluster"
+  cidr  = "CHANGE_ME"
+  name  = "CHANGE_ME"
+  scope = "cluster"
 }
 ```
 

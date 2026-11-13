@@ -15,8 +15,8 @@ Reboot a VM by resetting it.
 ```terraform
 action "pve_vm_reboot" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

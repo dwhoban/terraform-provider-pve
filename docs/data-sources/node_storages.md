@@ -14,7 +14,7 @@ Storage pools available on a node; optionally one pool's detail and status.
 
 ```terraform
 data "pve_node_storages" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

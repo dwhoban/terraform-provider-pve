@@ -14,8 +14,8 @@ SDN controller configuration (bgp, evpn, faucet, isis).
 
 ```terraform
 resource "pve_sdn_controller" "example" {
-controller = "CHANGE_ME"
-type = "bgp"
+  controller = "CHANGE_ME"
+  type       = "bgp"
 }
 ```
 

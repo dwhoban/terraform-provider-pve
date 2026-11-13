@@ -15,9 +15,9 @@ Migrate a VM to another node (with migration preview via the GET endpoint).
 ```terraform
 action "pve_vm_migrate" "example" {
   config {
-  node = "pve1"
-  target = "CHANGE_ME"
-  vmid = 100
+    node   = "pve1"
+    target = "CHANGE_ME"
+    vmid   = 100
   }
 }
 

@@ -14,8 +14,8 @@ Content of /etc/hosts on a node (singleton; written via POST per API).
 
 ```terraform
 resource "pve_node_hosts" "example" {
-data = "CHANGE_ME"
-node = "pve1"
+  data = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

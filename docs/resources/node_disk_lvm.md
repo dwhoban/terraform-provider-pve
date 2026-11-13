@@ -14,9 +14,9 @@ LVM volume group created on a node's disk(s). The API offers no per-VG read; the
 
 ```terraform
 resource "pve_node_disk_lvm" "example" {
-device = "CHANGE_ME"
-name = "CHANGE_ME"
-node = "pve1"
+  device = "CHANGE_ME"
+  name   = "CHANGE_ME"
+  node   = "pve1"
 }
 ```
 

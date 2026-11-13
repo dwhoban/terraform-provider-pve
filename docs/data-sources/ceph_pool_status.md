@@ -14,8 +14,8 @@ Current status of one Ceph pool (application, autoscaler, placement groups).
 
 ```terraform
 data "pve_ceph_pool_status" "example" {
-name = "CHANGE_ME"
-node = "pve1"
+  name = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

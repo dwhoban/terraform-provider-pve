@@ -14,9 +14,9 @@ Member rule at one position of a firewall security group.
 
 ```terraform
 resource "pve_firewall_group_rule" "example" {
-action = "CHANGE_ME"
-group = "CHANGE_ME"
-type = "in"
+  action = "CHANGE_ME"
+  group  = "CHANGE_ME"
+  type   = "in"
 }
 ```
 

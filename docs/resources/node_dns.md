@@ -14,8 +14,8 @@ Node DNS resolver configuration (singleton).
 
 ```terraform
 resource "pve_node_dns" "example" {
-node = "pve1"
-search = "CHANGE_ME"
+  node   = "pve1"
+  search = "CHANGE_ME"
 }
 ```
 

@@ -14,7 +14,7 @@ Node certificate ordered from an ACME CA (create orders, update renews, destroy 
 
 ```terraform
 resource "pve_node_certificate" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

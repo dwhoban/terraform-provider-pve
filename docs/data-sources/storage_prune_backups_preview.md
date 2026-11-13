@@ -14,8 +14,8 @@ Backups that pruning would remove from a storage (dry run).
 
 ```terraform
 data "pve_storage_prune_backups_preview" "example" {
-node = "pve1"
-storage = "local"
+  node    = "pve1"
+  storage = "local"
 }
 ```
 

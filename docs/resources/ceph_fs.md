@@ -14,8 +14,8 @@ One Ceph filesystem (metadata + data pools), optionally registered as a storage.
 
 ```terraform
 resource "pve_ceph_fs" "example" {
-name = "CHANGE_ME"
-node = "pve1"
+  name = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

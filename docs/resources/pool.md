@@ -14,7 +14,7 @@ Resource pool (grouping of guests and storages; members are computed).
 
 ```terraform
 resource "pve_pool" "example" {
-poolid = "CHANGE_ME"
+  poolid = "CHANGE_ME"
 }
 ```
 

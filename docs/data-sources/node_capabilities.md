@@ -14,7 +14,7 @@ QEMU capabilities of a node: CPU models, CPU flags, machine types, and migration
 
 ```terraform
 data "pve_node_capabilities" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

@@ -14,8 +14,8 @@ Node subscription key: set via PUT, checked via the API, removable.
 
 ```terraform
 resource "pve_subscription" "example" {
-key = "CHANGE_ME"
-node = "pve1"
+  key  = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

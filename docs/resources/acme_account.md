@@ -14,7 +14,7 @@ ACME account registered with a certificate authority.
 
 ```terraform
 resource "pve_acme_account" "example" {
-contact = "CHANGE_ME"
+  contact = "CHANGE_ME"
 }
 ```
 

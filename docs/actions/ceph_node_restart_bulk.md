@@ -15,8 +15,8 @@ Rolling restart of all Ceph OSDs on one node.
 ```terraform
 action "pve_ceph_node_restart_bulk" "example" {
   config {
-  node = "pve1"
-  service_type = "osd"
+    node         = "pve1"
+    service_type = "osd"
   }
 }
 

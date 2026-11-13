@@ -14,8 +14,8 @@ Changelog of one package version on a node.
 
 ```terraform
 data "pve_apt_changelog" "example" {
-name = "CHANGE_ME"
-node = "pve1"
+  name = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

@@ -1,6 +1,6 @@
 action "pve_ha_disarm" "example" {
   config {
-  resource_mode = "freeze"
+    resource_mode = "freeze"
   }
 }
 

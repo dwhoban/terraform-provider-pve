@@ -14,9 +14,9 @@ Firewall rule at cluster, node, vm, or container scope.
 
 ```terraform
 resource "pve_firewall_rule" "example" {
-action = "CHANGE_ME"
-scope = "cluster"
-type = "in"
+  action = "CHANGE_ME"
+  scope  = "cluster"
+  type   = "in"
 }
 ```
 

@@ -1,3 +1,3 @@
 data "pve_certificate_info" "example" {
-node = "pve1"
+  node = "pve1"
 }

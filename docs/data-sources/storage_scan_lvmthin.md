@@ -14,8 +14,8 @@ LVM-thin pools discovered by scanning from a node.
 
 ```terraform
 data "pve_storage_scan_lvmthin" "example" {
-node = "pve1"
-vg = "CHANGE_ME"
+  node = "pve1"
+  vg   = "CHANGE_ME"
 }
 ```
 

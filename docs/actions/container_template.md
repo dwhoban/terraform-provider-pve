@@ -15,8 +15,8 @@ Convert a container to a template.
 ```terraform
 action "pve_container_template" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

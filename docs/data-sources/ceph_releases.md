@@ -14,7 +14,7 @@ Ceph releases known to a node, marking which are installable there.
 
 ```terraform
 data "pve_ceph_releases" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

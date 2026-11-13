@@ -1,3 +1,3 @@
 resource "pve_ha_resource" "example" {
-sid = "CHANGE_ME"
+  sid = "CHANGE_ME"
 }

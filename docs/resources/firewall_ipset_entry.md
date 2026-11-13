@@ -14,9 +14,9 @@ One CIDR entry (with comment/nomatch) inside a firewall IP set.
 
 ```terraform
 resource "pve_firewall_ipset_entry" "example" {
-cidr = "CHANGE_ME"
-name = "CHANGE_ME"
-scope = "cluster"
+  cidr  = "CHANGE_ME"
+  name  = "CHANGE_ME"
+  scope = "cluster"
 }
 ```
 

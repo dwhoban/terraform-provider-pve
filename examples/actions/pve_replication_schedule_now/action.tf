@@ -1,7 +1,7 @@
 action "pve_replication_schedule_now" "example" {
   config {
-  item_id = "CHANGE_ME"
-  node = "pve1"
+    item_id = "CHANGE_ME"
+    node    = "pve1"
   }
 }
 

@@ -14,9 +14,9 @@ Container snapshot (name, description, RAM state).
 
 ```terraform
 resource "pve_container_snapshot" "example" {
-node = "pve1"
-snapname = "CHANGE_ME"
-vmid = 100
+  node     = "pve1"
+  snapname = "CHANGE_ME"
+  vmid     = 100
 }
 ```
 

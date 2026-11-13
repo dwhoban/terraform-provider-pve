@@ -14,7 +14,7 @@ Firewall security group (cluster scope; rules are separate resources).
 
 ```terraform
 resource "pve_firewall_group" "example" {
-group = "CHANGE_ME"
+  group = "CHANGE_ME"
 }
 ```
 

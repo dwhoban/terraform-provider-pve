@@ -1,7 +1,7 @@
 action "pve_vm_shutdown" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

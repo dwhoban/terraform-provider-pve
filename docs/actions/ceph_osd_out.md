@@ -15,8 +15,8 @@ Mark one OSD out (ceph osd out).
 ```terraform
 action "pve_ceph_osd_out" "example" {
   config {
-  node = "pve1"
-  osdid = 1
+    node  = "pve1"
+    osdid = 1
   }
 }
 

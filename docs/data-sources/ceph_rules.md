@@ -14,7 +14,7 @@ The Ceph CRUSH rules of the cluster.
 
 ```terraform
 data "pve_ceph_rules" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

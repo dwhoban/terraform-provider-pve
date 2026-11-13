@@ -14,8 +14,8 @@ SDN subnet (IP range with optional DHCP/gateway/SNAT) inside a VNet; the resourc
 
 ```terraform
 resource "pve_sdn_subnet" "example" {
-subnet = "CHANGE_ME"
-vnet = "CHANGE_ME"
+  subnet = "CHANGE_ME"
+  vnet   = "CHANGE_ME"
 }
 ```
 

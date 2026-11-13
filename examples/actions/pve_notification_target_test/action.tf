@@ -1,6 +1,6 @@
 action "pve_notification_target_test" "example" {
   config {
-  name = "CHANGE_ME"
+    name = "CHANGE_ME"
   }
 }
 

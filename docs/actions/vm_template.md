@@ -15,8 +15,8 @@ Convert a VM to a template.
 ```terraform
 action "pve_vm_template" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

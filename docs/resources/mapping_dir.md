@@ -14,8 +14,8 @@ Cluster resource mapping for directories.
 
 ```terraform
 resource "pve_mapping_dir" "example" {
-item_id = "CHANGE_ME"
-map = "CHANGE_ME"
+  item_id = "CHANGE_ME"
+  map     = "CHANGE_ME"
 }
 ```
 

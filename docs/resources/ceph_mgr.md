@@ -14,8 +14,8 @@ One Ceph manager on a node; item_id is the manager id (API placeholder id).
 
 ```terraform
 resource "pve_ceph_mgr" "example" {
-item_id = "CHANGE_ME"
-node = "pve1"
+  item_id = "CHANGE_ME"
+  node    = "pve1"
 }
 ```
 

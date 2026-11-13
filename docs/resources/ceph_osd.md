@@ -14,8 +14,8 @@ One Ceph OSD created on a disk (optionally encrypted, with dedicated db/wal devi
 
 ```terraform
 resource "pve_ceph_osd" "example" {
-dev = "CHANGE_ME"
-node = "pve1"
+  dev  = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 

@@ -15,7 +15,7 @@ Send a test notification to a notification target.
 ```terraform
 action "pve_notification_target_test" "example" {
   config {
-  name = "CHANGE_ME"
+    name = "CHANGE_ME"
   }
 }
 

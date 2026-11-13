@@ -15,8 +15,8 @@ Shut a node down (POST /status with command=shutdown).
 ```terraform
 action "pve_node_shutdown" "example" {
   config {
-  command = "reboot"
-  node = "pve1"
+    command = "reboot"
+    node    = "pve1"
   }
 }
 

@@ -14,8 +14,8 @@ Ceph configuration on a node: cfg database, resolved values, and the raw ceph.co
 
 ```terraform
 data "pve_ceph_cfg" "example" {
-config_keys = "CHANGE_ME"
-node = "pve1"
+  config_keys = "CHANGE_ME"
+  node        = "pve1"
 }
 ```
 

@@ -15,8 +15,8 @@ Suspend a container.
 ```terraform
 action "pve_container_suspend" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

@@ -14,7 +14,7 @@ One cluster-wide Ceph flag (e.g. noout, noup) set or cleared by name.
 
 ```terraform
 resource "pve_ceph_flag" "example" {
-flag = "nobackfill"
+  flag = "nobackfill"
 }
 ```
 

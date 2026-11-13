@@ -14,7 +14,7 @@ Turnkey appliance templates available on a node.
 
 ```terraform
 data "pve_appliance_templates" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

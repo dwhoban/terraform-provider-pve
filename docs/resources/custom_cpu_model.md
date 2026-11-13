@@ -14,8 +14,8 @@ Custom QEMU CPU model definition (cluster-wide).
 
 ```terraform
 resource "pve_custom_cpu_model" "example" {
-cputype = "CHANGE_ME"
-reported_model = "486"
+  cputype        = "CHANGE_ME"
+  reported_model = "486"
 }
 ```
 

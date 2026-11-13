@@ -1,10 +1,10 @@
 action "pve_container_remote_migrate" "example" {
   config {
-  node = "pve1"
-  target_bridge = "CHANGE_ME"
-  target_endpoint = "CHANGE_ME"
-  target_storage = "CHANGE_ME"
-  vmid = 100
+    node            = "pve1"
+    target_bridge   = "CHANGE_ME"
+    target_endpoint = "CHANGE_ME"
+    target_storage  = "CHANGE_ME"
+    vmid            = 100
   }
 }
 

@@ -14,7 +14,7 @@ Dry-run of the SDN apply: diff of pending vs current FRR and /etc/network/interf
 
 ```terraform
 data "pve_sdn_dry_run" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

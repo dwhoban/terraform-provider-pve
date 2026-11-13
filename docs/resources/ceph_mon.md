@@ -14,8 +14,8 @@ One Ceph monitor on a node (creating the first monitor auto-creates a manager).
 
 ```terraform
 resource "pve_ceph_mon" "example" {
-monid = "CHANGE_ME"
-node = "pve1"
+  monid = "CHANGE_ME"
+  node  = "pve1"
 }
 ```
 

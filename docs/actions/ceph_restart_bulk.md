@@ -15,7 +15,7 @@ Cluster-wide rolling restart of all Ceph daemons of one service type.
 ```terraform
 action "pve_ceph_restart_bulk" "example" {
   config {
-  service_type = "mon"
+    service_type = "mon"
   }
 }
 

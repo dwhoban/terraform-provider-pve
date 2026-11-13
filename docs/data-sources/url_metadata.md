@@ -14,8 +14,8 @@ Metadata (filename, size, checksum) of a URL as retrieved by a node.
 
 ```terraform
 data "pve_url_metadata" "example" {
-node = "pve1"
-url = "CHANGE_ME"
+  node = "pve1"
+  url  = "CHANGE_ME"
 }
 ```
 

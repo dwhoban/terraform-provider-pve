@@ -15,8 +15,8 @@ Suspend a VM.
 ```terraform
 action "pve_vm_suspend" "example" {
   config {
-  node = "pve1"
-  vmid = 100
+    node = "pve1"
+    vmid = 100
   }
 }
 

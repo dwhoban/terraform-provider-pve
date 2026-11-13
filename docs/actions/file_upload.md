@@ -15,10 +15,10 @@ Upload a file to a storage (checksum-verified).
 ```terraform
 action "pve_file_upload" "example" {
   config {
-  content = "iso"
-  filename = "CHANGE_ME"
-  node = "pve1"
-  storage = "local"
+    content  = "iso"
+    filename = "CHANGE_ME"
+    node     = "pve1"
+    storage  = "local"
   }
 }
 

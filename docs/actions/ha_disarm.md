@@ -15,7 +15,7 @@ Disarm the HA cluster for maintenance (stops HA services).
 ```terraform
 action "pve_ha_disarm" "example" {
   config {
-  resource_mode = "freeze"
+    resource_mode = "freeze"
   }
 }
 

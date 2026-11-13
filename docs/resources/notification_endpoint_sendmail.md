@@ -14,7 +14,7 @@ Sendmail (email) notification endpoint.
 
 ```terraform
 resource "pve_notification_endpoint_sendmail" "example" {
-name = "CHANGE_ME"
+  name = "CHANGE_ME"
 }
 ```
 

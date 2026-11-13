@@ -14,8 +14,8 @@ One container: configuration, pending changes, capabilities, runtime status, and
 
 ```terraform
 data "pve_container" "example" {
-node = "pve1"
-vmid = 100
+  node = "pve1"
+  vmid = 100
 }
 ```
 
@@ -29,6 +29,7 @@ vmid = 100
 
 ### Optional
 
+- `feature` (String) Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset. One of: `snapshot`, `clone`, `copy`.
 - `snapname` (String) The name of the snapshot.
 - `snapshot` (String) Fetch config values from given snapshot.
 
@@ -36,7 +37,7 @@ vmid = 100
 
 - `config` (Attributes) (see [below for nested schema](#nestedatt--config))
 - `current` (Attributes) Get current values (instead of pending values). (see [below for nested schema](#nestedatt--current))
-- `feature` (Attributes) Feature to check. (see [below for nested schema](#nestedatt--feature))
+- `feature_support` (Attributes) (see [below for nested schema](#nestedatt--feature_support))
 - `id` (String) Identifier: <node>/<vmid>.
 - `interfaces` (Attributes List) Returned by /nodes/{node}/lxc/{vmid}/interfaces. (see [below for nested schema](#nestedatt--interfaces))
 - `pending` (Attributes List) Returned by /nodes/{node}/lxc/{vmid}/pending. (see [below for nested schema](#nestedatt--pending))
@@ -120,8 +121,8 @@ Read-Only:
 
 
 
-<a id="nestedatt--feature"></a>
-### Nested Schema for `feature`
+<a id="nestedatt--feature_support"></a>
+### Nested Schema for `feature_support`
 
 Read-Only:
 

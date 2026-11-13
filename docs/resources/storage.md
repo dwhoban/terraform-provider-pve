@@ -14,8 +14,8 @@ Cluster storage configuration (any backend: dir, nfs, cifs, zfs, lvm, ceph, pbs,
 
 ```terraform
 resource "pve_storage" "example" {
-storage = "local"
-type = "btrfs"
+  storage = "local"
+  type    = "btrfs"
 }
 ```
 

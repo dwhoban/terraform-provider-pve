@@ -14,8 +14,8 @@ Firewall IP set at cluster, vm, or container scope.
 
 ```terraform
 resource "pve_firewall_ipset" "example" {
-name = "CHANGE_ME"
-scope = "cluster"
+  name  = "CHANGE_ME"
+  scope = "cluster"
 }
 ```
 

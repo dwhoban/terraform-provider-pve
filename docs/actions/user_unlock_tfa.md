@@ -15,7 +15,7 @@ Unlock a user's TFA after too many failed attempts.
 ```terraform
 action "pve_user_unlock_tfa" "example" {
   config {
-  userid = "CHANGE_ME"
+    userid = "CHANGE_ME"
   }
 }
 

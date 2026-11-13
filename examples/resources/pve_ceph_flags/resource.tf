@@ -1,3 +1,3 @@
 resource "pve_ceph_flags" "example" {
-cluster = "CHANGE_ME"
+  cluster = "CHANGE_ME"
 }

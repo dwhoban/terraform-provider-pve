@@ -14,7 +14,7 @@ Certificates installed on a node: full info list plus the certificate/ACME index
 
 ```terraform
 data "pve_certificate_info" "example" {
-node = "pve1"
+  node = "pve1"
 }
 ```
 

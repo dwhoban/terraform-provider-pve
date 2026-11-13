@@ -15,9 +15,9 @@ Migrate a container to another node.
 ```terraform
 action "pve_container_migrate" "example" {
   config {
-  node = "pve1"
-  target = "CHANGE_ME"
-  vmid = 100
+    node   = "pve1"
+    target = "CHANGE_ME"
+    vmid   = 100
   }
 }
 
