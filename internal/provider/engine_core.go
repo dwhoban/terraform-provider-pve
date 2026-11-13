@@ -253,49 +253,11 @@ func removedParams(d *TypeDescriptor, op *Op, plan, state map[string]attr.Value)
 			continue // required attributes are always configured
 		}
 		if a.Block != nil {
-			removed = append(removed, removedSlots(a, plan[name], state[name])...)
+			removed = append(removed, diffBlock(a, plan[name], state[name]).Removed...)
 			continue
 		}
 		if usable(state[name]) && !usable(plan[name]) {
 			removed = append(removed, a.TFName())
-		}
-	}
-	return removed
-}
-
-// removedSlots lists the wire keys of block elements present in state but
-// not in the plan, plus secondary-family slots (ipconfig1) that state set
-// and the plan no longer does.
-func removedSlots(a Attr, plan, state attr.Value) []string {
-	planned := map[string]map[string]attr.Value{}
-	for pos, e := range blockElems(plan) {
-		if key, err := blockElemKey(a.Block, e, pos); err == nil {
-			planned[key] = e
-		}
-	}
-	setsFamily := func(e map[string]attr.Value, fam string) bool {
-		for _, f := range a.Block.Fields {
-			if f.Family == fam && usable(e[f.Name]) {
-				return true
-			}
-		}
-		return false
-	}
-	var removed []string
-	for pos, e := range blockElems(state) {
-		key, err := blockElemKey(a.Block, e, pos)
-		if err != nil {
-			continue
-		}
-		pe, kept := planned[key]
-		if !kept {
-			removed = append(removed, key)
-		}
-		idx := slotSuffix(a.Block, key)
-		for _, fam := range secondaryFamilies(a.Block) {
-			if setsFamily(e, fam) && (!kept || !setsFamily(pe, fam)) {
-				removed = append(removed, fam+idx)
-			}
 		}
 	}
 	return removed

@@ -6,7 +6,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"maps"
 	"math"
 	"strconv"
 
@@ -205,13 +204,7 @@ func keepBlockComputed(a Attr, plan, state attr.Value) attr.Value {
 		if err != nil || !ok {
 			continue
 		}
-		kept := maps.Clone(pe)
-		for _, ea := range blockElemAttrs(a) {
-			if v := kept[ea.Name]; ea.Computed && v != nil && v.IsUnknown() {
-				kept[ea.Name] = se[ea.Name]
-			}
-		}
-		out[pos] = kept
+		out[pos] = fillComputed(a, pe, se)
 	}
 	return blockValue(a, out)
 }

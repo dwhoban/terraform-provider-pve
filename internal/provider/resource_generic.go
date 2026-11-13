@@ -333,29 +333,8 @@ func createOnlyChange(d *TypeDescriptor, plan, state map[string]attr.Value) erro
 		if a.Block == nil {
 			continue
 		}
-		existing := map[string]map[string]attr.Value{}
-		for pos, e := range blockElems(state[a.Name]) {
-			if key, err := blockElemKey(a.Block, e, pos); err == nil {
-				existing[key] = e
-			}
-		}
-		for pos, pe := range blockElems(plan[a.Name]) {
-			key, err := blockElemKey(a.Block, pe, pos)
-			if err != nil {
-				continue
-			}
-			se, ok := existing[key]
-			if !ok {
-				continue
-			}
-			for _, f := range a.Block.Fields {
-				if !f.CreateOnly || f.Name == "" {
-					continue
-				}
-				if pv, sv := pe[f.Name], se[f.Name]; usable(pv) && usable(sv) && !pv.Equal(sv) {
-					return fmt.Errorf("%s %s: %s cannot change on an existing %s (was %s, now %s)", a.Name, key, f.Name, a.Name, scalarString(sv), scalarString(pv))
-				}
-			}
+		for _, ch := range diffBlock(a, plan[a.Name], state[a.Name]).Changed {
+			return fmt.Errorf("%s %s: %s cannot change on an existing %s (was %s, now %s)", a.Name, ch.Key, ch.Field, a.Name, ch.Was, ch.Now)
 		}
 	}
 	return nil
