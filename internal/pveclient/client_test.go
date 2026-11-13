@@ -249,3 +249,36 @@ func TestClientUnexpectedBody(t *testing.T) {
 		t.Fatalf("want envelope error, got %v", err)
 	}
 }
+
+// TestClientReauthReplaysBody pins the retry path for mutations: after a
+// 401 forces re-authentication, the retried POST must carry the same form
+// body (a single strings.Reader consumed by the first attempt used to be
+// replayed empty).
+func TestClientReauthReplaysBody(t *testing.T) {
+	c := testClient(t, Credentials{Username: "root@pam", Password: "hunter2"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api2/json/access/ticket":
+			writeJSON(w, http.StatusOK, `{"data":{"ticket":"TICKET1","CSRFPreventionToken":"CSRF"}}`)
+		case "/api2/json/things":
+			if _, err := r.Cookie("PVEAuthCookie"); err != nil {
+				writeJSON(w, http.StatusUnauthorized, `{"data":null,"message":"authentication failed"}`)
+				return
+			}
+			if err := r.ParseForm(); err != nil || r.PostForm.Get("name") != "alpha" {
+				msg := "retried POST lost its body"
+				if err != nil {
+					msg = err.Error()
+				}
+				writeJSON(w, http.StatusBadRequest, `{"message":"`+msg+`"}`)
+				return
+			}
+			writeJSON(w, http.StatusOK, `{"data":"ok"}`)
+		default:
+			writeJSON(w, http.StatusNotFound, `{"data":null}`)
+		}
+	}))
+
+	if _, err := c.DoRequest(context.Background(), http.MethodPost, "/things", url.Values{"name": []string{"alpha"}}); err != nil {
+		t.Fatalf("DoRequest after re-auth: %v", err)
+	}
+}

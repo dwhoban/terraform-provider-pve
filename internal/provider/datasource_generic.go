@@ -36,7 +36,9 @@ func (d *genericDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 }
 
 func (d *genericDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	d.setClient(req.ProviderData)
+	if err := d.setClient(req.ProviderData); err != nil {
+		resp.Diagnostics.AddError("Unexpected Provider Configure Type", err.Error())
+	}
 }
 
 func (d *genericDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -60,7 +62,9 @@ func (d *genericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			opError(&resp.Diagnostics, "Reading", d.desc, op.Path, err)
 			return
 		}
-		if _, err := applyReadResponse(d.desc, op, payload, values, reconcileRefresh); err != nil {
+		// Data sources read server values wholesale into computed
+		// attributes — the adopt semantics of import reads.
+		if _, err := applyReadResponse(d.desc, op, payload, values, reconcileImport); err != nil {
 			opError(&resp.Diagnostics, "Reading", d.desc, op.Path, err)
 			return
 		}

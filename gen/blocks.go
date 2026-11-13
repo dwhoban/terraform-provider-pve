@@ -158,9 +158,13 @@ func checkBlock(doc *pveapidoc.Document, m mapping.Type, b mapping.Block, spec *
 					}
 					for _, fp := range prm.FormatProperties {
 						props[fp.Key] = true
-						if fp.DefaultKey {
-							defKey = fp.Key
+						if !fp.DefaultKey {
+							continue
 						}
+						if defKey != "" && defKey != fp.Key {
+							return fmt.Errorf("block %s: apidoc declares conflicting default keys %q and %q", b.Name, defKey, fp.Key)
+						}
+						defKey = fp.Key
 					}
 				}
 			}
@@ -176,11 +180,11 @@ func checkBlock(doc *pveapidoc.Document, m mapping.Type, b mapping.Block, spec *
 		spec.DefaultKey = defKey // adopt the schema's default key
 	}
 	for _, f := range spec.Fields {
-		if f.Family != "" || f.Role == provider.RoleIndex || f.Key == "size" {
+		if f.Family != "" || f.Role == provider.RoleIndex || f.Role == provider.RoleVolumeSizeGB {
 			continue // secondary families and structural fields
 		}
 		if !props[f.Key] {
-			return fmt.Errorf("block %s: field %s key %q is not a property of %s[n]", b.Name, f.Name, f.Key, b.Families[0])
+			return fmt.Errorf("block %s: field %s key %q is not a property of %s", b.Name, f.Name, f.Key, b.Families[0]+"[n]")
 		}
 	}
 	return nil

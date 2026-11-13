@@ -836,14 +836,17 @@ func TestApplyReadResponseModes(t *testing.T) {
 		{name: "after-apply adopts differing echo", mode: reconcileAfterApply, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
 		{name: "refresh adopts differing echo", mode: reconcileRefresh, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
 		{name: "import adopts differing echo", mode: reconcileImport, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
-		// The seam: an unset plain-Optional attribute stays null after
-		// apply (the plan wins over server-side defaults), while a
-		// refresh adopts the server's value.
+		// The seam: an unset plain-Optional attribute stays null outside
+		// import mode — after-apply (the plan wins over server-side
+		// defaults) and managed refresh alike (adopting would produce
+		// perpetual drift); import adopts the server's value.
 		{name: "after-apply keeps null", mode: reconcileAfterApply, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringNull()},
-		{name: "refresh adopts into null", mode: reconcileRefresh, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringValue("server")},
+		{name: "refresh keeps null", mode: reconcileRefresh, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringNull()},
+		{name: "import adopts into null", mode: reconcileImport, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringValue("server")},
 		// PVE's empty-string echo for unset options: not adopted into a
-		// null plain-Optional in any non-after-apply mode either.
+		// null plain-Optional in any mode either.
 		{name: "import skips empty echo", mode: reconcileImport, current: types.StringNull(), body: `{"x":""}`, want: types.StringNull()},
+		{name: "refresh keeps null on empty echo", mode: reconcileRefresh, current: types.StringNull(), body: `{"x":""}`, want: types.StringNull()},
 		{name: "after-apply keeps null on empty echo", mode: reconcileAfterApply, current: types.StringNull(), body: `{"x":""}`, want: types.StringNull()},
 	}
 	for _, tt := range tests {

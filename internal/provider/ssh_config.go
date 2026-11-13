@@ -181,6 +181,13 @@ func buildSSHRunner(m *sshModel, getenv func(string) string, creds pveclient.Cre
 		InsecureIgnoreHostKey: flag(m.InsecureIgnoreHostKey, envSSHInsecureHostKey),
 		RootTicket:            flag(m.RootTicket, envSSHRootTicket),
 	}
+	if cfg.InsecureIgnoreHostKey {
+		warning := "SSH host key verification is disabled (ssh.insecure_ignore_host_key): a machine-in-the-middle can intercept SSH commands"
+		if cfg.RootTicket {
+			warning += " and steal the minted root@pam ticket"
+		}
+		diags.AddWarning("SSH Host Key Verification Disabled", warning+".")
+	}
 	if cfg.Username == "" {
 		if u, ok := pamUser(creds); ok {
 			cfg.Username = u

@@ -38,7 +38,9 @@ func (a *genericAction) Schema(ctx context.Context, req action.SchemaRequest, re
 }
 
 func (a *genericAction) Configure(ctx context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
-	a.setClient(req.ProviderData)
+	if err := a.setClient(req.ProviderData); err != nil {
+		resp.Diagnostics.AddError("Unexpected Provider Configure Type", err.Error())
+	}
 }
 
 func (a *genericAction) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {

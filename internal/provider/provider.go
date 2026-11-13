@@ -220,6 +220,12 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if config.Insecure.IsNull() {
 		insecure = envBool(p.getenv, pveclient.EnvInsecure)
 	}
+	if insecure {
+		resp.Diagnostics.AddWarning(
+			"TLS Certificate Verification Disabled",
+			"api_url connections skip certificate verification (insecure = true). A machine-in-the-middle can read API credentials and session tickets.",
+		)
+	}
 
 	caCert := config.CACert.ValueString()
 	if caCert == "" {

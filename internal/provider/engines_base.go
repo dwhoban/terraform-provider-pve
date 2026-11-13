@@ -24,12 +24,19 @@ type engineBase struct {
 }
 
 // setClient stores the provider-configured client. A nil ProviderData
-// (provider not configured) and anything but a *pveclient.Client leave the
-// engine unconfigured; requireClient reports that at use time.
-func (b *engineBase) setClient(providerData any) {
-	if c, ok := providerData.(*pveclient.Client); ok {
-		b.client = c
+// (provider not configured) leaves the engine unconfigured — requireClient
+// reports that at use time — while anything non-nil that is not a
+// *pveclient.Client is a programming error, diagnosed by the caller.
+func (b *engineBase) setClient(providerData any) error {
+	if providerData == nil {
+		return nil
 	}
+	c, ok := providerData.(*pveclient.Client)
+	if !ok {
+		return fmt.Errorf("expected *pveclient.Client for %s, got: %T", b.desc.Name, providerData)
+	}
+	b.client = c
+	return nil
 }
 
 // requireClient reports whether the engine can talk to the API.

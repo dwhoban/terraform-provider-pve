@@ -139,10 +139,9 @@ type Client struct {
 	shell       Shell
 	rootTickets RootTicketSource
 
-	authMu     sync.Mutex
-	ticket     string
-	csrfToken  string
-	ticketOnce bool
+	authMu    sync.Mutex
+	ticket    string
+	csrfToken string
 }
 
 // NewClient validates cfg and returns a ready Client. The returned error
@@ -299,13 +298,14 @@ func (c *Client) doRaw(ctx context.Context, method, path string, params url.Valu
 // guaranteed not to have been sent, which cannot be distinguished reliably —
 // so mutations fail fast.
 func (c *Client) doRequest(ctx context.Context, method, path string, params url.Values, out any, authenticate bool) (json.RawMessage, error) {
-	var body io.Reader
-	if method == http.MethodGet || method == http.MethodDelete {
-		if len(params) > 0 {
-			path = path + "?" + params.Encode()
-		}
+	// The encoded form is re-created per attempt: a retried request (401
+	// re-auth) must replay the same body, and a strings.Reader can be
+	// consumed only once.
+	encoded := ""
+	if method != http.MethodGet && method != http.MethodDelete && len(params) > 0 {
+		encoded = params.Encode()
 	} else if len(params) > 0 {
-		body = strings.NewReader(params.Encode())
+		path = path + "?" + params.Encode()
 	}
 
 	var lastErr error
@@ -326,7 +326,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 				return nil, err
 			}
 		}
-
+		var body io.Reader
+		if encoded != "" {
+			body = strings.NewReader(encoded)
+		}
 		req, err := http.NewRequestWithContext(ctx, method, c.baseURL.String()+apiPathPrefix+path, body)
 		if err != nil {
 			return nil, err
@@ -352,7 +355,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 			return nil, lastErr
 		}
 
-		apiErr := c.handleResponse(resp)
+		apiErr := c.handleResponse(resp, authenticate)
 		if apiErr != nil {
 			lastErr = apiErr
 			var ae *APIError
@@ -392,8 +395,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 
 // handleResponse converts non-2xx responses into *APIError, consuming and
 // closing the body. On success it returns nil and leaves the body open for
-// the caller to decode.
-func (c *Client) handleResponse(resp *http.Response) error {
+// the caller to decode. invalidateTicket is false for the ticket request
+// itself: its 401 must neither drop a ticket a sibling call may be storing
+// nor take authMu (the ticket fetch holds it).
+func (c *Client) handleResponse(resp *http.Response, invalidateTicket bool) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
@@ -424,20 +429,27 @@ func (c *Client) handleResponse(resp *http.Response) error {
 	// An expired session ticket surfaces as 401 on any method: invalidate
 	// and let do()'s caller see the error; ticket re-auth for non-GET
 	// happens on the next call because ensureTicket runs per request.
-	if resp.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() {
+	if invalidateTicket && resp.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() {
 		c.authMu.Lock()
 		c.ticket = ""
-		c.ticketOnce = false
 		c.authMu.Unlock()
 	}
 
 	return apiErr
 }
 
+// maxResponseBody caps one response body: a config read is a few KiB, so
+// 64 MiB is generous while still bounding what a hostile or broken endpoint
+// can push into provider memory.
+const maxResponseBody = 64 << 20
+
 func decodeEnvelope(r io.Reader) (json.RawMessage, error) {
-	raw, err := io.ReadAll(r)
+	raw, err := io.ReadAll(io.LimitReader(r, maxResponseBody+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(raw) > maxResponseBody {
+		return nil, fmt.Errorf("response exceeds %d MiB", maxResponseBody>>20)
 	}
 	var envelope struct {
 		Data json.RawMessage `json:"data"`
@@ -469,25 +481,24 @@ func (c *Client) authorize(ctx context.Context, req *http.Request, node string) 
 	if err := c.ensureTicket(ctx); err != nil {
 		return err
 	}
-	req.AddCookie(&http.Cookie{Name: "PVEAuthCookie", Value: c.ticket})
+	ticket, csrf := c.session()
+	req.AddCookie(&http.Cookie{Name: "PVEAuthCookie", Value: ticket})
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
-		req.Header.Set("CSRFPreventionToken", c.csrfToken)
+		req.Header.Set("CSRFPreventionToken", csrf)
 	}
 	return nil
 }
 
 // ensureTicket obtains a session ticket via POST /access/ticket when ticket
-// credentials are configured. Callers must not hold authMu.
+// credentials are configured, single-flight: authMu is held across the
+// fetch, so concurrent callers share one ticket request (a one-time TOTP
+// must not be consumed by parallel logins).
 func (c *Client) ensureTicket(ctx context.Context) error {
 	c.authMu.Lock()
+	defer c.authMu.Unlock()
 	if c.ticket != "" {
-		c.authMu.Unlock()
 		return nil
 	}
-	// The request runs without authMu: handleResponse takes it on a 401 to
-	// drop a stale ticket, and would deadlock against this goroutine.
-	// Concurrent callers may fetch in parallel; the first store wins below.
-	c.authMu.Unlock()
 
 	form := url.Values{}
 	form.Set("username", c.creds.Username)
@@ -498,8 +509,8 @@ func (c *Client) ensureTicket(ctx context.Context) error {
 	// authenticate=false routes the request through the one transport path
 	// while skipping authorize (which would recurse into ensureTicket) and
 	// any retry or re-auth spare: a rejected password is final, and
-	// handleResponse reports it as a typed *APIError so callers can
-	// classify it via IsUnauthorized.
+	// handleResponse reports it as a typed *APIError (without touching
+	// authMu) so callers can classify it via IsUnauthorized.
 	var envelope struct {
 		Ticket              string `json:"ticket"`
 		CSRFPreventionToken string `json:"CSRFPreventionToken"`
@@ -511,13 +522,16 @@ func (c *Client) ensureTicket(ctx context.Context) error {
 	if envelope.Ticket == "" {
 		return fmt.Errorf("requesting session ticket: unexpected response: %.200s", strings.TrimSpace(string(payload)))
 	}
+	c.ticket = envelope.Ticket
+	c.csrfToken = envelope.CSRFPreventionToken
+	return nil
+}
+
+// session returns the current ticket and CSRF token under authMu.
+func (c *Client) session() (ticket, csrf string) {
 	c.authMu.Lock()
 	defer c.authMu.Unlock()
-	if c.ticket == "" {
-		c.ticket = envelope.Ticket
-		c.csrfToken = envelope.CSRFPreventionToken
-	}
-	return nil
+	return c.ticket, c.csrfToken
 }
 
 func isRetryableStatus(code int) bool {

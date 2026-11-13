@@ -529,7 +529,7 @@ func mergeBlock(a Attr, cur attr.Value, m map[string]any, mode reconcileMode) (a
 	}
 	curElems := blockElems(cur)
 	if len(curElems) == 0 {
-		if mode == reconcileAfterApply {
+		if mode != reconcileImport {
 			return cur, nil
 		}
 		elems := make([]map[string]attr.Value, len(server))
@@ -625,11 +625,13 @@ func diffBlock(a Attr, plan, state attr.Value) blockDiff {
 		return false
 	}
 	var diff blockDiff
+	existing := map[string]map[string]attr.Value{}
 	for pos, e := range blockElems(state) {
 		key, err := blockElemKey(spec, e, pos)
 		if err != nil {
 			continue
 		}
+		existing[key] = e
 		pe, kept := planned[key]
 		if !kept {
 			diff.Removed = append(diff.Removed, key)
@@ -639,12 +641,6 @@ func diffBlock(a Attr, plan, state attr.Value) blockDiff {
 			if setsFamily(e, fam) && (!kept || !setsFamily(pe, fam)) {
 				diff.Removed = append(diff.Removed, fam+idx)
 			}
-		}
-	}
-	existing := map[string]map[string]attr.Value{}
-	for pos, e := range blockElems(state) {
-		if key, err := blockElemKey(spec, e, pos); err == nil {
-			existing[key] = e
 		}
 	}
 	for pos, pe := range blockElems(plan) {

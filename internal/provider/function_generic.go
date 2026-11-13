@@ -73,8 +73,8 @@ func (f *genericFunction) Run(ctx context.Context, req function.RunRequest, resp
 	if f.client == nil {
 		f.client = sharedProviderClient.get()
 	}
-	if f.client == nil {
-		resp.Error = function.NewFuncError(fmt.Sprintf("%s: provider client is not configured.", f.desc.Name))
+	if err := f.requireClient(); err != nil {
+		resp.Error = function.NewFuncError(err.Error())
 		return
 	}
 	values := make(map[string]attr.Value, len(f.desc.FuncArgs))

@@ -111,7 +111,16 @@ func resolvePath(d *TypeDescriptor, op *Op, values map[string]attr.Value, overri
 				continue
 			}
 			if ss, err := valueParamStrings(candidate); err == nil && len(ss) > 0 {
-				return ss[0]
+				// Path segments are escaped: a value must never be able
+				// to leave its segment ('/' or '..') or alter the query
+				// ('?'). Identifiers never contain these; a value that
+				// does is rejected rather than silently re-routed.
+				seg := ss[0]
+				if strings.ContainsAny(seg, "/?#\x00") {
+					missing = append(missing, name+" (invalid characters)")
+					return ph
+				}
+				return url.PathEscape(seg)
 			}
 		}
 		missing = append(missing, name)
@@ -347,8 +356,8 @@ type reconcileMode string
 
 const (
 	reconcileAfterApply reconcileMode = "after-apply" // create/update read-backs: plan wins for unset plain-Optional attrs
-	reconcileRefresh    reconcileMode = "refresh"     // managed read: same merge rules today
-	reconcileImport     reconcileMode = "import"      // identity-only state: adopt the server's values wholesale
+	reconcileRefresh    reconcileMode = "refresh"     // managed read: same rules as after-apply — null optionals stay null (no drift)
+	reconcileImport     reconcileMode = "import"      // identity-only state (and data-source reads): adopt the server's values wholesale
 )
 
 // applyReadResponse merges a read response payload into values. See
@@ -474,12 +483,12 @@ func filterMatches(d *TypeDescriptor, op *Op, item map[string]any, values map[st
 //   - Attributes carrying one-time results (an op's ResultAttr, e.g. an
 //     API token value the server never echoes again) keep their current
 //     value when the response omits them.
-//   - In after-apply mode (create/update read-backs), a plain-Optional
-//     attribute whose plan value is null stays null — Terraform requires
-//     final state to match the plan for non-computed attributes, so
-//     server-side defaults are not adopted. In refresh and import mode,
-//     present response fields are always adopted — that is how state is
-//     populated and drift surfaces.
+//   - Outside import mode (create/update read-backs and managed reads), a
+//     plain-Optional attribute whose current value is null stays null:
+//     adopting PVE's server-side defaults would produce perpetual plan
+//     drift and destructive `delete` parameters. Import mode (and
+//     data-source reads) adopts present response fields — that is how
+//     state is reconstructed wholesale.
 func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Value, mode reconcileMode) error {
 	preserve := d.resultAttrs()
 	for _, a := range d.Attributes {
@@ -509,13 +518,13 @@ func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Val
 			continue
 		}
 		if present {
-			if mode == reconcileAfterApply && hasCur && cur != nil && cur.IsNull() && a.Optional && !a.Computed {
+			if mode != reconcileImport && hasCur && cur != nil && cur.IsNull() && a.Optional && !a.Computed {
 				continue // honor the plan: attribute deliberately unset
 			}
 			// PVE echoes empty strings for unset options; adopting them
 			// into a null plain-optional would skew imports against
 			// managed state.
-			if mode != reconcileAfterApply && hasCur && (cur == nil || cur.IsNull()) && a.Optional && !a.Computed {
+			if mode == reconcileImport && hasCur && (cur == nil || cur.IsNull()) && a.Optional && !a.Computed {
 				if str, isStr := field.(string); isStr && str == "" {
 					continue
 				}

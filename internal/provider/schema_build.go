@@ -32,9 +32,12 @@ import (
 )
 
 // The framework ships structurally identical (but distinct) schema packages
-// for resources, data sources, and actions. The builders below translate the
-// same Attr tree into each package's types; keep them in sync. Only resources
-// take plan modifiers (ForceNew) — data sources and actions have no plans.
+// for resources, data sources, and actions. The Attr→attrSpec projection
+// below decides the shape once; each renderer then only maps spec kinds to
+// its own package's constructors and applies its flavor's capabilities
+// (resources take plan modifiers and defaults; actions carry inputs only).
+// Only resources take plan modifiers (ForceNew) — data sources and actions
+// have no plans.
 
 // stringValidators builds the enum validator for a string attribute.
 func stringValidators(enum []string) []validator.String {
@@ -182,9 +185,9 @@ func (m blockKeepComputed) PlanModifyObject(_ context.Context, req planmodifier.
 	}
 }
 
-// keepBlockComputed fills unknown computed fields of plan elements from the
-// state element with the same wire key; plan is returned unchanged when
-// it or the state is not concrete.
+// keepBlockComputed fills null or unknown computed fields of plan elements
+// from the state element with the same wire key; plan is returned unchanged
+// when it or the state is not concrete.
 func keepBlockComputed(a Attr, plan, state attr.Value) attr.Value {
 	if !usable(plan) || !usable(state) {
 		return plan
