@@ -813,3 +813,50 @@ func TestEngineCloneForwardsNameAndFull(t *testing.T) {
 		t.Fatalf("clone request missing forwarded params: %q", forms)
 	}
 }
+
+// TestApplyReadResponseModes pins the reconcile seam directly: one plain
+// Optional attribute, one response field, every mode.
+func TestApplyReadResponseModes(t *testing.T) {
+	desc := &TypeDescriptor{
+		Name:       "widget",
+		Attributes: []Attr{{Name: "x", Type: AttrString, Optional: true}},
+	}
+	read := &Op{Method: "GET", Path: "/widgets/{name}"}
+
+	tests := []struct {
+		name    string
+		mode    reconcileMode
+		current attr.Value
+		body    string
+		want    attr.Value
+	}{
+		// A configured value is kept only when wireEqual holds (object
+		// fields rendering to the same property string); a scalar echo
+		// ("server" normalized "config") is adopted in every mode.
+		{name: "after-apply adopts differing echo", mode: reconcileAfterApply, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
+		{name: "refresh adopts differing echo", mode: reconcileRefresh, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
+		{name: "import adopts differing echo", mode: reconcileImport, current: types.StringValue("config"), body: `{"x":"server"}`, want: types.StringValue("server")},
+		// The seam: an unset plain-Optional attribute stays null after
+		// apply (the plan wins over server-side defaults), while a
+		// refresh adopts the server's value.
+		{name: "after-apply keeps null", mode: reconcileAfterApply, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringNull()},
+		{name: "refresh adopts into null", mode: reconcileRefresh, current: types.StringNull(), body: `{"x":"server"}`, want: types.StringValue("server")},
+		// PVE's empty-string echo for unset options: not adopted into a
+		// null plain-Optional in any non-after-apply mode either.
+		{name: "import skips empty echo", mode: reconcileImport, current: types.StringNull(), body: `{"x":""}`, want: types.StringNull()},
+		{name: "after-apply keeps null on empty echo", mode: reconcileAfterApply, current: types.StringNull(), body: `{"x":""}`, want: types.StringNull()},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values := map[string]attr.Value{"x": tt.current}
+			ok, err := applyReadResponse(desc, read, json.RawMessage(tt.body), values, tt.mode)
+			if err != nil || !ok {
+				t.Fatalf("applyReadResponse: ok=%v err=%v", ok, err)
+			}
+			got, _ := values["x"].(types.String)
+			if !got.Equal(tt.want) {
+				t.Errorf("x = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

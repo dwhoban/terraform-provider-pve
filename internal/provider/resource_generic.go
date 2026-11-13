@@ -164,7 +164,7 @@ func (r *genericResource) readBack(ctx context.Context, values map[string]attr.V
 	if err != nil {
 		return err
 	}
-	ok, err := applyReadResponse(r.desc, r.desc.Read, payload, values, true)
+	ok, err := applyReadResponse(r.desc, r.desc.Read, payload, values, reconcileAfterApply)
 	if err != nil {
 		return err
 	}
@@ -206,8 +206,11 @@ func (r *genericResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Imported state carries only the id: required attributes are still
 	// null (a managed refresh always has them set). Adopt the server's
 	// values wholesale so import reconstructs the resource.
-	importRead := importShape(r.desc, values)
-	ok, err := applyReadResponse(r.desc, r.desc.Read, payload, values, !importRead)
+	mode := reconcileRefresh
+	if importShape(r.desc, values) {
+		mode = reconcileImport
+	}
+	ok, err := applyReadResponse(r.desc, r.desc.Read, payload, values, mode)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Reading %s", r.desc.Name),

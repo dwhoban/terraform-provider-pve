@@ -342,8 +342,17 @@ func stringToValue(s string, a Attr) (attr.Value, error) {
 	return decodeAttr(a, s)
 }
 
+// reconcileMode selects how a read response merges into current values.
+type reconcileMode string
+
+const (
+	reconcileAfterApply reconcileMode = "after-apply" // create/update read-backs: plan wins for unset plain-Optional attrs
+	reconcileRefresh    reconcileMode = "refresh"     // managed read: same merge rules today
+	reconcileImport     reconcileMode = "import"      // identity-only state: adopt the server's values wholesale
+)
+
 // applyReadResponse merges a read response payload into values. See
-// mergeObject for the honorPlanNulls semantics.
+// mergeObject for the reconcileMode semantics.
 //
 //   - Filtered reads (op.Filter) select one object from an array response;
 //     not finding a match is reported via ok=false (caller treats it as
@@ -353,7 +362,7 @@ func stringToValue(s string, a Attr) (attr.Value, error) {
 //   - Object responses without ResultName merge field-by-field: response
 //     fields override; absent fields null out Computed-only attributes and
 //     leave Optional attributes (the server may not echo secrets/defaults).
-func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, values map[string]attr.Value, honorPlanNulls bool) (ok bool, err error) {
+func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, values map[string]attr.Value, mode reconcileMode) (ok bool, err error) {
 	if len(payload) == 0 {
 		// Endpoints answering null still describe the object (PVE does this
 		// for empty configs); keep current values.
@@ -384,7 +393,7 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 				continue
 			}
 			if filterMatches(d, op, m, values) {
-				if err := mergeObject(d, m, values, honorPlanNulls); err != nil {
+				if err := mergeObject(d, m, values, mode); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -422,7 +431,7 @@ func applyReadResponse(d *TypeDescriptor, op *Op, payload json.RawMessage, value
 		values[op.ResultName] = coerced
 		return true, nil
 	}
-	if err := mergeObject(d, m, values, honorPlanNulls); err != nil {
+	if err := mergeObject(d, m, values, mode); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -465,19 +474,19 @@ func filterMatches(d *TypeDescriptor, op *Op, item map[string]any, values map[st
 //   - Attributes carrying one-time results (an op's ResultAttr, e.g. an
 //     API token value the server never echoes again) keep their current
 //     value when the response omits them.
-//   - With honorPlanNulls (post-apply read-backs: create/update), a
-//     plain-Optional attribute whose plan value is null stays null —
-//     Terraform requires final state to match the plan for non-computed
-//     attributes, so server-side defaults are not adopted. Without it
-//     (Read/refresh, import), present response fields are always adopted —
-//     that is how state is populated and drift surfaces.
-func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Value, honorPlanNulls bool) error {
+//   - In after-apply mode (create/update read-backs), a plain-Optional
+//     attribute whose plan value is null stays null — Terraform requires
+//     final state to match the plan for non-computed attributes, so
+//     server-side defaults are not adopted. In refresh and import mode,
+//     present response fields are always adopted — that is how state is
+//     populated and drift surfaces.
+func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Value, mode reconcileMode) error {
 	preserve := d.resultAttrs()
 	for _, a := range d.Attributes {
 		cur, hasCur := values[a.Name]
 		field, present := m[a.EchoKey()]
 		if a.Block != nil {
-			merged, err := mergeBlock(a, cur, m, honorPlanNulls)
+			merged, err := mergeBlock(a, cur, m, mode)
 			if err != nil {
 				return fmt.Errorf("type %s: attribute %s: %w", d.Name, a.Name, err)
 			}
@@ -500,13 +509,13 @@ func mergeObject(d *TypeDescriptor, m map[string]any, values map[string]attr.Val
 			continue
 		}
 		if present {
-			if honorPlanNulls && hasCur && cur != nil && cur.IsNull() && a.Optional && !a.Computed {
+			if mode == reconcileAfterApply && hasCur && cur != nil && cur.IsNull() && a.Optional && !a.Computed {
 				continue // honor the plan: attribute deliberately unset
 			}
 			// PVE echoes empty strings for unset options; adopting them
 			// into a null plain-optional would skew imports against
 			// managed state.
-			if !honorPlanNulls && hasCur && (cur == nil || cur.IsNull()) && a.Optional && !a.Computed {
+			if mode != reconcileAfterApply && hasCur && (cur == nil || cur.IsNull()) && a.Optional && !a.Computed {
 				if str, isStr := field.(string); isStr && str == "" {
 					continue
 				}

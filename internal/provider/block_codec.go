@@ -516,7 +516,7 @@ func parseSizeGB(s string) (int64, error) {
 // server's element (drift); slots the server added are appended. An
 // unconfigured block stays unmanaged on read-backs; imports adopt every
 // slot.
-func mergeBlock(a Attr, cur attr.Value, m map[string]any, honorPlanNulls bool) (attr.Value, error) {
+func mergeBlock(a Attr, cur attr.Value, m map[string]any, mode reconcileMode) (attr.Value, error) {
 	if cur == nil || cur.IsUnknown() || (cur.IsNull() && !a.Block.Fixed) {
 		cur = blockValue(a, nil)
 	}
@@ -529,7 +529,7 @@ func mergeBlock(a Attr, cur attr.Value, m map[string]any, honorPlanNulls bool) (
 	}
 	curElems := blockElems(cur)
 	if len(curElems) == 0 {
-		if honorPlanNulls {
+		if mode == reconcileAfterApply {
 			return cur, nil
 		}
 		elems := make([]map[string]attr.Value, len(server))

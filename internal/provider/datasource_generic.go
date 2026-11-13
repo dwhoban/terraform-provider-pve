@@ -78,7 +78,7 @@ func (d *genericDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			)
 			return
 		}
-		if _, err := applyReadResponse(d.desc, op, payload, values, false); err != nil {
+		if _, err := applyReadResponse(d.desc, op, payload, values, reconcileRefresh); err != nil {
 			resp.Diagnostics.AddError(
 				fmt.Sprintf("Error Reading %s", d.desc.Name),
 				fmt.Sprintf("reading %s (%s): %s", d.desc.Name, op.Path, err),
