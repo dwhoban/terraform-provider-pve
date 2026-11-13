@@ -19,12 +19,26 @@ provider "pve" {
   # API token auth (recommended); may also be set via PVE_API_TOKEN.
   # api_token = "root@pam!terraform=00000000-0000-0000-0000-000000000000"
 
+  # Or paste the two dashboard values separately; mutually exclusive with
+  # api_token. May also be set via PVE_API_TOKEN_ID / PVE_API_SECRET.
+  # api_token_id = "root@pam!terraform"
+  # api_secret   = "00000000-0000-0000-0000-000000000000"
+
   # Alternatively username/password (+ totp) auth; PVE_USER / PVE_PASSWORD / PVE_TOTP.
   # username = "root@pam"
   # password = "secret"
 
   # Accept self-signed certificates (PVE_INSECURE), or pin one with ca_cert (PVE_CA_CERT).
   # insecure = true
+
+  # Optional SSH, only for operations the API cannot do (installing Ceph via
+  # the pve_ceph_install action, root_ticket). Omit it and no SSH connection
+  # is ever made. See the "When is SSH required?" guide.
+  # ssh {
+  #   username    = "root"
+  #   agent       = true
+  #   root_ticket = false
+  # }
 }
 ```
 
@@ -33,12 +47,43 @@ provider "pve" {
 
 ### Optional
 
-- `api_token` (String, Sensitive) API token in the form `user@realm!tokenid=uuid`. Takes precedence over username/password. May also be set via the `PVE_API_TOKEN` environment variable.
+- `api_secret` (String, Sensitive) API token secret (the UUID token value shown once at token generation). Requires `api_token_id`. Mutually exclusive with `api_token`. May also be set via the `PVE_API_SECRET` environment variable.
+- `api_token` (String, Sensitive) API token in the form `user@realm!tokenid=uuid`. Takes precedence over username/password. May also be set via the `PVE_API_TOKEN` environment variable. Mutually exclusive with `api_token_id`/`api_secret`.
+- `api_token_id` (String) API token ID in the form `user@realm!tokenid`, as shown in the Proxmox dashboard, e.g. `root@pam!terraform`. Requires `api_secret`. Mutually exclusive with `api_token`. May also be set via the `PVE_API_TOKEN_ID` environment variable.
 - `api_url` (String) Proxmox VE API endpoint, `https://host:8006`. May also be set via the `PVE_API_URL` environment variable.
 - `ca_cert` (String) PEM-encoded CA bundle used to verify the API endpoint. May also be set via the `PVE_CA_CERT` environment variable.
 - `insecure` (Boolean) Skip TLS certificate verification. May also be set via the `PVE_INSECURE` environment variable (`1`/`true`).
 - `password` (String, Sensitive) Password for `username`. May also be set via the `PVE_PASSWORD` environment variable.
 - `request_timeout` (Number) Per-request timeout in seconds. Defaults to 30. May also be set via the `PVE_REQUEST_TIMEOUT` environment variable.
 - `skip_credentials_validation` (Boolean) Skip the reachability and authentication check performed at provider configuration time.
+- `ssh` (Block, Optional) Optional SSH access to the nodes. The provider is API-first; SSH is used only for operations the Proxmox VE API cannot perform — currently installing Ceph (`pve_ceph_install`) and, with `root_ticket`, running `root@pam`-only API calls with an API token. If you use neither, omit this block and no SSH connection is ever made. See "When is SSH required?" in the provider guide. (see [below for nested schema](#nestedblock--ssh))
+- `task_timeout` (Number) How long to wait for a single Proxmox VE task (UPID) to finish before failing, in seconds. Applies to every create, update, delete, and action that returns a task. Defaults to 1800 (30 minutes). May also be set via the `PVE_TASK_TIMEOUT` environment variable.
 - `totp` (String, Sensitive) TOTP one-time password for two-factor auth with username/password. May also be set via the `PVE_TOTP` environment variable.
 - `username` (String) Username for session-ticket auth, e.g. `root@pam`. Requires `password`. May also be set via the `PVE_USER` environment variable.
+
+<a id="nestedblock--ssh"></a>
+### Nested Schema for `ssh`
+
+Optional:
+
+- `agent` (Boolean) Authenticate through the SSH agent. May also be set via `PVE_SSH_AGENT`.
+- `agent_socket` (String) Path of the SSH agent socket. Defaults to `SSH_AUTH_SOCK`. May also be set via `PVE_SSH_AUTH_SOCK`.
+- `insecure_ignore_host_key` (Boolean) Skip host key verification. **Not recommended**: it allows machine-in-the-middle attacks. May also be set via `PVE_SSH_INSECURE_IGNORE_HOST_KEY`.
+- `known_hosts_file` (String) known_hosts file used to verify node host keys. Defaults to `~/.ssh/known_hosts`. May also be set via `PVE_SSH_KNOWN_HOSTS`.
+- `node` (Block List) Per-node SSH address override. Without it the provider uses the node's address from the API (`/nodes/{node}/network`), then the node name as a DNS name. (see [below for nested schema](#nestedblock--ssh--node))
+- `password` (String, Sensitive) SSH password. May also be set via `PVE_SSH_PASSWORD`.
+- `private_key` (String, Sensitive) Unencrypted PEM/OpenSSH private key. May also be set via `PVE_SSH_PRIVATE_KEY`.
+- `root_ticket` (Boolean) Run API calls under `/nodes/{node}/` with a `root@pam` ticket minted on that node over SSH, so an API token can perform operations Proxmox VE restricts to `root@pam`. Requires `username = "root"`. While enabled, those calls are logged and authorized as `root@pam`, not as the token; calls outside `/nodes/{node}/` (such as `/cluster`) keep using the configured credentials. May also be set via `PVE_SSH_ROOT_TICKET`.
+- `username` (String) SSH user. Defaults to the PAM user of the API credentials (`root@pam` → `root`); required with a non-PAM API token. Non-root users run commands through `sudo -n`, so they need a **strict** sudoers rule. May also be set via `PVE_SSH_USERNAME`.
+
+<a id="nestedblock--ssh--node"></a>
+### Nested Schema for `ssh.node`
+
+Required:
+
+- `address` (String) IP address or FQDN used for SSH.
+- `name` (String) Node name.
+
+Optional:
+
+- `port` (Number) SSH port. Defaults to 22.

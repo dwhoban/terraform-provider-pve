@@ -40,7 +40,7 @@ func TestParseUPIDInvalid(t *testing.T) {
 
 func taskTestClient(t *testing.T, statusHandler, logHandler http.HandlerFunc) *Client {
 	t.Helper()
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/status"):
 			statusHandler(w, r)

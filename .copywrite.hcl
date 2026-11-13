@@ -6,6 +6,7 @@ project {
   copyright_year = 2021
 
   header_ignore = [
+  "internal/pveapidoc/schema/**",
     # internal catalog metadata (prose)
     "META.d/**/*.yaml",
 
@@ -22,3 +23,4 @@ project {
     ".goreleaser.yml",
   ]
 }
+copyright_holder = "dwhoban"

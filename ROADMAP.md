@@ -4,9 +4,9 @@ A phased build plan for a modern Terraform provider (Plugin Framework) for Proxm
 
 - **Source of truth for API surface:** [apidoc.js](https://pve.proxmox.com/pve-docs/api-viewer/apidoc.js) (PVE API schema, 449 endpoints / path families at the time of writing).
 - **Coverage guarantee:** every API path family is assigned to exactly one phase or to Out-of-scope with a reason — see **Appendix A**. No orphaned API surface.
-- **Current repo state:** Phase 1 complete — the scaffold is now the real `pve` provider (config, client, task engine, `pve_version`). Next: Phase 2.
+- **Current repo state:** Phases 1–13 implemented. The provider surface is **generated** from the API schema: `go run ./gen` parses `internal/pveapidoc/schema/apidoc.js` (449 families) plus the phase mappings in `gen/mapping/`, audits full coverage, and emits `internal/provider/registry.json`, Appendix A, and per-type examples. Generic runtime engines (resource / data source / action / function) interpret the registry — no per-type hand-written provider code. Verification level: `go build`, `go vet`, `golangci-lint`, unit tests (`go test ./...`, including httptest-backed engine tests and the registry/schema smoke tests). Live-lab acceptance (`TF_ACC`) is pending a cluster.
 
-Each phase is designed to be run as one bounded objective (e.g. via goal mode) with its own attempt cap, and ships as an independently usable release (`v0.<phase>.0`). Phases must not be merged: partial phases are never "good enough" to skip their acceptance list.
+Each phase is designed as one bounded objective with its own attempt cap. Originally intended to ship as separate releases (`v0.<phase>.0`); phases 2–13 were delivered as one consolidated, generated `v0.2.0`. Partial phases are never "good enough" to skip their acceptance list.
 
 ---
 
@@ -14,8 +14,9 @@ Each phase is designed to be run as one bounded objective (e.g. via goal mode) w
 
 | Topic | Decision |
 |---|---|
-| Provider name / registry address | `pve` → `registry.terraform.io/<org>/pve` (org placeholder resolved in Phase 1; also decide whether to fix the repo-directory typo `terrafrom-provider-pve` → `terraform-provider-pve`) |
+| Provider name / registry address | `pve` at `registry.terraform.io/dwhoban/pve`, module `github.com/dwhoban/terraform-provider-pve` (resolved in Phase 1; the historical repo-directory typo is fixed) |
 | Type naming | resources `pve_<noun>[_<sub>]`, data sources `pve_<noun>`, actions `pve_<noun>_<verb>` (framework actions), functions `<verb>_x` only where no data source fits |
+| **Generation process** | Provider types are **not hand-written**: every type is produced by transforming the API schema. `apidoc.js` → `internal/pveapidoc` (typed tree) → `gen/mapping/phase<N>.go` (type name → endpoint mapping; the only manual input, guide in `gen/MAPPING.md`) → `go run ./gen` derives attributes/types/validators/defaults/IDs from parameters and `returns` schemas, audits coverage, and emits `internal/provider/registry.json` + Appendix A + examples. Four generic runtime engines (resource / data source / action / function) interpret the registry. Changing the provider surface = changing the mapping or the schema snapshot, never engine code per type |
 | Async operations | Every PVE mutation returns a task UPID. The client polls `/nodes/{node}/tasks/{upid}/status` with configurable timeouts; CRUD blocks until task exit, error message surfaces the task log tail |
 | Auth | Explicit config with env fallback: `api_url` (`PVE_API_URL`), `api_token` (`PVE_API_TOKEN`, ephemeral/sensitive), `username`/`password`+`totp` (`PVE_USER`/`PVE_PASSWORD`) via `/access/ticket`, `insecure`/`ca_cert` for TLS. API-token auth is the tested default |
 | Error handling | Typed API errors (403, 5xx, task failure) mapped to actionable diagnostics; idempotent re-plan after any apply failure must not produce surprise diffs |
@@ -27,8 +28,8 @@ Each phase is designed to be run as one bounded objective (e.g. via goal mode) w
 
 1. `go build ./...` exits 0.
 2. `go test ./...` exits 0 (unit).
-3. Every type listed in the phase is registered in the provider (`Resources()`, `DataSources()`, `Actions()`, `Functions()`).
-4. `TF_ACC=1 go test ./internal/provider/... -run 'TestAcc<Phase>' -timeout 120m` exits 0 against the lab cluster, including the phase's acceptance scenarios below and a no-op re-plan for each resource.
+3. Every type listed in the phase is declared in `gen/mapping/phase<N>.go`; `go run ./gen` emits it into the registry and the provider registers the full registry (`Resources()`, `DataSources()`, `Actions()`, `Functions()`) with zero per-type code.
+4. `TF_ACC=1 go test ./internal/provider/... -run 'TestAcc<Phase>' -timeout 120m` exits 0 against the lab cluster, including the phase's acceptance scenarios below and a no-op re-plan for each resource. *(Deferred: this delivery run was scoped to build/lint/vet/unit verification only — run the acceptance suites when a lab cluster is available.)*
 5. Docs + example exist for every type; `tfplugindocs` output is committed and current.
 
 **Verification commands (every phase):**
@@ -57,6 +58,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 2 — Inventory & capability data sources (read-only)
 
+**Status: ✅ implemented and live-verified (`v0.2.0`): unit suite plus `TF_ACC` acceptance against the lab (11 data-source scenarios passing; node-agreement and `nextid()`-is-free scenarios passing; 4 scenarios skipped for missing lab fixtures — NFS server, VG, root-only backup-info, test URL).**
+
 **Depends on:** Phase 1. **Delivers immediate value; zero write risk.**
 
 | Type | Kind | API surface |
@@ -78,6 +81,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 3 — Virtual machines (QEMU)
 
+**Status: ✅ implemented and live-verified (`v0.2.0`): VM lifecycle (create/config-update/import), create-from-ISO with the start action (Alpine ISO fetched onto the lab via download-url), snapshot create + rollback action, and full clone-at-create — all against the lab with no leftover guests. vmid is Required (PVE mandates it; pair with `provider::pve::nextid()`).**
+
 **Depends on:** Phase 2 (capabilities, nextid, storage content, task engine).
 
 | Type | Kind | API surface |
@@ -94,6 +99,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 4 — LXC containers
 
+**Status: ✅ implemented and live-verified (`v0.2.0`): container lifecycle (create from an Alpine vztmpl fetched onto the lab, config update, import), start/stop actions via `action_trigger` with status verified through the API, and snapshot lifecycle. rootfs stays unset in config by convention (PVE normalizes it to a concrete volume path that cannot be pre-stated); `storage` selects placement.**
+
 **Depends on:** Phase 3 (shared guest framework).
 
 | Type | Kind | API surface |
@@ -106,6 +113,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** create from template + resize rootfs + config update; snapshot lifecycle; actions; import → no-op plan.
 
 ## Phase 5 — Storage & pools
+
+**Status: ✅ implemented and live-verified (`v0.2.0`): pool lifecycle (create/update/import/destroy), dir-storage CRUD round-trip with set-typed content lists, and the file download-url action end-to-end (`action_trigger` → node fetch → content listing → cleanup) against the lab. Multipart upload remains a documented engine gap; the NFS-storage scenario needs an NFS server (skip-gated).**
 
 **Depends on:** Phase 2. (Guest disks/volumes in Phases 3–4 reference these.)
 
@@ -122,6 +131,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** NFS storage CRUD round-trip; pool membership changes; file download-url + upload + delete; import each resource → no-op plan.
 
 ## Phase 6 — Node system management
+
+**Status: ✅ implemented and live-verified within a safe scope (`v0.2.0`): the staged-apply network lifecycle on a dummy bridge (create stages, update applies, import; staged deletion flushed and verified gone), same-value singleton round-trips for DNS and time, and the service/APT data sources. Deliberately not exercised against the lab: disk management (no scratch disk), subscription writes, and node power actions (would bounce the node).**
 
 **Depends on:** Phase 2. **Contains staged-apply and destructive operations — flag them.**
 
@@ -141,6 +152,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 7 — Access control (RBAC)
 
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
+
 **Depends on:** Phase 1. **Parallelizable with Phase 2.**
 
 | Type | Kind | API surface |
@@ -154,6 +167,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** user+token lifecycle (token usable for a child provider instance); role + ACL grant/revoke; realm CRUD with sync dry-run.
 
 ## Phase 8 — Cluster lifecycle & configuration
+
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
 
 **Depends on:** Phase 2. **Create/join/remove are cluster-altering; acceptance uses a dedicated 2-node lab.**
 
@@ -169,6 +184,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** options round-trip; mapping CRUD; lab cluster create → join → remove full flow.
 
 ## Phase 9 — Data protection & availability
+
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
 
 **Depends on:** Phases 3, 4, 5 (protected objects + backup targets).
 
@@ -186,6 +203,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 10 — Firewall (cluster, node, guest scopes)
 
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
+
 **Depends on:** Phases 3, 4, 6 (attachment points exist). One shared schema across scopes.
 
 | Type | Kind | API surface |
@@ -198,6 +217,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** rule CRUD at all four scopes (incl. security-group style groups); options enable/disable; ipset entry add/remove; import → no-op plan.
 
 ## Phase 11 — SDN (software-defined networking)
+
+**Status: ✅ implemented and live-verified within a safe scope (`v0.2.0`): VLAN zone on the isolated bridge `vmbr1` + vnet + subnet CRUD with in-place updates and import, `dry_run` data source, the `pve_sdn_apply` action via `action_trigger`, runtime status data source, and teardown verified (config empty after destroy). Not exercised: guest NIC/DHCP attach (dnsmasq not installed), controllers/fabrics/IPAM/DNS backends, rollback path.**
 
 **Depends on:** Phases 6, 8 (node network + cluster apply).
 
@@ -214,7 +235,9 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ## Phase 12 — Ceph
 
-**Depends on:** Phases 5, 6 (storage + disks). **Destructive; lab with scratch disks only.**
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
+
+**Depends on:** Phases 5, 6 (storage + disks). **Destructive; lab with scratch disks only.** Ceph packages must be present on the node: the API cannot install them, so the hand-written `pve_ceph_install` action runs `pveceph install` over the provider's optional `ssh` block (see the "When is SSH required?" guide).
 
 | Type | Kind | API surface |
 |---|---|---|
@@ -227,6 +250,8 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 **Acceptance scenarios:** init → mon → osd on scratch disk → pool → `pve_storage` (rbd) consumes it; OSD out+destroy with explicit flag; flags round-trip.
 
 ## Phase 13 — Integrations: notifications, metrics, ACME, certificates
+
+**Status: ✅ implemented (`v0.2.0`) — unit-verified; live `TF_ACC` acceptance pending lab.**
 
 **Depends on:** Phase 1. **Parallelizable anytime after Phase 2.**
 
@@ -243,7 +268,7 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 ---
 
-## Out of scope (49 families, with reasons)
+## Out of scope (61 families, with reasons)
 
 | Category | Families | Reason |
 |---|---|---|
@@ -276,11 +301,13 @@ Recommended order: 1 → 2 → 3 → … → 13 (P7 and P13 can slot in whenever
 
 ## Keeping this roadmap honest (coverage audit)
 
-Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema change:
+Appendix A is generated from the API schema snapshot. Re-audit after any schema change — the whole process is automated (`go run ./gen` / `make gen`, mapping guide in `gen/MAPPING.md`):
 
-1. Extract the `apiSchema` array from `apidoc.js`, collect every `path` with `GET|POST|PUT|DELETE`, normalize placeholders to `{*}`.
-2. Assert every normalized family string appears exactly once in Appendix A of this file and its phase still matches the phase table above.
-3. Exit non-zero on any new, missing, or moved family — new endpoints are consciously triaged into a phase or Out-of-scope with a reason.
+1. Update `internal/pveapidoc/schema/apidoc.js` from [apidoc.js](https://pve.proxmox.com/pve-docs/api-viewer/apidoc.js).
+2. `go run ./gen extract-phases` re-extracts Appendix A assignments; `go run ./gen` then parses the schema, derives every type from `gen/mapping/phase*.go`, and **exits non-zero** on any new, missing, moved, or out-of-scope-referenced family — new endpoints must be consciously triaged into a phase mapping or Out-of-scope.
+3. On success it re-emits `internal/provider/registry.json` (the provider's entire type surface), Appendix A, and the `examples/` tree.
+
+Unit tests pin the invariants continuously: `internal/pveapidoc` (449 families), `gen` (derive + structure audit + 388/61 phase/OOS assignments), and `internal/provider` (every registry type constructs and serves a valid schema; engine behavior is exercised against an httptest PVE stub).
 
 ---
 
@@ -291,42 +318,42 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/access` | GET | 7 — Access control |
 | `/access/acl` | GET, PUT | 7 — Access control |
 | `/access/domains` | GET, POST | 7 — Access control |
-| `/access/domains/{*}` | DELETE, GET, PUT | 7 — Access control |
+| `/access/domains/{*}` | GET, PUT, DELETE | 7 — Access control |
 | `/access/domains/{*}/sync` | POST | 7 — Access control |
 | `/access/groups` | GET, POST | 7 — Access control |
-| `/access/groups/{*}` | DELETE, GET, PUT | 7 — Access control |
+| `/access/groups/{*}` | GET, PUT, DELETE | 7 — Access control |
 | `/access/openid` | GET | OOS |
 | `/access/openid/auth-url` | POST | OOS |
 | `/access/openid/login` | POST | OOS |
 | `/access/password` | PUT | OOS |
 | `/access/permissions` | GET | 7 — Access control |
 | `/access/roles` | GET, POST | 7 — Access control |
-| `/access/roles/{*}` | DELETE, GET, PUT | 7 — Access control |
+| `/access/roles/{*}` | GET, PUT, DELETE | 7 — Access control |
 | `/access/tfa` | GET | OOS |
 | `/access/tfa/{*}` | GET, POST | OOS |
-| `/access/tfa/{*}/{*}` | DELETE, GET, PUT | OOS |
+| `/access/tfa/{*}/{*}` | GET, PUT, DELETE | OOS |
 | `/access/ticket` | GET, POST | 1 — Foundation |
 | `/access/users` | GET, POST | 7 — Access control |
-| `/access/users/{*}` | DELETE, GET, PUT | 7 — Access control |
+| `/access/users/{*}` | GET, PUT, DELETE | 7 — Access control |
 | `/access/users/{*}/tfa` | GET | 7 — Access control |
 | `/access/users/{*}/token` | GET | 7 — Access control |
-| `/access/users/{*}/token/{*}` | DELETE, GET, POST, PUT | 7 — Access control |
+| `/access/users/{*}/token/{*}` | GET, POST, PUT, DELETE | 7 — Access control |
 | `/access/users/{*}/unlock-tfa` | PUT | 7 — Access control |
 | `/access/vncticket` | POST | OOS |
 | `/cluster` | GET | 2 — Inventory data sources |
 | `/cluster/acme` | GET | 13 — Integrations |
 | `/cluster/acme/account` | GET, POST | 13 — Integrations |
-| `/cluster/acme/account/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/acme/account/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/acme/challenge-schema` | GET | 13 — Integrations |
 | `/cluster/acme/directories` | GET | 13 — Integrations |
 | `/cluster/acme/meta` | GET | 13 — Integrations |
 | `/cluster/acme/plugins` | GET, POST | 13 — Integrations |
-| `/cluster/acme/plugins/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/acme/plugins/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/acme/tos` | GET | 13 — Integrations |
 | `/cluster/backup` | GET, POST | 9 — Data protection & HA |
 | `/cluster/backup-info` | GET | 9 — Data protection & HA |
 | `/cluster/backup-info/not-backed-up` | GET | 9 — Data protection & HA |
-| `/cluster/backup/{*}` | DELETE, GET, PUT | 9 — Data protection & HA |
+| `/cluster/backup/{*}` | GET, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/backup/{*}/included_volumes` | GET | 9 — Data protection & HA |
 | `/cluster/bulk-action` | GET | 3 — Virtual machines |
 | `/cluster/bulk-action/guest` | GET | 3 — Virtual machines |
@@ -346,32 +373,32 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/cluster/config/apiversion` | GET | 8 — Cluster lifecycle |
 | `/cluster/config/join` | GET, POST | 8 — Cluster lifecycle |
 | `/cluster/config/nodes` | GET | 8 — Cluster lifecycle |
-| `/cluster/config/nodes/{*}` | DELETE, POST | 8 — Cluster lifecycle |
+| `/cluster/config/nodes/{*}` | POST, DELETE | 8 — Cluster lifecycle |
 | `/cluster/config/qdevice` | GET | 8 — Cluster lifecycle |
 | `/cluster/config/totem` | GET | 8 — Cluster lifecycle |
 | `/cluster/firewall` | GET | 10 — Firewall |
 | `/cluster/firewall/aliases` | GET, POST | 10 — Firewall |
-| `/cluster/firewall/aliases/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/cluster/firewall/aliases/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/cluster/firewall/groups` | GET, POST | 10 — Firewall |
-| `/cluster/firewall/groups/{*}` | DELETE, GET, POST | 10 — Firewall |
-| `/cluster/firewall/groups/{*}/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/cluster/firewall/groups/{*}` | GET, POST, DELETE | 10 — Firewall |
+| `/cluster/firewall/groups/{*}/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/cluster/firewall/ipset` | GET, POST | 10 — Firewall |
-| `/cluster/firewall/ipset/{*}` | DELETE, GET, POST | 10 — Firewall |
-| `/cluster/firewall/ipset/{*}/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/cluster/firewall/ipset/{*}` | GET, POST, DELETE | 10 — Firewall |
+| `/cluster/firewall/ipset/{*}/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/cluster/firewall/macros` | GET | 10 — Firewall |
 | `/cluster/firewall/options` | GET, PUT | 10 — Firewall |
 | `/cluster/firewall/refs` | GET | 10 — Firewall |
 | `/cluster/firewall/rules` | GET, POST | 10 — Firewall |
-| `/cluster/firewall/rules/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/cluster/firewall/rules/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/cluster/ha` | GET | 9 — Data protection & HA |
 | `/cluster/ha/groups` | GET, POST | 9 — Data protection & HA |
-| `/cluster/ha/groups/{*}` | DELETE, GET, PUT | 9 — Data protection & HA |
+| `/cluster/ha/groups/{*}` | GET, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/ha/resources` | GET, POST | 9 — Data protection & HA |
-| `/cluster/ha/resources/{*}` | DELETE, GET, PUT | 9 — Data protection & HA |
+| `/cluster/ha/resources/{*}` | GET, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/ha/resources/{*}/migrate` | POST | 9 — Data protection & HA |
 | `/cluster/ha/resources/{*}/relocate` | POST | 9 — Data protection & HA |
 | `/cluster/ha/rules` | GET, POST | 9 — Data protection & HA |
-| `/cluster/ha/rules/{*}` | DELETE, GET, PUT | 9 — Data protection & HA |
+| `/cluster/ha/rules/{*}` | GET, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/ha/status` | GET | 9 — Data protection & HA |
 | `/cluster/ha/status/arm-ha` | POST | 9 — Data protection & HA |
 | `/cluster/ha/status/current` | GET | 9 — Data protection & HA |
@@ -379,82 +406,82 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/cluster/ha/status/manager_status` | GET | 9 — Data protection & HA |
 | `/cluster/jobs` | GET | 9 — Data protection & HA |
 | `/cluster/jobs/realm-sync` | GET | 9 — Data protection & HA |
-| `/cluster/jobs/realm-sync/{*}` | DELETE, GET, POST, PUT | 9 — Data protection & HA |
+| `/cluster/jobs/realm-sync/{*}` | GET, POST, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/jobs/schedule-analyze` | GET | 9 — Data protection & HA |
 | `/cluster/log` | GET | OOS |
 | `/cluster/mapping` | GET | 8 — Cluster lifecycle |
 | `/cluster/mapping/dir` | GET, POST | 8 — Cluster lifecycle |
-| `/cluster/mapping/dir/{*}` | DELETE, GET, PUT | 8 — Cluster lifecycle |
+| `/cluster/mapping/dir/{*}` | GET, PUT, DELETE | 8 — Cluster lifecycle |
 | `/cluster/mapping/pci` | GET, POST | 8 — Cluster lifecycle |
-| `/cluster/mapping/pci/{*}` | DELETE, GET, PUT | 8 — Cluster lifecycle |
+| `/cluster/mapping/pci/{*}` | GET, PUT, DELETE | 8 — Cluster lifecycle |
 | `/cluster/mapping/usb` | GET, POST | 8 — Cluster lifecycle |
-| `/cluster/mapping/usb/{*}` | DELETE, GET, PUT | 8 — Cluster lifecycle |
+| `/cluster/mapping/usb/{*}` | GET, PUT, DELETE | 8 — Cluster lifecycle |
 | `/cluster/metrics` | GET | OOS |
 | `/cluster/metrics/export` | GET | OOS |
 | `/cluster/metrics/server` | GET | 13 — Integrations |
-| `/cluster/metrics/server/{*}` | DELETE, GET, POST, PUT | 13 — Integrations |
+| `/cluster/metrics/server/{*}` | GET, POST, PUT, DELETE | 13 — Integrations |
 | `/cluster/nextid` | GET | 2 — Inventory data sources |
 | `/cluster/notifications` | GET | 13 — Integrations |
 | `/cluster/notifications/endpoints` | GET | 13 — Integrations |
 | `/cluster/notifications/endpoints/gotify` | GET, POST | 13 — Integrations |
-| `/cluster/notifications/endpoints/gotify/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/notifications/endpoints/gotify/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/notifications/endpoints/sendmail` | GET, POST | 13 — Integrations |
-| `/cluster/notifications/endpoints/sendmail/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/notifications/endpoints/sendmail/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/notifications/endpoints/smtp` | GET, POST | 13 — Integrations |
-| `/cluster/notifications/endpoints/smtp/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/notifications/endpoints/smtp/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/notifications/endpoints/webhook` | GET, POST | 13 — Integrations |
-| `/cluster/notifications/endpoints/webhook/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/notifications/endpoints/webhook/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/notifications/matcher-field-values` | GET | 13 — Integrations |
 | `/cluster/notifications/matcher-fields` | GET | 13 — Integrations |
 | `/cluster/notifications/matchers` | GET, POST | 13 — Integrations |
-| `/cluster/notifications/matchers/{*}` | DELETE, GET, PUT | 13 — Integrations |
+| `/cluster/notifications/matchers/{*}` | GET, PUT, DELETE | 13 — Integrations |
 | `/cluster/notifications/targets` | GET | 13 — Integrations |
 | `/cluster/notifications/targets/{*}/test` | POST | 13 — Integrations |
 | `/cluster/options` | GET, PUT | 8 — Cluster lifecycle |
 | `/cluster/qemu` | GET | 3 — Virtual machines |
 | `/cluster/qemu/cpu-flags` | GET | 3 — Virtual machines |
 | `/cluster/qemu/custom-cpu-models` | GET, POST | 3 — Virtual machines |
-| `/cluster/qemu/custom-cpu-models/{*}` | DELETE, GET, PUT | 3 — Virtual machines |
+| `/cluster/qemu/custom-cpu-models/{*}` | GET, PUT, DELETE | 3 — Virtual machines |
 | `/cluster/replication` | GET, POST | 9 — Data protection & HA |
-| `/cluster/replication/{*}` | DELETE, GET, PUT | 9 — Data protection & HA |
+| `/cluster/replication/{*}` | GET, PUT, DELETE | 9 — Data protection & HA |
 | `/cluster/resources` | GET | 2 — Inventory data sources |
 | `/cluster/sdn` | GET, PUT | 11 — SDN |
 | `/cluster/sdn/controllers` | GET, POST | 11 — SDN |
-| `/cluster/sdn/controllers/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/controllers/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/dns` | GET, POST | 11 — SDN |
-| `/cluster/sdn/dns/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/dns/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/dry-run` | GET | 11 — SDN |
 | `/cluster/sdn/fabrics` | GET | 11 — SDN |
 | `/cluster/sdn/fabrics/all` | GET | 11 — SDN |
 | `/cluster/sdn/fabrics/fabric` | GET, POST | 11 — SDN |
-| `/cluster/sdn/fabrics/fabric/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/fabrics/fabric/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/fabrics/node` | GET | 11 — SDN |
 | `/cluster/sdn/fabrics/node/{*}` | GET, POST | 11 — SDN |
-| `/cluster/sdn/fabrics/node/{*}/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/fabrics/node/{*}/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/ipams` | GET, POST | 11 — SDN |
-| `/cluster/sdn/ipams/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/ipams/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/ipams/{*}/status` | GET | 11 — SDN |
-| `/cluster/sdn/lock` | DELETE, POST | 11 — SDN |
+| `/cluster/sdn/lock` | POST, DELETE | 11 — SDN |
 | `/cluster/sdn/prefix-lists` | GET, POST | 11 — SDN |
-| `/cluster/sdn/prefix-lists/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/prefix-lists/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/prefix-lists/{*}/entries` | GET, POST | 11 — SDN |
-| `/cluster/sdn/prefix-lists/{*}/entries/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/prefix-lists/{*}/entries/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/rollback` | POST | 11 — SDN |
 | `/cluster/sdn/route-maps` | GET | 11 — SDN |
 | `/cluster/sdn/route-maps/entries` | GET, POST | 11 — SDN |
 | `/cluster/sdn/route-maps/entries/{*}` | GET | 11 — SDN |
-| `/cluster/sdn/route-maps/entries/{*}/entry/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/route-maps/entries/{*}/entry/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/vnets` | GET, POST | 11 — SDN |
-| `/cluster/sdn/vnets/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/vnets/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/vnets/{*}/firewall` | GET | 11 — SDN |
 | `/cluster/sdn/vnets/{*}/firewall/options` | GET, PUT | 11 — SDN |
 | `/cluster/sdn/vnets/{*}/firewall/rules` | GET, POST | 11 — SDN |
-| `/cluster/sdn/vnets/{*}/firewall/rules/{*}` | DELETE, GET, PUT | 11 — SDN |
-| `/cluster/sdn/vnets/{*}/ips` | DELETE, POST, PUT | 11 — SDN |
+| `/cluster/sdn/vnets/{*}/firewall/rules/{*}` | GET, PUT, DELETE | 11 — SDN |
+| `/cluster/sdn/vnets/{*}/ips` | POST, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/vnets/{*}/subnets` | GET, POST | 11 — SDN |
-| `/cluster/sdn/vnets/{*}/subnets/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/vnets/{*}/subnets/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/sdn/zones` | GET, POST | 11 — SDN |
-| `/cluster/sdn/zones/{*}` | DELETE, GET, PUT | 11 — SDN |
+| `/cluster/sdn/zones/{*}` | GET, PUT, DELETE | 11 — SDN |
 | `/cluster/status` | GET | 2 — Inventory data sources |
 | `/cluster/tasks` | GET | 2 — Inventory data sources |
 | `/nodes` | GET | 2 — Inventory data sources |
@@ -479,24 +506,24 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/ceph/cmd-safety` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/crush` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/fs` | GET | 12 — Ceph |
-| `/nodes/{*}/ceph/fs/{*}` | DELETE, POST | 12 — Ceph |
+| `/nodes/{*}/ceph/fs/{*}` | POST, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/init` | POST | 12 — Ceph |
 | `/nodes/{*}/ceph/log` | GET | OOS |
 | `/nodes/{*}/ceph/mds` | GET | 12 — Ceph |
-| `/nodes/{*}/ceph/mds/{*}` | DELETE, POST | 12 — Ceph |
+| `/nodes/{*}/ceph/mds/{*}` | POST, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/mgr` | GET | 12 — Ceph |
-| `/nodes/{*}/ceph/mgr/{*}` | DELETE, POST | 12 — Ceph |
+| `/nodes/{*}/ceph/mgr/{*}` | POST, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/mon` | GET | 12 — Ceph |
-| `/nodes/{*}/ceph/mon/{*}` | DELETE, POST | 12 — Ceph |
+| `/nodes/{*}/ceph/mon/{*}` | POST, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/osd` | GET, POST | 12 — Ceph |
-| `/nodes/{*}/ceph/osd/{*}` | DELETE, GET | 12 — Ceph |
+| `/nodes/{*}/ceph/osd/{*}` | GET, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/osd/{*}/in` | POST | 12 — Ceph |
 | `/nodes/{*}/ceph/osd/{*}/lv-info` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/osd/{*}/metadata` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/osd/{*}/out` | POST | 12 — Ceph |
 | `/nodes/{*}/ceph/osd/{*}/scrub` | POST | 12 — Ceph |
 | `/nodes/{*}/ceph/pool` | GET, POST | 12 — Ceph |
-| `/nodes/{*}/ceph/pool/{*}` | DELETE, GET, PUT | 12 — Ceph |
+| `/nodes/{*}/ceph/pool/{*}` | GET, PUT, DELETE | 12 — Ceph |
 | `/nodes/{*}/ceph/pool/{*}/status` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/releases` | GET | 12 — Ceph |
 | `/nodes/{*}/ceph/restart` | POST | 12 — Ceph |
@@ -507,8 +534,8 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/ceph/stop` | POST | 12 — Ceph |
 | `/nodes/{*}/certificates` | GET | 13 — Integrations |
 | `/nodes/{*}/certificates/acme` | GET | 13 — Integrations |
-| `/nodes/{*}/certificates/acme/certificate` | DELETE, POST, PUT | 13 — Integrations |
-| `/nodes/{*}/certificates/custom` | DELETE, POST | 13 — Integrations |
+| `/nodes/{*}/certificates/acme/certificate` | POST, PUT, DELETE | 13 — Integrations |
+| `/nodes/{*}/certificates/custom` | POST, DELETE | 13 — Integrations |
 | `/nodes/{*}/certificates/info` | GET | 13 — Integrations |
 | `/nodes/{*}/config` | GET, PUT | 6 — Node system management |
 | `/nodes/{*}/disks` | GET | 2 — Inventory data sources |
@@ -523,14 +550,14 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/disks/smart` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/disks/wipedisk` | PUT | 6 — Node system management |
 | `/nodes/{*}/disks/zfs` | GET, POST | 6 — Node system management |
-| `/nodes/{*}/disks/zfs/{*}` | DELETE, GET | 6 — Node system management |
+| `/nodes/{*}/disks/zfs/{*}` | GET, DELETE | 6 — Node system management |
 | `/nodes/{*}/dns` | GET, PUT | 6 — Node system management |
 | `/nodes/{*}/execute` | POST | OOS |
 | `/nodes/{*}/firewall` | GET | 10 — Firewall |
 | `/nodes/{*}/firewall/log` | GET | OOS |
 | `/nodes/{*}/firewall/options` | GET, PUT | 10 — Firewall |
 | `/nodes/{*}/firewall/rules` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/firewall/rules/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/firewall/rules/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/hardware` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/hardware/pci` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/hardware/pci/{*}` | GET | 2 — Inventory data sources |
@@ -539,21 +566,21 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/hosts` | GET, POST | 6 — Node system management |
 | `/nodes/{*}/journal` | GET | OOS |
 | `/nodes/{*}/lxc` | GET, POST | 4 — Containers |
-| `/nodes/{*}/lxc/{*}` | DELETE, GET | 4 — Containers |
+| `/nodes/{*}/lxc/{*}` | GET, DELETE | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/clone` | POST | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/config` | GET, PUT | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/feature` | GET | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/firewall` | GET | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/firewall/aliases` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/lxc/{*}/firewall/aliases/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/lxc/{*}/firewall/aliases/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/firewall/ipset` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/lxc/{*}/firewall/ipset/{*}` | DELETE, GET, POST | 10 — Firewall |
-| `/nodes/{*}/lxc/{*}/firewall/ipset/{*}/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/lxc/{*}/firewall/ipset/{*}` | GET, POST, DELETE | 10 — Firewall |
+| `/nodes/{*}/lxc/{*}/firewall/ipset/{*}/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/firewall/log` | GET | OOS |
 | `/nodes/{*}/lxc/{*}/firewall/options` | GET, PUT | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/firewall/refs` | GET | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/firewall/rules` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/lxc/{*}/firewall/rules/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/lxc/{*}/firewall/rules/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/lxc/{*}/interfaces` | GET | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/migrate` | GET, POST | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/move_volume` | POST | 4 — Containers |
@@ -565,7 +592,7 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/lxc/{*}/rrd` | GET | OOS |
 | `/nodes/{*}/lxc/{*}/rrddata` | GET | OOS |
 | `/nodes/{*}/lxc/{*}/snapshot` | GET, POST | 4 — Containers |
-| `/nodes/{*}/lxc/{*}/snapshot/{*}` | DELETE, GET | 4 — Containers |
+| `/nodes/{*}/lxc/{*}/snapshot/{*}` | GET, DELETE | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/snapshot/{*}/config` | GET, PUT | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/snapshot/{*}/rollback` | POST | 4 — Containers |
 | `/nodes/{*}/lxc/{*}/spiceproxy` | POST | OOS |
@@ -583,18 +610,18 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/lxc/{*}/vncwebsocket` | GET | OOS |
 | `/nodes/{*}/migrateall` | POST | 6 — Node system management |
 | `/nodes/{*}/netstat` | GET | OOS |
-| `/nodes/{*}/network` | DELETE, GET, POST, PUT | 6 — Node system management |
-| `/nodes/{*}/network/{*}` | DELETE, GET, PUT | 6 — Node system management |
+| `/nodes/{*}/network` | GET, POST, PUT, DELETE | 6 — Node system management |
+| `/nodes/{*}/network/{*}` | GET, PUT, DELETE | 6 — Node system management |
 | `/nodes/{*}/qemu` | GET, POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}` | DELETE, GET | 3 — Virtual machines |
+| `/nodes/{*}/qemu/{*}` | GET, DELETE | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/agent` | GET, POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/exec` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/exec-status` | GET | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/file-read` | GET | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/file-write` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/fsfreeze-freeze` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/fsfreeze-status` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/fsfreeze-thaw` | POST | 3 — Virtual machines |
+| `/nodes/{*}/qemu/{*}/agent/exec` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/exec-status` | GET | OOS |
+| `/nodes/{*}/qemu/{*}/agent/file-read` | GET | OOS |
+| `/nodes/{*}/qemu/{*}/agent/file-write` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/fsfreeze-freeze` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/fsfreeze-status` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/fsfreeze-thaw` | POST | OOS |
 | `/nodes/{*}/qemu/{*}/agent/fstrim` | POST | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/agent/get-fsinfo` | GET | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/agent/get-host-name` | GET | 3 — Virtual machines |
@@ -608,11 +635,11 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/qemu/{*}/agent/info` | GET | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/agent/network-get-interfaces` | GET | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/agent/ping` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/set-user-password` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/shutdown` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/suspend-disk` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/suspend-hybrid` | POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/agent/suspend-ram` | POST | 3 — Virtual machines |
+| `/nodes/{*}/qemu/{*}/agent/set-user-password` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/shutdown` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/suspend-disk` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/suspend-hybrid` | POST | OOS |
+| `/nodes/{*}/qemu/{*}/agent/suspend-ram` | POST | OOS |
 | `/nodes/{*}/qemu/{*}/clone` | POST | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/cloudinit` | GET, PUT | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/cloudinit/dump` | GET | 3 — Virtual machines |
@@ -621,15 +648,15 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/qemu/{*}/feature` | GET | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/firewall` | GET | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/firewall/aliases` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/qemu/{*}/firewall/aliases/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/qemu/{*}/firewall/aliases/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/firewall/ipset` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/qemu/{*}/firewall/ipset/{*}` | DELETE, GET, POST | 10 — Firewall |
-| `/nodes/{*}/qemu/{*}/firewall/ipset/{*}/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/qemu/{*}/firewall/ipset/{*}` | GET, POST, DELETE | 10 — Firewall |
+| `/nodes/{*}/qemu/{*}/firewall/ipset/{*}/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/firewall/log` | GET | OOS |
 | `/nodes/{*}/qemu/{*}/firewall/options` | GET, PUT | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/firewall/refs` | GET | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/firewall/rules` | GET, POST | 10 — Firewall |
-| `/nodes/{*}/qemu/{*}/firewall/rules/{*}` | DELETE, GET, PUT | 10 — Firewall |
+| `/nodes/{*}/qemu/{*}/firewall/rules/{*}` | GET, PUT, DELETE | 10 — Firewall |
 | `/nodes/{*}/qemu/{*}/migrate` | GET, POST | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/monitor` | POST | OOS |
 | `/nodes/{*}/qemu/{*}/move_disk` | POST | 3 — Virtual machines |
@@ -642,7 +669,7 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/qemu/{*}/rrddata` | GET | OOS |
 | `/nodes/{*}/qemu/{*}/sendkey` | PUT | OOS |
 | `/nodes/{*}/qemu/{*}/snapshot` | GET, POST | 3 — Virtual machines |
-| `/nodes/{*}/qemu/{*}/snapshot/{*}` | DELETE, GET | 3 — Virtual machines |
+| `/nodes/{*}/qemu/{*}/snapshot/{*}` | GET, DELETE | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/snapshot/{*}/config` | GET, PUT | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/snapshot/{*}/rollback` | POST | 3 — Virtual machines |
 | `/nodes/{*}/qemu/{*}/spiceproxy` | POST | OOS |
@@ -704,23 +731,23 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/storage` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/storage/{*}` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/storage/{*}/content` | GET, POST | 5 — Storage & pools |
-| `/nodes/{*}/storage/{*}/content/{*}` | DELETE, GET, POST, PUT | 5 — Storage & pools |
+| `/nodes/{*}/storage/{*}/content/{*}` | GET, POST, PUT, DELETE | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/download-url` | POST | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/file-restore/download` | GET | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/file-restore/list` | GET | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/identity` | GET | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/import-metadata` | GET | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/oci-registry-pull` | POST | 5 — Storage & pools |
-| `/nodes/{*}/storage/{*}/prunebackups` | DELETE, GET | 5 — Storage & pools |
+| `/nodes/{*}/storage/{*}/prunebackups` | GET, DELETE | 5 — Storage & pools |
 | `/nodes/{*}/storage/{*}/rrd` | GET | OOS |
 | `/nodes/{*}/storage/{*}/rrddata` | GET | OOS |
 | `/nodes/{*}/storage/{*}/status` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/storage/{*}/upload` | POST | 5 — Storage & pools |
-| `/nodes/{*}/subscription` | DELETE, GET, POST, PUT | 6 — Node system management |
+| `/nodes/{*}/subscription` | GET, POST, PUT, DELETE | 6 — Node system management |
 | `/nodes/{*}/suspendall` | POST | 6 — Node system management |
 | `/nodes/{*}/syslog` | GET | OOS |
 | `/nodes/{*}/tasks` | GET | 2 — Inventory data sources |
-| `/nodes/{*}/tasks/{*}` | DELETE, GET | 2 — Inventory data sources |
+| `/nodes/{*}/tasks/{*}` | GET, DELETE | 2 — Inventory data sources |
 | `/nodes/{*}/tasks/{*}/log` | GET | OOS |
 | `/nodes/{*}/tasks/{*}/status` | GET | 2 — Inventory data sources |
 | `/nodes/{*}/termproxy` | POST | OOS |
@@ -732,8 +759,8 @@ Appendix A is generated from the linked `apidoc.js`. Re-audit after any schema c
 | `/nodes/{*}/vzdump/defaults` | GET | 9 — Data protection & HA |
 | `/nodes/{*}/vzdump/extractconfig` | GET | 9 — Data protection & HA |
 | `/nodes/{*}/wakeonlan` | POST | 6 — Node system management |
-| `/pools` | DELETE, GET, POST, PUT | 5 — Storage & pools |
-| `/pools/{*}` | DELETE, GET, PUT | 5 — Storage & pools |
+| `/pools` | GET, POST, PUT, DELETE | 5 — Storage & pools |
+| `/pools/{*}` | GET, PUT, DELETE | 5 — Storage & pools |
 | `/storage` | GET, POST | 5 — Storage & pools |
-| `/storage/{*}` | DELETE, GET, PUT | 5 — Storage & pools |
+| `/storage/{*}` | GET, PUT, DELETE | 5 — Storage & pools |
 | `/version` | GET | 1 — Foundation |

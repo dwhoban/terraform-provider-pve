@@ -1,4 +1,4 @@
-default: fmt lint install generate
+default: build
 
 build:
 	go build -v ./...
@@ -9,16 +9,22 @@ install: build
 lint:
 	golangci-lint run
 
-generate:
+generate: gen
 	cd tools; go generate ./...
+
+# Regenerate the provider registry (internal/provider/registry.json), the
+# ROADMAP Appendix A coverage table, and per-type examples from the API
+# schema + phase mappings. The audit gates emission on full coverage.
+gen:
+	go run ./gen
 
 fmt:
 	gofmt -s -w -e .
 
 test:
-	go test -v -cover -timeout=120s -parallel=10 ./...
+	go test -cover -timeout=120s -parallel=10 ./...
 
 testacc:
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
-.PHONY: fmt lint test testacc build install generate
+.PHONY: fmt lint test testacc build install generate gen

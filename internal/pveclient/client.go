@@ -22,18 +22,19 @@ import (
 // Environment variables consulted by the provider configuration. They are
 // defined here so the client package documents the full resolution contract.
 const (
-	EnvAPIToken   = "PVE_API_TOKEN"
-	EnvAPITokenID = "PVE_API_TOKEN_ID"
-	EnvAPISecret  = "PVE_API_SECRET"
-	EnvUser       = "PVE_USER"
-	EnvPassword   = "PVE_PASSWORD"
-	EnvTOTP       = "PVE_TOTP"
-	EnvAPIURL     = "PVE_API_URL"
-	EnvInsecure   = "PVE_INSECURE"
-	EnvCACert     = "PVE_CA_CERT"
-	EnvTimeout    = "PVE_REQUEST_TIMEOUT"
-	DefaultPort   = "8006"
-	apiPathPrefix = "/api2/json"
+	EnvAPIToken    = "PVE_API_TOKEN"
+	EnvAPITokenID  = "PVE_API_TOKEN_ID"
+	EnvAPISecret   = "PVE_API_SECRET"
+	EnvUser        = "PVE_USER"
+	EnvPassword    = "PVE_PASSWORD"
+	EnvTOTP        = "PVE_TOTP"
+	EnvAPIURL      = "PVE_API_URL"
+	EnvInsecure    = "PVE_INSECURE"
+	EnvCACert      = "PVE_CA_CERT"
+	EnvTimeout     = "PVE_REQUEST_TIMEOUT"
+	EnvTaskTimeout = "PVE_TASK_TIMEOUT"
+	DefaultPort    = "8006"
+	apiPathPrefix  = "/api2/json"
 )
 
 const (
@@ -42,6 +43,10 @@ const (
 	defaultRetryWait      = 250 * time.Millisecond
 	maxResponseSnippet    = 512
 )
+
+// DefaultTaskTimeout bounds a single UPID task wait unless configured
+// otherwise (provider attribute task_timeout / PVE_TASK_TIMEOUT).
+const DefaultTaskTimeout = 30 * time.Minute
 
 // Config constructs a Client.
 type Config struct {
@@ -66,6 +71,35 @@ type Config struct {
 
 	// RetryBaseWait is the base for exponential backoff between retries.
 	RetryBaseWait time.Duration
+
+	// TaskTimeout bounds each UPID task wait performed through this
+	// client. Defaults to DefaultTaskTimeout (30 minutes).
+	TaskTimeout time.Duration
+
+	// Shell runs commands on a node over SSH for the few operations the
+	// API cannot perform. Optional; nil means SSH is not configured.
+	Shell Shell
+
+	// RootTickets, when set, supplies a root@pam session ticket for calls
+	// under /nodes/{node}/ so an API token can perform operations PVE
+	// restricts to root@pam. Optional.
+	RootTickets RootTicketSource
+}
+
+// ShellOutput is the captured output of a remote command.
+type ShellOutput struct {
+	Stdout string
+	Stderr string
+}
+
+// Shell executes a command (argv, never a shell string) on a node.
+type Shell interface {
+	Run(ctx context.Context, node string, argv []string, stdin string) (ShellOutput, error)
+}
+
+// RootTicketSource mints a root@pam ticket and CSRF token on a node.
+type RootTicketSource interface {
+	RootTicket(ctx context.Context, node string) (ticket, csrf string, err error)
 }
 
 // APIError is a non-2xx response from the PVE API.
@@ -96,11 +130,14 @@ func IsUnauthorized(err error) bool {
 
 // Client is a Proxmox VE REST API client for /api2/json.
 type Client struct {
-	baseURL   *url.URL
-	http      *http.Client
-	creds     Credentials
-	retryMax  int
-	retryWait time.Duration
+	baseURL     *url.URL
+	http        *http.Client
+	creds       Credentials
+	retryMax    int
+	retryWait   time.Duration
+	taskTimeout time.Duration
+	shell       Shell
+	rootTickets RootTicketSource
 
 	authMu     sync.Mutex
 	ticket     string
@@ -140,14 +177,46 @@ func NewClient(cfg Config) (*Client, error) {
 	if retryWait <= 0 {
 		retryWait = defaultRetryWait
 	}
+	taskTimeout := cfg.TaskTimeout
+	if taskTimeout <= 0 {
+		taskTimeout = DefaultTaskTimeout
+	}
 
 	return &Client{
-		baseURL:   u,
-		http:      &http.Client{Timeout: timeout, Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment}},
-		creds:     cfg.Credentials,
-		retryMax:  retryMax,
-		retryWait: retryWait,
+		baseURL:     u,
+		http:        &http.Client{Timeout: timeout, Transport: &http.Transport{TLSClientConfig: tlsCfg, Proxy: http.ProxyFromEnvironment}},
+		creds:       cfg.Credentials,
+		retryMax:    retryMax,
+		retryWait:   retryWait,
+		taskTimeout: taskTimeout,
+		shell:       cfg.Shell,
+		rootTickets: cfg.RootTickets,
 	}, nil
+}
+
+// Shell returns the configured SSH command runner, or nil when the provider
+// has no ssh block.
+func (c *Client) Shell() Shell { return c.shell }
+
+// rootNode extracts the node of a /nodes/{node}/… API path ("" otherwise).
+func rootNode(path string) string {
+	rest, ok := strings.CutPrefix(path, "/nodes/")
+	if !ok {
+		return ""
+	}
+	node, _, found := strings.Cut(rest, "/")
+	if !found {
+		return ""
+	}
+	return node
+}
+
+// TaskTimeout returns the per-task wait bound configured on the client.
+func (c *Client) TaskTimeout() time.Duration {
+	if c.taskTimeout <= 0 {
+		return DefaultTaskTimeout
+	}
+	return c.taskTimeout
 }
 
 // ParseAPIURL validates a PVE endpoint: scheme must be https (the PVE API is
@@ -201,6 +270,19 @@ func (c *Client) GetVersion(ctx context.Context) (*Version, error) {
 // guaranteed not to have been sent, which cannot be distinguished reliably —
 // so mutations fail fast.
 func (c *Client) do(ctx context.Context, method, path string, params url.Values, out any) error {
+	if payload, err := c.doRaw(ctx, method, path, params, out); err != nil {
+		return err
+	} else if out != nil && payload != nil {
+		if err := json.Unmarshal(payload, out); err != nil {
+			return fmt.Errorf("%s %s: decoding response: %w", method, path, err)
+		}
+	}
+	return nil
+}
+
+// doRaw is do, but returns the raw "data" payload alongside decoding into
+// out (when non-nil). The payload is nil for a null data field.
+func (c *Client) doRaw(ctx context.Context, method, path string, params url.Values, out any) (json.RawMessage, error) {
 	var body io.Reader
 	if method == http.MethodGet || method == http.MethodDelete {
 		if len(params) > 0 {
@@ -223,19 +305,19 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values,
 	for attempt := range maxAttempts {
 		if attempt > 0 {
 			if err := sleepBackoff(ctx, c.retryWait, attempt); err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		req, err := http.NewRequestWithContext(ctx, method, c.baseURL.String()+apiPathPrefix+path, body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if body != nil {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
-		if err := c.authorize(ctx, req); err != nil {
-			return err
+		if err := c.authorize(ctx, req, rootNode(strings.SplitN(path, "?", 2)[0])); err != nil {
+			return nil, err
 		}
 
 		resp, err := c.http.Do(req)
@@ -247,10 +329,10 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values,
 			if method == http.MethodGet && ctx.Err() == nil && attempt+1 < maxAttempts {
 				continue
 			}
-			return lastErr
+			return nil, lastErr
 		}
 
-		apiErr := c.handleResponse(ctx, method, path, resp)
+		apiErr := c.handleResponse(resp)
 		if apiErr != nil {
 			lastErr = apiErr
 			var ae *APIError
@@ -265,7 +347,7 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values,
 					continue
 				}
 			}
-			return apiErr
+			return nil, apiErr
 		}
 
 		payload, err := decodeEnvelope(resp.Body)
@@ -274,22 +356,22 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values,
 			err = closeErr
 		}
 		if err != nil {
-			return fmt.Errorf("%s %s: %w", method, path, err)
+			return nil, fmt.Errorf("%s %s: %w", method, path, err)
 		}
-		if out != nil {
+		if out != nil && payload != nil {
 			if err := json.Unmarshal(payload, out); err != nil {
-				return fmt.Errorf("%s %s: decoding response: %w", method, path, err)
+				return nil, fmt.Errorf("%s %s: decoding response: %w", method, path, err)
 			}
 		}
-		return nil
+		return payload, nil
 	}
-	return fmt.Errorf("%s %s: giving up after %d attempts: %w", method, path, maxAttempts, lastErr)
+	return nil, fmt.Errorf("%s %s: giving up after %d attempts: %w", method, path, maxAttempts, lastErr)
 }
 
 // handleResponse converts non-2xx responses into *APIError, consuming and
 // closing the body. On success it returns nil and leaves the body open for
 // the caller to decode.
-func (c *Client) handleResponse(ctx context.Context, method, path string, resp *http.Response) error {
+func (c *Client) handleResponse(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
@@ -346,7 +428,18 @@ func decodeEnvelope(r io.Reader) (json.RawMessage, error) {
 
 // authorize attaches credentials: the token header for token auth, or the
 // session ticket cookie (+ CSRF header for mutating methods).
-func (c *Client) authorize(ctx context.Context, req *http.Request) error {
+func (c *Client) authorize(ctx context.Context, req *http.Request, node string) error {
+	if c.rootTickets != nil && node != "" {
+		ticket, csrf, err := c.rootTickets.RootTicket(ctx, node)
+		if err != nil {
+			return fmt.Errorf("minting root@pam ticket on node %q over ssh: %w", node, err)
+		}
+		req.AddCookie(&http.Cookie{Name: "PVEAuthCookie", Value: ticket})
+		if req.Method != http.MethodGet && req.Method != http.MethodHead {
+			req.Header.Set("CSRFPreventionToken", csrf)
+		}
+		return nil
+	}
 	if c.creds.UsesToken() {
 		req.Header.Set("Authorization", "PVEAPIToken="+c.creds.APIToken)
 		return nil

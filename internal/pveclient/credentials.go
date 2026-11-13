@@ -82,7 +82,7 @@ func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 	}
 
 	// Source 1: static provider configuration.
-	if opts.APIToken != "" || opts.APITokenID != "" || opts.APISecret != "" || opts.Username != "" || opts.Password != "" {
+	if opts.APIToken != "" || opts.APITokenID != "" || opts.APISecret != "" || opts.Username != "" || opts.Password != "" || opts.TOTP != "" {
 		token, err := normalizeTokenForm(opts.APIToken, opts.APITokenID, opts.APISecret,
 			"provider configuration", "api_token", "api_token_id", "api_secret")
 		if err != nil {
@@ -106,8 +106,9 @@ func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 	envTokenID := opts.Getenv(EnvAPITokenID)
 	envSecret := opts.Getenv(EnvAPISecret)
 	envUser := opts.Getenv(EnvUser)
+	envTOTP := opts.Getenv(EnvTOTP)
 	envPassword := opts.Getenv(EnvPassword)
-	if envToken != "" || envTokenID != "" || envSecret != "" || envUser != "" || envPassword != "" {
+	if envToken != "" || envTokenID != "" || envSecret != "" || envUser != "" || envPassword != "" || envTOTP != "" {
 		token, err := normalizeTokenForm(envToken, envTokenID, envSecret,
 			"environment variables", EnvAPIToken, EnvAPITokenID, EnvAPISecret)
 		if err != nil {
@@ -117,7 +118,7 @@ func ResolveCredentials(opts ResolveOptions) (Credentials, error) {
 			APIToken: token,
 			Username: envUser,
 			Password: envPassword,
-			TOTP:     opts.Getenv(EnvTOTP),
+			TOTP:     envTOTP,
 			Source:   "environment variables",
 		}
 		if creds.Complete() {

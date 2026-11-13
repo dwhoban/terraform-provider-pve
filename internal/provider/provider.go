@@ -10,11 +10,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dwhoban/terraform-provider-pve/internal/pveclient"
+	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -49,6 +52,8 @@ type pveProviderModel struct {
 	CACert       types.String `tfsdk:"ca_cert"`
 	Timeout      types.Int64  `tfsdk:"request_timeout"`
 	SkipValidate types.Bool   `tfsdk:"skip_credentials_validation"`
+	TaskTimeout  types.Int64  `tfsdk:"task_timeout"`
+	SSH          *sshModel    `tfsdk:"ssh"`
 }
 
 func (p *pveProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -104,11 +109,16 @@ func (p *pveProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 				Optional:            true,
 				MarkdownDescription: "Per-request timeout in seconds. Defaults to 30. May also be set via the `PVE_REQUEST_TIMEOUT` environment variable.",
 			},
+			"task_timeout": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "How long to wait for a single Proxmox VE task (UPID) to finish before failing, in seconds. Applies to every create, update, delete, and action that returns a task. Defaults to 1800 (30 minutes). May also be set via the `PVE_TASK_TIMEOUT` environment variable.",
+			},
 			"skip_credentials_validation": schema.BoolAttribute{
 				Optional:            true,
 				MarkdownDescription: "Skip the reachability and authentication check performed at provider configuration time.",
 			},
 		},
+		Blocks: map[string]schema.Block{"ssh": sshBlock()},
 	}
 }
 
@@ -120,24 +130,55 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	}
 
 	// Guard against unknown values (e.g. api_token = some_resource.output):
-	// resolving them as empty would silently authenticate as nobody.
-	for name, value := range map[string]types.String{
-		"api_url":      config.APIURL,
-		"api_token":    config.APIToken,
-		"api_token_id": config.APITokenID,
-		"api_secret":   config.APISecret,
-		"username":     config.Username,
-		"password":     config.Password,
-		"totp":         config.TOTP,
-		"ca_cert":      config.CACert,
+	// resolving them as empty would silently authenticate as nobody. The
+	// same applies to the boolean/number settings, whose unknown values
+	// coerce to false/0 and would silently override env fallbacks.
+	for name, ev := range map[string]string{
+		"api_url": pveclient.EnvAPIURL, "api_token": pveclient.EnvAPIToken,
+		"api_token_id": pveclient.EnvAPITokenID, "api_secret": pveclient.EnvAPISecret,
+		"username": pveclient.EnvUser, "password": pveclient.EnvPassword,
+		"totp": pveclient.EnvTOTP, "ca_cert": pveclient.EnvCACert,
 	} {
+		var value types.String
+		switch name {
+		case "api_url":
+			value = config.APIURL
+		case "api_token":
+			value = config.APIToken
+		case "api_token_id":
+			value = config.APITokenID
+		case "api_secret":
+			value = config.APISecret
+		case "username":
+			value = config.Username
+		case "password":
+			value = config.Password
+		case "totp":
+			value = config.TOTP
+		case "ca_cert":
+			value = config.CACert
+		}
 		if value.IsUnknown() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root(name),
 				"Unknown Value During Provider Configuration",
-				fmt.Sprintf("The provider cannot configure the client because %s depends on a value known only after apply. Set a static value or use the corresponding PVE_* environment variable.", name),
+				fmt.Sprintf("The provider cannot configure the client because %s depends on a value known only after apply. Set a static value or use the %s environment variable.", name, ev),
 			)
 		}
+	}
+	if config.Insecure.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("insecure"),
+			"Unknown Value During Provider Configuration",
+			fmt.Sprintf("The provider cannot resolve insecure because it depends on a value known only after apply. Set a static value or use %s.", pveclient.EnvInsecure),
+		)
+	}
+	if config.Timeout.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("request_timeout"),
+			"Unknown Value During Provider Configuration",
+			fmt.Sprintf("The provider cannot resolve request_timeout because it depends on a value known only after apply. Set a static value or use %s.", pveclient.EnvTimeout),
+		)
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -205,13 +246,51 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		timeout = time.Duration(secs) * time.Second
 	}
 
-	client, err := pveclient.NewClient(pveclient.Config{
+	taskTimeout := time.Duration(0)
+	if !config.TaskTimeout.IsNull() && config.TaskTimeout.ValueInt64() > 0 {
+		taskTimeout = time.Duration(config.TaskTimeout.ValueInt64()) * time.Second
+	} else if v := p.getenv(pveclient.EnvTaskTimeout); v != "" {
+		secs, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || secs <= 0 {
+			resp.Diagnostics.AddError(
+				"Invalid Task Timeout",
+				fmt.Sprintf("%s=%q is not a positive integer number of seconds.", pveclient.EnvTaskTimeout, v),
+			)
+			return
+		}
+		taskTimeout = time.Duration(secs) * time.Second
+	}
+
+	clientCfg := pveclient.Config{
 		URL:            apiURL,
 		Credentials:    creds,
 		Insecure:       insecure,
 		CACertPEM:      caCert,
 		RequestTimeout: timeout,
-	})
+		TaskTimeout:    taskTimeout,
+	}
+
+	// Optional SSH (lazy: nothing connects until an SSH-backed operation
+	// runs). The resolver uses a separate client without root-ticket
+	// minting, because minting itself needs the node address.
+	if sshConfigured(config.SSH, p.getenv) {
+		runner := buildSSHRunner(config.SSH, p.getenv, creds, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		lookup, err := pveclient.NewClient(clientCfg)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Proxmox VE Provider Configuration", err.Error())
+			return
+		}
+		runner.SetResolver(apiNodeResolver(lookup))
+		clientCfg.Shell = runner
+		if runner.RootTicketEnabled() {
+			clientCfg.RootTickets = runner
+		}
+	}
+
+	client, err := pveclient.NewClient(clientCfg)
 	if err != nil {
 		if errors.Is(err, pveclient.ErrNoCredentials) {
 			resp.Diagnostics.AddError("No Valid Credential Sources Found", err.Error())
@@ -232,6 +311,30 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 
 	resp.DataSourceData = client
 	resp.ResourceData = client
+	resp.ActionData = client
+	sharedProviderClient.set(client)
+}
+
+// sharedProviderClient hands the configured client to provider-defined
+// functions: framework v1.19.0 has no per-function configure hook, and each
+// plugin process serves exactly one configured provider instance.
+var sharedProviderClient = &clientHolder{}
+
+type clientHolder struct {
+	mu sync.RWMutex
+	c  *pveclient.Client
+}
+
+func (h *clientHolder) set(c *pveclient.Client) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.c = c
+}
+
+func (h *clientHolder) get() *pveclient.Client {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.c
 }
 
 func addConnectionDiagnostic(diagnostics diag.Diagnostics, apiURL string, creds pveclient.Credentials, err error) {
@@ -258,13 +361,21 @@ func envBool(getenv func(string) string, key string) bool {
 }
 
 func (p *pveProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return nil
+	return registryConstructors(KindResource, func(d *TypeDescriptor) func() resource.Resource { return NewGenericResource(d) })
 }
 
 func (p *pveProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewVersionDataSource,
-	}
+	base := []func() datasource.DataSource{NewVersionDataSource}
+	return append(base, registryConstructors(KindDataSource, func(d *TypeDescriptor) func() datasource.DataSource { return NewGenericDataSource(d) })...)
+}
+
+func (p *pveProvider) Actions(ctx context.Context) []func() action.Action {
+	base := []func() action.Action{NewCephInstallAction}
+	return append(base, registryConstructors(KindAction, func(d *TypeDescriptor) func() action.Action { return NewGenericAction(d) })...)
+}
+
+func (p *pveProvider) Functions(ctx context.Context) []func() function.Function {
+	return registryConstructors(KindFunction, func(d *TypeDescriptor) func() function.Function { return NewGenericFunction(d) })
 }
 
 func New(version string) func() provider.Provider {

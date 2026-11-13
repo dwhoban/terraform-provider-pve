@@ -59,11 +59,16 @@ func (u UPID) String() string { return u.raw }
 type TaskPollOptions struct {
 	// Interval between status polls. Defaults to 1s.
 	Interval time.Duration
-	// Timeout bounds the total wait. Defaults to 5 minutes.
+	// Timeout bounds the total wait. Defaults to 30 minutes (PVE tasks
+	// such as full-disk clones, migrations, and backups routinely run
+	// longer than the old 5-minute cap).
 	Timeout time.Duration
 	// LogTailLines is how many trailing task-log lines to include in a
 	// failure error. Defaults to 10.
 	LogTailLines int
+	// OnWait, when set, is invoked after each poll with the elapsed time
+	// and last status so callers can report progress.
+	OnWait func(elapsed time.Duration, status string)
 }
 
 // TaskStatus is the response of GET /nodes/{node}/tasks/{upid}/status.
@@ -92,7 +97,7 @@ func (c *Client) WaitForTask(ctx context.Context, rawUPID string, opts TaskPollO
 	}
 	timeout := opts.Timeout
 	if timeout <= 0 {
-		timeout = 5 * time.Minute
+		timeout = DefaultTaskTimeout
 	}
 	tailLines := opts.LogTailLines
 	if tailLines <= 0 {
@@ -100,14 +105,28 @@ func (c *Client) WaitForTask(ctx context.Context, rawUPID string, opts TaskPollO
 	}
 
 	deadline := time.Now().Add(timeout)
+	start := time.Now()
 	var last *TaskStatus
 	for {
 		st, err := c.getTaskStatus(ctx, upid)
 		if err != nil {
-			return err
+			// A single transient poll failure (connection reset, one 5xx)
+			// must not abort a healthy long-running task; keep polling
+			// until the deadline or context cancellation.
+			if ctx.Err() != nil || time.Now().After(deadline) {
+				return err
+			}
+		} else {
+			last = st
+			if opts.OnWait != nil {
+				status := st.Status
+				if st == nil {
+					status = ""
+				}
+				opts.OnWait(time.Since(start).Round(time.Second), status)
+			}
 		}
-		last = st
-		if st.Status == "stopped" {
+		if st != nil && st.Status == "stopped" {
 			if st.ExitStatus == "OK" {
 				return nil
 			}
@@ -118,7 +137,11 @@ func (c *Client) WaitForTask(ctx context.Context, rawUPID string, opts TaskPollO
 			return fmt.Errorf("task %s (%s %s) failed: %s\ntask log tail:\n%s", upid.raw, upid.Type, upid.ID, st.ExitStatus, tail)
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("timed out after %s waiting for task %s (%s %s): last status %q", timeout, upid.raw, upid.Type, upid.ID, last.Status)
+			lastStatus := "unknown"
+			if last != nil {
+				lastStatus = last.Status
+			}
+			return fmt.Errorf("timed out after %s waiting for task %s (%s %s): last status %q", timeout, upid.raw, upid.Type, upid.ID, lastStatus)
 		}
 		select {
 		case <-ctx.Done():

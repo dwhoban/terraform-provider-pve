@@ -16,4 +16,13 @@ provider "pve" {
 
   # Accept self-signed certificates (PVE_INSECURE), or pin one with ca_cert (PVE_CA_CERT).
   # insecure = true
+
+  # Optional SSH, only for operations the API cannot do (installing Ceph via
+  # the pve_ceph_install action, root_ticket). Omit it and no SSH connection
+  # is ever made. See the "When is SSH required?" guide.
+  # ssh {
+  #   username    = "root"
+  #   agent       = true
+  #   root_ticket = false
+  # }
 }

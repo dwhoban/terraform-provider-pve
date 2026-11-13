@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func testClient(t *testing.T, creds Credentials, handler http.Handler) (*Client, *httptest.Server) {
+func testClient(t *testing.T, creds Credentials, handler http.Handler) *Client {
 	t.Helper()
 	srv := httptest.NewTLSServer(handler)
 	t.Cleanup(srv.Close)
@@ -30,7 +30,7 @@ func testClient(t *testing.T, creds Credentials, handler http.Handler) (*Client,
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
-	return c, srv
+	return c
 }
 
 func writeJSON(w http.ResponseWriter, status int, body string) {
@@ -81,7 +81,7 @@ func TestNewClientIncompleteCredentials(t *testing.T) {
 
 func TestClientTokenAuthHeader(t *testing.T) {
 	var gotAuth atomic.Value
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api2/json/version" {
 			gotAuth.Store(r.Header.Get("Authorization"))
 			writeJSON(w, http.StatusOK, `{"data":{"version":"9.2.2","release":"9.2","repoid":"b9984c6d"}}`)
@@ -103,7 +103,7 @@ func TestClientTokenAuthHeader(t *testing.T) {
 }
 
 func TestClientAPIErrorAndUnauthorized(t *testing.T) {
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, `{"data":null,"errors":{"ticket":"invalid"},"message":"401 Permission denied - invalid PVE ticket"}`)
 	}))
 
@@ -125,7 +125,7 @@ func TestClientAPIErrorAndUnauthorized(t *testing.T) {
 
 func TestClientGetRetriesOn5xx(t *testing.T) {
 	var attempts atomic.Int32
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api2/json/version" && attempts.Add(1) >= 3 {
 			writeJSON(w, http.StatusOK, `{"data":{"version":"9.2.2","release":"9.2","repoid":"b9984c6d"}}`)
 			return
@@ -143,7 +143,7 @@ func TestClientGetRetriesOn5xx(t *testing.T) {
 
 func TestClientPostFailsFast(t *testing.T) {
 	var attempts atomic.Int32
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts.Add(1)
 		writeJSON(w, http.StatusServiceUnavailable, `{"data":null,"message":"maintenance"}`)
 	}))
@@ -158,7 +158,7 @@ func TestClientPostFailsFast(t *testing.T) {
 }
 
 func TestClientTicketAuthFlow(t *testing.T) {
-	c, _ := testClient(t, Credentials{Username: "root@pam", Password: "hunter2", TOTP: "123456"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{Username: "root@pam", Password: "hunter2", TOTP: "123456"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api2/json/access/ticket":
 			if err := r.ParseForm(); err != nil {
@@ -186,11 +186,11 @@ func TestClientTicketAuthFlow(t *testing.T) {
 
 func TestClientTicketReauthOn401(t *testing.T) {
 	var ticketCalls atomic.Int32
-	c, _ := testClient(t, Credentials{Username: "root@pam", Password: "hunter2"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{Username: "root@pam", Password: "hunter2"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api2/json/access/ticket":
 			n := ticketCalls.Add(1)
-			writeJSON(w, http.StatusOK, `{"data":{"ticket":"TICKET`+string(rune('0'+n))+`","CSRFPreventionToken":"CSRF"}}`)
+			writeJSON(w, http.StatusOK, `{"data":{"ticket":"TICKET`+string('0'+n)+`","CSRFPreventionToken":"CSRF"}}`)
 		case "/api2/json/version":
 			cookie, err := r.Cookie("PVEAuthCookie")
 			if err != nil || cookie.Value != "TICKET2" {
@@ -213,7 +213,7 @@ func TestClientTicketReauthOn401(t *testing.T) {
 }
 
 func TestClientUnexpectedBody(t *testing.T) {
-	c, _ := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	c := testClient(t, Credentials{APIToken: "root@pam!t=abc"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("<html>proxy error</html>"))
 	}))
 
