@@ -50,7 +50,7 @@ provider "pve" {
 
 data "pve_version" "current" {}
 `,
-				ExpectError: regexp.MustCompile(`Unconfigured Proxmox VE Client`),
+				ExpectError: regexp.MustCompile(`Invalid Proxmox VE Credentials`),
 			},
 			{
 				Config: `
@@ -61,7 +61,7 @@ provider "pve" {
 
 data "pve_version" "current" {}
 `,
-				ExpectError: regexp.MustCompile(`Unconfigured Proxmox VE Client`),
+				ExpectError: regexp.MustCompile(`Invalid Proxmox VE Credentials`),
 			},
 		},
 	})

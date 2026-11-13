@@ -167,7 +167,9 @@ func TestClientTicketAuthFlow(t *testing.T) {
 			if r.PostForm.Get("username") != "root@pam" || r.PostForm.Get("password") != "hunter2" || r.PostForm.Get("totp") != "123456" {
 				t.Errorf("ticket form = %v", r.PostForm)
 			}
-			writeJSON(w, http.StatusOK, `{"data":{"ticket":"TICKET1","CSRFPreventionToken":"CSRF1"}}`)
+			// The cap object pushes the body past 512 bytes: the pre-fix
+			// hand-rolled ticket read truncated here and failed to parse.
+			writeJSON(w, http.StatusOK, `{"data":{"ticket":"TICKET1","CSRFPreventionToken":"CSRF1","cap":{"pad":"`+strings.Repeat("x", 1024)+`"}}}`)
 		case "/api2/json/version":
 			cookie, err := r.Cookie("PVEAuthCookie")
 			if err != nil || cookie.Value != "TICKET1" {
@@ -209,6 +211,31 @@ func TestClientTicketReauthOn401(t *testing.T) {
 	}
 	if ticketCalls.Load() != 2 {
 		t.Errorf("ticket requests = %d, want 2", ticketCalls.Load())
+	}
+}
+
+// TestEnsureTicketUnauthorizedIsTyped pins the credential-rejection path:
+// a 401 from /access/ticket must surface as a typed *APIError (so
+// IsUnauthorized classifies it), not an opaque wrapped error.
+func TestEnsureTicketUnauthorizedIsTyped(t *testing.T) {
+	c := testClient(t, Credentials{Username: "root@pam", Password: "wrong"}, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api2/json/access/ticket" {
+			writeJSON(w, http.StatusUnauthorized, `{"errors":{},"message":"bad"}`)
+			return
+		}
+		writeJSON(w, http.StatusNotFound, `{"data":null}`)
+	}))
+
+	_, err := c.GetVersion(context.Background())
+	if err == nil {
+		t.Fatal("GetVersion with rejected credentials: want error, got nil")
+	}
+	if !IsUnauthorized(err) {
+		t.Fatalf("IsUnauthorized(err) = false, want true (err: %v)", err)
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.Message != "bad" {
+		t.Fatalf("want *APIError with message %q, got %v", "bad", err)
 	}
 }
 

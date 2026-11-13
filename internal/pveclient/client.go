@@ -283,6 +283,22 @@ func (c *Client) do(ctx context.Context, method, path string, params url.Values,
 // doRaw is do, but returns the raw "data" payload alongside decoding into
 // out (when non-nil). The payload is nil for a null data field.
 func (c *Client) doRaw(ctx context.Context, method, path string, params url.Values, out any) (json.RawMessage, error) {
+	return c.doRequest(ctx, method, path, params, out, true)
+}
+
+// doRequest is the one transport path: it builds, authorizes (unless
+// authenticate is false), sends, and decodes one API request, applying the
+// retry policy. authenticate is false only for the ticket request itself,
+// which must skip authorize (it would recurse into ensureTicket) and is
+// attempted exactly once.
+//
+// Retry policy: only GET requests are retried (on connection errors and
+// 500/502/503/504), because retrying a mutation that the server may have
+// started processing can duplicate work. All methods are retried on
+// connection errors where no response was received only when the request is
+// guaranteed not to have been sent, which cannot be distinguished reliably —
+// so mutations fail fast.
+func (c *Client) doRequest(ctx context.Context, method, path string, params url.Values, out any, authenticate bool) (json.RawMessage, error) {
 	var body io.Reader
 	if method == http.MethodGet || method == http.MethodDelete {
 		if len(params) > 0 {
@@ -295,12 +311,14 @@ func (c *Client) doRaw(ctx context.Context, method, path string, params url.Valu
 	var lastErr error
 	reauthed := false
 	maxAttempts := 1
-	if method == http.MethodGet {
-		maxAttempts += c.retryMax
-	}
-	if !c.creds.UsesToken() {
-		// One spare attempt to re-authenticate an expired session ticket.
-		maxAttempts++
+	if authenticate {
+		if method == http.MethodGet {
+			maxAttempts += c.retryMax
+		}
+		if !c.creds.UsesToken() {
+			// One spare attempt to re-authenticate an expired session ticket.
+			maxAttempts++
+		}
 	}
 	for attempt := range maxAttempts {
 		if attempt > 0 {
@@ -316,8 +334,10 @@ func (c *Client) doRaw(ctx context.Context, method, path string, params url.Valu
 		if body != nil {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
-		if err := c.authorize(ctx, req, rootNode(strings.SplitN(path, "?", 2)[0])); err != nil {
-			return nil, err
+		if authenticate {
+			if err := c.authorize(ctx, req, rootNode(strings.SplitN(path, "?", 2)[0])); err != nil {
+				return nil, err
+			}
 		}
 
 		resp, err := c.http.Do(req)
@@ -339,7 +359,9 @@ func (c *Client) doRaw(ctx context.Context, method, path string, params url.Valu
 			if errors.As(apiErr, &ae) {
 				// An expired session ticket yields 401: re-authenticate
 				// once (handleResponse already dropped the stale ticket).
-				if ae.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() && !reauthed {
+				// Unauthenticated requests never get here: a rejected
+				// password is final on the first and only attempt.
+				if authenticate && ae.StatusCode == http.StatusUnauthorized && !c.creds.UsesToken() && !reauthed {
 					reauthed = true
 					continue
 				}
@@ -458,10 +480,14 @@ func (c *Client) authorize(ctx context.Context, req *http.Request, node string) 
 // credentials are configured. Callers must not hold authMu.
 func (c *Client) ensureTicket(ctx context.Context) error {
 	c.authMu.Lock()
-	defer c.authMu.Unlock()
 	if c.ticket != "" {
+		c.authMu.Unlock()
 		return nil
 	}
+	// The request runs without authMu: handleResponse takes it on a 401 to
+	// drop a stale ticket, and would deadlock against this goroutine.
+	// Concurrent callers may fetch in parallel; the first store wins below.
+	c.authMu.Unlock()
 
 	form := url.Values{}
 	form.Set("username", c.creds.Username)
@@ -469,36 +495,28 @@ func (c *Client) ensureTicket(ctx context.Context) error {
 	if c.creds.TOTP != "" {
 		form.Set("totp", c.creds.TOTP)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL.String()+apiPathPrefix+"/access/ticket", strings.NewReader(form.Encode()))
+	// authenticate=false routes the request through the one transport path
+	// while skipping authorize (which would recurse into ensureTicket) and
+	// any retry or re-auth spare: a rejected password is final, and
+	// handleResponse reports it as a typed *APIError so callers can
+	// classify it via IsUnauthorized.
+	var envelope struct {
+		Ticket              string `json:"ticket"`
+		CSRFPreventionToken string `json:"CSRFPreventionToken"`
+	}
+	payload, err := c.doRequest(ctx, http.MethodPost, "/access/ticket", form, &envelope, false)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("requesting session ticket: %w", err)
+	if envelope.Ticket == "" {
+		return fmt.Errorf("requesting session ticket: unexpected response: %.200s", strings.TrimSpace(string(payload)))
 	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	raw, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseSnippet))
-	if resp.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("invalid credentials (%s): username/password rejected by %s", c.creds, c.baseURL.Host)
+	c.authMu.Lock()
+	defer c.authMu.Unlock()
+	if c.ticket == "" {
+		c.ticket = envelope.Ticket
+		c.csrfToken = envelope.CSRFPreventionToken
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return &APIError{StatusCode: resp.StatusCode, Status: resp.Status, Message: strings.TrimSpace(string(raw))}
-	}
-	var envelope struct {
-		Data struct {
-			Ticket              string `json:"ticket"`
-			CSRFPreventionToken string `json:"CSRFPreventionToken"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &envelope); err != nil || envelope.Data.Ticket == "" {
-		return fmt.Errorf("requesting session ticket: unexpected response: %.200s", strings.TrimSpace(string(raw)))
-	}
-	c.ticket = envelope.Data.Ticket
-	c.csrfToken = envelope.Data.CSRFPreventionToken
 	return nil
 }
 

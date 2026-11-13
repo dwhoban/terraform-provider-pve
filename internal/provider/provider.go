@@ -304,7 +304,7 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// than mid-apply. Cheap identity check via GET /version.
 	if !config.SkipValidate.ValueBool() {
 		if _, err := client.GetVersion(ctx); err != nil {
-			addConnectionDiagnostic(resp.Diagnostics, apiURL, creds, err)
+			addConnectionDiagnostic(&resp.Diagnostics, apiURL, creds, err)
 			return
 		}
 	}
@@ -337,7 +337,7 @@ func (h *clientHolder) get() *pveclient.Client {
 	return h.c
 }
 
-func addConnectionDiagnostic(diagnostics diag.Diagnostics, apiURL string, creds pveclient.Credentials, err error) {
+func addConnectionDiagnostic(diagnostics *diag.Diagnostics, apiURL string, creds pveclient.Credentials, err error) {
 	if pveclient.IsUnauthorized(err) {
 		diagnostics.AddError(
 			"Invalid Proxmox VE Credentials",
