@@ -1,0 +1,25 @@
+---
+page_title: "Virtual machines"
+subcategory: ""
+description: |-
+  Creating and operating QEMU VMs with pve_vm: disks, NICs with cloud-init addresses, clone-at-create, import, and lifecycle actions.
+---
+
+# Virtual machines
+
+`pve_vm` manages the full QEMU configuration lifecycle. Two attributes are required — `node` and `vmid`; allocate a free id inline with the provider function `provider::pve::nextid()`.
+
+Disks and NICs are **slot-family blocks**, not flat string attributes. Each `disk` element takes one PVE slot (`interface`, e.g. `scsi0`); each `network` element one NIC slot (`network[0]` is `net0`). New volumes are allocated from `storage` + `size_gb`; the allocated `volume_id` and assigned `mac_address` are computed and read back into state.
+
+{{ tffile "examples/guides/vm.tf" }}
+
+Notes:
+
+- **Cloud-init addresses** (`ipv4`/`gateway`/`ipv6`/`gateway6` on a `network` element) land on the matching `ipconfig<n>` slot. They require a cloud-init setup on the guest (e.g. `ciuser`, `sshkeys`, or a cloud-init disk).
+- **Resizing and moving disks are not config edits**: `storage` and `size_gb` are create-only, and the plan rejects a change with a pointer to the right action — `pve_vm_disk_resize`, `pve_vm_disk_move` (and `pve_vm_disk_unlink`).
+- **Removing a block element unsets the slot** via PVE's canonical `delete` parameter; reordering a list keeps slots stable because elements are matched by wire key, not position.
+- **Clone-at-create**: set `clone_source_vmid` and the VM is created from that source via the clone endpoint instead of a fresh install.
+- **Import** an existing guest with its identity: `terraform import pve_vm.web pve1/101` (the id format is `node/vmid`). Import reads back the server's slots wholesale.
+- **Lifecycle** (start, stop, reboot, shutdown, suspend/resume, migrate, remote-migrate, snapshot rollback, convert to template, fstrim) is expressed with actions wired to lifecycle events via `action_trigger` — see the example above. `pve_vm_migrate` moves the guest to another `target` node.
+
+The full argument reference is on the [pve_vm resource page](../resources/vm.md); inventory and runtime facts (status, agent info, pending changes) are on the `pve_vm` data source.
