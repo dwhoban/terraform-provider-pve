@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -118,7 +119,7 @@ func (r *genericResource) mutateCreate(ctx context.Context, values map[string]at
 			params[c.NewIDParam] = ss
 		}
 		for _, name := range c.Op.Params {
-			if len(c.OnlyParams) > 0 && !containsString(c.OnlyParams, name) {
+			if len(c.OnlyParams) > 0 && !slices.Contains(c.OnlyParams, name) {
 				continue
 			}
 			if a, ok := d.Attr(name); ok {
@@ -133,15 +134,6 @@ func (r *genericResource) mutateCreate(ctx context.Context, values map[string]at
 		return executeOp(ctx, r.client, c.Op, path, params, nil)
 	}
 	return runOp(ctx, r.client, d, d.Create, values)
-}
-
-func containsString(list []string, s string) bool {
-	for _, x := range list {
-		if x == s {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *genericResource) readBack(ctx context.Context, values map[string]attr.Value) error {

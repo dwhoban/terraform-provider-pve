@@ -36,9 +36,10 @@ import (
 // same Attr tree into each package's types; keep them in sync. Only resources
 // take plan modifiers (ForceNew) — data sources and actions have no plans.
 
-func stringValidators(a Attr) []validator.String {
-	if len(a.Enum) > 0 {
-		return []validator.String{stringvalidator.OneOf(a.Enum...)}
+// stringValidators builds the enum validator for a string attribute.
+func stringValidators(enum []string) []validator.String {
+	if len(enum) > 0 {
+		return []validator.String{stringvalidator.OneOf(enum...)}
 	}
 	return nil
 }
@@ -63,8 +64,10 @@ func defaultString(a Attr) string {
 	}
 }
 
-func numericDefault(a Attr) (float64, bool) {
-	switch v := a.Default.(type) {
+// numericDefault extracts a numeric default value (decoded JSON numbers
+// are float64; hand-written mappings may use ints).
+func numericDefault(def any) (float64, bool) {
+	switch v := def.(type) {
 	case float64:
 		return v, true
 	case int:
@@ -209,117 +212,194 @@ func keepBlockComputed(a Attr, plan, state attr.Value) attr.Value {
 	return blockValue(a, out)
 }
 
+// specKind is the neutral attribute shape shared by every schema flavor.
+type specKind int
+
+const (
+	specString specKind = iota
+	specBool
+	specInt64
+	specFloat64
+	specList
+	specSet
+	specObject
+)
+
+// attrSpec is the neutral projection of an Attr: the one place the
+// per-type matrix (kind, nesting, flags, defaults) is decided. Each
+// schema flavor renders specs into its own framework constructors.
+type attrSpec struct {
+	Name, Desc                              string
+	Kind                                    specKind
+	Required, Optional, Computed, Sensitive bool
+	Enum                                    []string
+	Default                                 any
+	ForceNew                                bool
+	ElemType                                AttrType // list/set scalar elements
+	Nested                                  []attrSpec
+	Block                                   *BlockSpec
+}
+
+// attrSpecsOf projects a descriptor attribute list.
+func attrSpecsOf(list []Attr) []attrSpec {
+	out := make([]attrSpec, len(list))
+	for i, a := range list {
+		out[i] = attrSpecOf(a)
+	}
+	return out
+}
+
+// attrSpecOf projects one descriptor attribute, recursing into nested
+// object and list/set element attributes.
+func attrSpecOf(a Attr) attrSpec {
+	s := attrSpec{
+		Name: a.Name, Desc: attrDescription(a),
+		Required: a.Required, Optional: a.Optional, Computed: a.Computed, Sensitive: a.Sensitive,
+		Enum: a.Enum, Default: a.Default, ForceNew: a.ForceNew,
+		ElemType: a.ElemType, Block: a.Block,
+	}
+	switch a.Type {
+	case AttrBool:
+		s.Kind = specBool
+	case AttrInt64:
+		s.Kind = specInt64
+	case AttrFloat64:
+		s.Kind = specFloat64
+	case AttrObject:
+		s.Kind = specObject
+		s.Nested = attrSpecsOf(a.Attrs)
+	case AttrList, AttrSet:
+		if a.Type == AttrList {
+			s.Kind = specList
+		} else {
+			s.Kind = specSet
+		}
+		if len(a.ElemAttrs) > 0 {
+			s.Nested = attrSpecsOf(a.ElemAttrs)
+		}
+	default:
+		s.Kind = specString
+	}
+	return s
+}
+
 func buildResourceAttrs(list []Attr) map[string]schema.Attribute {
-	out := make(map[string]schema.Attribute, len(list))
-	for _, a := range list {
-		if a.Block != nil {
+	return renderResourceAttrs(attrSpecsOf(list))
+}
+
+// renderResourceAttrs renders neutral specs as resource attributes: the
+// full capability set — defaults (Optional+Computed), enum validators, and
+// ForceNew plan modifiers.
+func renderResourceAttrs(specs []attrSpec) map[string]schema.Attribute {
+	out := make(map[string]schema.Attribute, len(specs))
+	for _, spec := range specs {
+		if spec.Block != nil {
 			continue // rendered by buildResourceBlocks
 		}
-		desc := attrDescription(a)
-		switch {
-		case a.Type == AttrString:
-			attr := schema.StringAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
-				Validators: stringValidators(a),
-			}
-			if s, ok := a.Default.(string); ok && a.Optional && a.Computed {
-				attr.Default = stringdefault.StaticString(s)
-			}
-			if a.ForceNew {
-				attr.PlanModifiers = []planmodifier.String{stringplanmodifier.RequiresReplace()}
-			}
-			out[a.Name] = attr
-		case a.Type == AttrBool:
+		desc := spec.Desc
+		switch spec.Kind {
+		case specBool:
 			attr := schema.BoolAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-			if b, ok := a.Default.(bool); ok && a.Optional && a.Computed {
+			if b, ok := spec.Default.(bool); ok && spec.Optional && spec.Computed {
 				attr.Default = booldefault.StaticBool(b)
 			}
-			if a.ForceNew {
+			if spec.ForceNew {
 				attr.PlanModifiers = []planmodifier.Bool{boolplanmodifier.RequiresReplace()}
 			}
-			out[a.Name] = attr
-		case a.Type == AttrInt64:
+			out[spec.Name] = attr
+		case specInt64:
 			attr := schema.Int64Attribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-			if n, ok := numericDefault(a); ok && a.Optional && a.Computed {
+			if n, ok := numericDefault(spec.Default); ok && spec.Optional && spec.Computed {
 				attr.Default = int64default.StaticInt64(int64(n))
 			}
-			if a.ForceNew {
+			if spec.ForceNew {
 				attr.PlanModifiers = []planmodifier.Int64{int64planmodifier.RequiresReplace()}
 			}
-			out[a.Name] = attr
-		case a.Type == AttrFloat64:
+			out[spec.Name] = attr
+		case specFloat64:
 			attr := schema.Float64Attribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-			if n, ok := numericDefault(a); ok && a.Optional && a.Computed {
+			if n, ok := numericDefault(spec.Default); ok && spec.Optional && spec.Computed {
 				attr.Default = float64default.StaticFloat64(n)
 			}
-			if a.ForceNew {
+			if spec.ForceNew {
 				attr.PlanModifiers = []planmodifier.Float64{float64planmodifier.RequiresReplace()}
 			}
-			out[a.Name] = attr
-		case a.Type == AttrObject:
+			out[spec.Name] = attr
+		case specObject:
 			attr := schema.SingleNestedAttribute{
-				Attributes: buildResourceAttrs(a.Attrs),
-				Required:   a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+				Attributes: renderResourceAttrs(spec.Nested),
+				Required:   spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-			if a.ForceNew {
+			if spec.ForceNew {
 				attr.PlanModifiers = []planmodifier.Object{objectplanmodifier.RequiresReplace()}
 			}
-			out[a.Name] = attr
-		case (a.Type == AttrList || a.Type == AttrSet) && len(a.ElemAttrs) > 0:
-			obj := schema.NestedAttributeObject{Attributes: buildResourceAttrs(a.ElemAttrs)}
-			if a.Type == AttrList {
-				attr := schema.ListNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-					Sensitive: a.Sensitive, MarkdownDescription: desc,
+			out[spec.Name] = attr
+		case specList, specSet:
+			if len(spec.Nested) > 0 {
+				obj := schema.NestedAttributeObject{Attributes: renderResourceAttrs(spec.Nested)}
+				if spec.Kind == specList {
+					attr := schema.ListNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+						Sensitive: spec.Sensitive, MarkdownDescription: desc,
+					}
+					if spec.ForceNew {
+						attr.PlanModifiers = []planmodifier.List{listplanmodifier.RequiresReplace()}
+					}
+					out[spec.Name] = attr
+				} else {
+					attr := schema.SetNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+						Sensitive: spec.Sensitive, MarkdownDescription: desc,
+					}
+					if spec.ForceNew {
+						attr.PlanModifiers = []planmodifier.Set{setplanmodifier.RequiresReplace()}
+					}
+					out[spec.Name] = attr
 				}
-				if a.ForceNew {
+				continue
+			}
+			if spec.Kind == specList {
+				attr := schema.ListAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+					Sensitive: spec.Sensitive, MarkdownDescription: desc,
+				}
+				if spec.ForceNew {
 					attr.PlanModifiers = []planmodifier.List{listplanmodifier.RequiresReplace()}
 				}
-				out[a.Name] = attr
+				out[spec.Name] = attr
 			} else {
-				attr := schema.SetNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-					Sensitive: a.Sensitive, MarkdownDescription: desc,
+				attr := schema.SetAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+					Sensitive: spec.Sensitive, MarkdownDescription: desc,
 				}
-				if a.ForceNew {
+				if spec.ForceNew {
 					attr.PlanModifiers = []planmodifier.Set{setplanmodifier.RequiresReplace()}
 				}
-				out[a.Name] = attr
+				out[spec.Name] = attr
 			}
-		case a.Type == AttrList:
-			attr := schema.ListAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		default: // specString
+			attr := schema.StringAttribute{
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
+				Validators: stringValidators(spec.Enum),
 			}
-			if a.ForceNew {
-				attr.PlanModifiers = []planmodifier.List{listplanmodifier.RequiresReplace()}
+			if s, ok := spec.Default.(string); ok && spec.Optional && spec.Computed {
+				attr.Default = stringdefault.StaticString(s)
 			}
-			out[a.Name] = attr
-		case a.Type == AttrSet:
-			attr := schema.SetAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+			if spec.ForceNew {
+				attr.PlanModifiers = []planmodifier.String{stringplanmodifier.RequiresReplace()}
 			}
-			if a.ForceNew {
-				attr.PlanModifiers = []planmodifier.Set{setplanmodifier.RequiresReplace()}
-			}
-			out[a.Name] = attr
-		default:
-			out[a.Name] = schema.StringAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
-			}
+			out[spec.Name] = attr
 		}
 	}
 	return out
@@ -342,64 +422,74 @@ func buildDataSourceSchema(d *TypeDescriptor) dschema.Schema {
 }
 
 func buildDataSourceAttrs(list []Attr) map[string]dschema.Attribute {
-	out := make(map[string]dschema.Attribute, len(list))
-	for _, a := range list {
-		desc := attrDescription(a)
-		switch {
-		case a.Type == AttrString:
-			out[a.Name] = dschema.StringAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
-				Validators: stringValidators(a),
+	return renderDataSourceAttrs(attrSpecsOf(list))
+}
+
+// renderDataSourceAttrs renders neutral specs as data source attributes:
+// a read-only surface — no defaults, no plan modifiers. Blocks are not
+// rendered: no data source declares one today (if the mapping grows one,
+// wire it here deliberately).
+func renderDataSourceAttrs(specs []attrSpec) map[string]dschema.Attribute {
+	out := make(map[string]dschema.Attribute, len(specs))
+	for _, spec := range specs {
+		if spec.Block != nil {
+			continue // no data source declares blocks today
+		}
+		desc := spec.Desc
+		switch spec.Kind {
+		case specBool:
+			out[spec.Name] = dschema.BoolAttribute{
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-		case a.Type == AttrBool:
-			out[a.Name] = dschema.BoolAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		case specInt64:
+			out[spec.Name] = dschema.Int64Attribute{
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-		case a.Type == AttrInt64:
-			out[a.Name] = dschema.Int64Attribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		case specFloat64:
+			out[spec.Name] = dschema.Float64Attribute{
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-		case a.Type == AttrFloat64:
-			out[a.Name] = dschema.Float64Attribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		case specObject:
+			out[spec.Name] = dschema.SingleNestedAttribute{
+				Attributes: renderDataSourceAttrs(spec.Nested),
+				Required:   spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
 			}
-		case a.Type == AttrObject:
-			out[a.Name] = dschema.SingleNestedAttribute{
-				Attributes: buildDataSourceAttrs(a.Attrs),
-				Required:   a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		case specList, specSet:
+			if len(spec.Nested) > 0 {
+				obj := dschema.NestedAttributeObject{Attributes: renderDataSourceAttrs(spec.Nested)}
+				if spec.Kind == specList {
+					out[spec.Name] = dschema.ListNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+						Sensitive: spec.Sensitive, MarkdownDescription: desc,
+					}
+				} else {
+					out[spec.Name] = dschema.SetNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+						Sensitive: spec.Sensitive, MarkdownDescription: desc,
+					}
+				}
+				continue
 			}
-		case (a.Type == AttrList || a.Type == AttrSet) && len(a.ElemAttrs) > 0:
-			obj := dschema.NestedAttributeObject{Attributes: buildDataSourceAttrs(a.ElemAttrs)}
-			if a.Type == AttrList {
-				out[a.Name] = dschema.ListNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-					Sensitive: a.Sensitive, MarkdownDescription: desc,
+			if spec.Kind == specList {
+				out[spec.Name] = dschema.ListAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+					Sensitive: spec.Sensitive, MarkdownDescription: desc,
 				}
 			} else {
-				out[a.Name] = dschema.SetNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-					Sensitive: a.Sensitive, MarkdownDescription: desc,
+				out[spec.Name] = dschema.SetAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+					Sensitive: spec.Sensitive, MarkdownDescription: desc,
 				}
 			}
-		case a.Type == AttrList:
-			out[a.Name] = dschema.ListAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
-			}
-		case a.Type == AttrSet:
-			out[a.Name] = dschema.SetAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
-			}
-		default:
-			out[a.Name] = dschema.StringAttribute{
-				Required: a.Required, Optional: a.Optional, Computed: a.Computed,
-				Sensitive: a.Sensitive, MarkdownDescription: desc,
+		default: // specString
+			out[spec.Name] = dschema.StringAttribute{
+				Required: spec.Required, Optional: spec.Optional, Computed: spec.Computed,
+				Sensitive: spec.Sensitive, MarkdownDescription: desc,
+				Validators: stringValidators(spec.Enum),
 			}
 		}
 	}
@@ -440,67 +530,73 @@ func buildActionBlocks(list []Attr) map[string]actionschema.Block {
 }
 
 func buildActionAttrs(list []Attr) map[string]actionschema.Attribute {
-	out := make(map[string]actionschema.Attribute, len(list))
-	for _, a := range list {
-		if a.Block != nil {
+	return renderActionAttrs(attrSpecsOf(list))
+}
+
+// renderActionAttrs renders neutral specs as action attributes: inputs
+// only (no Computed/Sensitive state) — results surface via progress
+// events and diagnostics.
+func renderActionAttrs(specs []attrSpec) map[string]actionschema.Attribute {
+	out := make(map[string]actionschema.Attribute, len(specs))
+	for _, spec := range specs {
+		if spec.Block != nil {
 			continue // rendered by buildActionBlocks
 		}
-		desc := attrDescription(a)
-		switch {
-		case a.Type == AttrString:
-			out[a.Name] = actionschema.StringAttribute{
-				Required: a.Required, Optional: a.Optional,
-				MarkdownDescription: desc,
-				Validators:          stringValidators(a),
-			}
-		case a.Type == AttrBool:
-			out[a.Name] = actionschema.BoolAttribute{
-				Required: a.Required, Optional: a.Optional,
+		desc := spec.Desc
+		switch spec.Kind {
+		case specBool:
+			out[spec.Name] = actionschema.BoolAttribute{
+				Required: spec.Required, Optional: spec.Optional,
 				MarkdownDescription: desc,
 			}
-		case a.Type == AttrInt64:
-			out[a.Name] = actionschema.Int64Attribute{
-				Required: a.Required, Optional: a.Optional,
+		case specInt64:
+			out[spec.Name] = actionschema.Int64Attribute{
+				Required: spec.Required, Optional: spec.Optional,
 				MarkdownDescription: desc,
 			}
-		case a.Type == AttrFloat64:
-			out[a.Name] = actionschema.Float64Attribute{
-				Required: a.Required, Optional: a.Optional,
+		case specFloat64:
+			out[spec.Name] = actionschema.Float64Attribute{
+				Required: spec.Required, Optional: spec.Optional,
 				MarkdownDescription: desc,
 			}
-		case a.Type == AttrObject:
-			out[a.Name] = actionschema.SingleNestedAttribute{
-				Attributes: buildActionAttrs(a.Attrs),
-				Required:   a.Required, Optional: a.Optional,
+		case specObject:
+			out[spec.Name] = actionschema.SingleNestedAttribute{
+				Attributes: renderActionAttrs(spec.Nested),
+				Required:   spec.Required, Optional: spec.Optional,
 				MarkdownDescription: desc,
 			}
-		case (a.Type == AttrList || a.Type == AttrSet) && len(a.ElemAttrs) > 0:
-			obj := actionschema.NestedAttributeObject{Attributes: buildActionAttrs(a.ElemAttrs)}
-			if a.Type == AttrList {
-				out[a.Name] = actionschema.ListNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional,
+		case specList, specSet:
+			if len(spec.Nested) > 0 {
+				obj := actionschema.NestedAttributeObject{Attributes: renderActionAttrs(spec.Nested)}
+				if spec.Kind == specList {
+					out[spec.Name] = actionschema.ListNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional,
+						MarkdownDescription: desc,
+					}
+				} else {
+					out[spec.Name] = actionschema.SetNestedAttribute{
+						NestedObject: obj, Required: spec.Required, Optional: spec.Optional,
+						MarkdownDescription: desc,
+					}
+				}
+				continue
+			}
+			if spec.Kind == specList {
+				out[spec.Name] = actionschema.ListAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional,
 					MarkdownDescription: desc,
 				}
 			} else {
-				out[a.Name] = actionschema.SetNestedAttribute{
-					NestedObject: obj, Required: a.Required, Optional: a.Optional,
+				out[spec.Name] = actionschema.SetAttribute{
+					ElementType: elemFrameworkType(spec.ElemType), Required: spec.Required, Optional: spec.Optional,
 					MarkdownDescription: desc,
 				}
 			}
-		case a.Type == AttrList:
-			out[a.Name] = actionschema.ListAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional,
+		default: // specString
+			out[spec.Name] = actionschema.StringAttribute{
+				Required: spec.Required, Optional: spec.Optional,
 				MarkdownDescription: desc,
-			}
-		case a.Type == AttrSet:
-			out[a.Name] = actionschema.SetAttribute{
-				ElementType: elemTypeOf(a), Required: a.Required, Optional: a.Optional,
-				MarkdownDescription: desc,
-			}
-		default:
-			out[a.Name] = actionschema.StringAttribute{
-				Required: a.Required, Optional: a.Optional,
-				MarkdownDescription: desc,
+				Validators:          stringValidators(spec.Enum),
 			}
 		}
 	}
