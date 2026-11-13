@@ -56,6 +56,25 @@ type pveProviderModel struct {
 	SSH          *sshModel    `tfsdk:"ssh"`
 }
 
+// stringField describes one string provider attribute that must not be
+// unknown at configure time, and the env var that can supply it instead.
+type stringField struct {
+	name  string
+	env   string
+	value func(*pveProviderModel) types.String
+}
+
+var stringFields = []stringField{
+	{name: "api_url", env: pveclient.EnvAPIURL, value: func(m *pveProviderModel) types.String { return m.APIURL }},
+	{name: "api_token", env: pveclient.EnvAPIToken, value: func(m *pveProviderModel) types.String { return m.APIToken }},
+	{name: "api_token_id", env: pveclient.EnvAPITokenID, value: func(m *pveProviderModel) types.String { return m.APITokenID }},
+	{name: "api_secret", env: pveclient.EnvAPISecret, value: func(m *pveProviderModel) types.String { return m.APISecret }},
+	{name: "username", env: pveclient.EnvUser, value: func(m *pveProviderModel) types.String { return m.Username }},
+	{name: "password", env: pveclient.EnvPassword, value: func(m *pveProviderModel) types.String { return m.Password }},
+	{name: "totp", env: pveclient.EnvTOTP, value: func(m *pveProviderModel) types.String { return m.TOTP }},
+	{name: "ca_cert", env: pveclient.EnvCACert, value: func(m *pveProviderModel) types.String { return m.CACert }},
+}
+
 func (p *pveProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "pve"
 	resp.Version = p.version
@@ -133,36 +152,12 @@ func (p *pveProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// resolving them as empty would silently authenticate as nobody. The
 	// same applies to the boolean/number settings, whose unknown values
 	// coerce to false/0 and would silently override env fallbacks.
-	for name, ev := range map[string]string{
-		"api_url": pveclient.EnvAPIURL, "api_token": pveclient.EnvAPIToken,
-		"api_token_id": pveclient.EnvAPITokenID, "api_secret": pveclient.EnvAPISecret,
-		"username": pveclient.EnvUser, "password": pveclient.EnvPassword,
-		"totp": pveclient.EnvTOTP, "ca_cert": pveclient.EnvCACert,
-	} {
-		var value types.String
-		switch name {
-		case "api_url":
-			value = config.APIURL
-		case "api_token":
-			value = config.APIToken
-		case "api_token_id":
-			value = config.APITokenID
-		case "api_secret":
-			value = config.APISecret
-		case "username":
-			value = config.Username
-		case "password":
-			value = config.Password
-		case "totp":
-			value = config.TOTP
-		case "ca_cert":
-			value = config.CACert
-		}
-		if value.IsUnknown() {
+	for _, f := range stringFields {
+		if f.value(&config).IsUnknown() {
 			resp.Diagnostics.AddAttributeError(
-				path.Root(name),
+				path.Root(f.name),
 				"Unknown Value During Provider Configuration",
-				fmt.Sprintf("The provider cannot configure the client because %s depends on a value known only after apply. Set a static value or use the %s environment variable.", name, ev),
+				fmt.Sprintf("The provider cannot configure the client because %s depends on a value known only after apply. Set a static value or use the %s environment variable.", f.name, f.env),
 			)
 		}
 	}

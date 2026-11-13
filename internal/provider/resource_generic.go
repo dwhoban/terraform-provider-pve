@@ -24,8 +24,7 @@ import (
 // filtered list reads, state-only deletes, staged applies, and clone-at-
 // create — all selected by descriptor data.
 type genericResource struct {
-	desc   *TypeDescriptor
-	client *pveclient.Client
+	engineBase
 }
 
 var (
@@ -36,7 +35,7 @@ var (
 
 // NewGenericResource returns the resource constructor for a descriptor.
 func NewGenericResource(d *TypeDescriptor) func() resource.Resource {
-	return func() resource.Resource { return &genericResource{desc: d} }
+	return func() resource.Resource { return &genericResource{engineBase: engineBase{desc: d}} }
 }
 
 func (r *genericResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,18 +47,7 @@ func (r *genericResource) Schema(ctx context.Context, req resource.SchemaRequest
 }
 
 func (r *genericResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*pveclient.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Provider Configure Type",
-			fmt.Sprintf("Expected *pveclient.Client for %s, got: %T.", r.desc.Name, req.ProviderData),
-		)
-		return
-	}
-	r.client = c
+	r.setClient(req.ProviderData)
 }
 
 func (r *genericResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -74,10 +62,7 @@ func (r *genericResource) Create(ctx context.Context, req resource.CreateRequest
 
 	payload, waited, err := r.mutateCreate(ctx, values)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Creating %s", r.desc.Name),
-			fmt.Sprintf("creating %s (%s): %s", r.desc.Name, describeValues(r.desc, values), err),
-		)
+		opError(&resp.Diagnostics, "Creating", r.desc, describeValues(r.desc, values), err)
 		return
 	}
 	r.fillAllocatedID(payload, waited, values)
@@ -197,10 +182,7 @@ func (r *genericResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Reading %s", r.desc.Name),
-			fmt.Sprintf("reading %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-		)
+		opError(&resp.Diagnostics, "Reading", r.desc, describeID(r.desc, values), err)
 		return
 	}
 	// Imported state carries only the id: required attributes are still
@@ -212,10 +194,7 @@ func (r *genericResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 	ok, err := applyReadResponse(r.desc, r.desc.Read, payload, values, mode)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Reading %s", r.desc.Name),
-			fmt.Sprintf("reading %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-		)
+		opError(&resp.Diagnostics, "Reading", r.desc, describeID(r.desc, values), err)
 		return
 	}
 	if !ok {
@@ -289,10 +268,7 @@ func (r *genericResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 		payload, _, err := runOp(ctx, r.client, r.desc, r.desc.Update, values, extras...)
 		if err != nil {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("Error Updating %s", r.desc.Name),
-				fmt.Sprintf("updating %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-			)
+			opError(&resp.Diagnostics, "Updating", r.desc, describeID(r.desc, values), err)
 			return
 		}
 		captureResultAttr(r.desc.Update, payload, values)
@@ -360,22 +336,12 @@ func (r *genericResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 	if _, _, err := runOp(ctx, r.client, r.desc, r.desc.Delete, values); err != nil && !pveclient.IsNotFound(err) {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting %s", r.desc.Name),
-			fmt.Sprintf("deleting %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-		)
+		opError(&resp.Diagnostics, "Deleting", r.desc, describeID(r.desc, values), err)
 	}
 }
 
 func (r *genericResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func (r *genericResource) requireClient() error {
-	if r.client == nil {
-		return fmt.Errorf("%s: provider client is not configured", r.desc.Name)
-	}
-	return nil
 }
 
 // fillAllocatedID fills the first null ID attribute from the create

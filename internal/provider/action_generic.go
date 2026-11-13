@@ -5,10 +5,8 @@ package provider
 
 import (
 	"context"
-	"fmt"
-
 	"encoding/json"
-	"github.com/dwhoban/terraform-provider-pve/internal/pveclient"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -18,8 +16,7 @@ import (
 // genericAction implements every generated action: one mutating endpoint,
 // task-waited when it answers with a UPID, with progress events.
 type genericAction struct {
-	desc   *TypeDescriptor
-	client *pveclient.Client
+	engineBase
 }
 
 var (
@@ -29,7 +26,7 @@ var (
 
 // NewGenericAction returns the action constructor for a descriptor.
 func NewGenericAction(d *TypeDescriptor) func() action.Action {
-	return func() action.Action { return &genericAction{desc: d} }
+	return func() action.Action { return &genericAction{engineBase: engineBase{desc: d}} }
 }
 
 func (a *genericAction) Metadata(ctx context.Context, req action.MetadataRequest, resp *action.MetadataResponse) {
@@ -41,18 +38,7 @@ func (a *genericAction) Schema(ctx context.Context, req action.SchemaRequest, re
 }
 
 func (a *genericAction) Configure(ctx context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*pveclient.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Provider Configure Type",
-			fmt.Sprintf("Expected *pveclient.Client for %s, got: %T.", a.desc.Name, req.ProviderData),
-		)
-		return
-	}
-	a.client = c
+	a.setClient(req.ProviderData)
 }
 
 func (a *genericAction) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {
@@ -62,8 +48,8 @@ func (a *genericAction) Invoke(ctx context.Context, req action.InvokeRequest, re
 	}
 	var payload json.RawMessage
 	var waited bool
-	if a.client == nil {
-		resp.Diagnostics.AddError("Client Not Configured", fmt.Sprintf("%s: provider client is not configured.", a.desc.Name))
+	if err := a.requireClient(); err != nil {
+		resp.Diagnostics.AddError("Client Not Configured", err.Error())
 		return
 	}
 	if resp.SendProgress != nil {
@@ -91,10 +77,7 @@ func (a *genericAction) Invoke(ctx context.Context, req action.InvokeRequest, re
 		})
 	}
 	if err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Invoking %s", a.desc.Name),
-			fmt.Sprintf("invoking %s (%s): %s", a.desc.Name, describeValues(a.desc, values), err),
-		)
+		opError(&resp.Diagnostics, "Invoking", a.desc, describeValues(a.desc, values), err)
 		return
 	}
 	if resp.SendProgress != nil {

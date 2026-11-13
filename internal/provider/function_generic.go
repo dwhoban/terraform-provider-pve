@@ -11,22 +11,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/dwhoban/terraform-provider-pve/internal/pveclient"
 )
 
 // genericFunction implements every generated provider function: one GET
 // endpoint with the arguments as query parameters.
 type genericFunction struct {
-	desc   *TypeDescriptor
-	client *pveclient.Client
+	engineBase
 }
 
 var _ function.Function = (*genericFunction)(nil)
 
 // NewGenericFunction returns the function constructor for a descriptor.
 func NewGenericFunction(d *TypeDescriptor) func() function.Function {
-	return func() function.Function { return &genericFunction{desc: d} }
+	return func() function.Function { return &genericFunction{engineBase: engineBase{desc: d}} }
 }
 
 func (f *genericFunction) Metadata(ctx context.Context, req function.MetadataRequest, resp *function.MetadataResponse) {

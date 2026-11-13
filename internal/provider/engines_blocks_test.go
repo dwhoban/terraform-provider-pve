@@ -170,7 +170,7 @@ func TestEngineGuestBlocksRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	f := newFakeGuestPVE()
 	d := guestDescriptor()
-	r := &genericResource{desc: d, client: f.client(t)}
+	r := &genericResource{engineBase: engineBase{desc: d, client: f.client(t)}}
 	schema := buildResourceSchema(d)
 
 	diskAttr, _ := d.Attr("disk")

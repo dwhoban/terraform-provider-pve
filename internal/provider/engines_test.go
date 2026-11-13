@@ -289,7 +289,7 @@ func ctxbg() context.Context { return context.Background() }
 
 func newResourceTest(t *testing.T, d *TypeDescriptor, f *fakePVE) *genericResource {
 	t.Helper()
-	return &genericResource{desc: d, client: f.client(t)}
+	return &genericResource{engineBase: engineBase{desc: d, client: f.client(t)}}
 }
 
 func TestEngineResourceLifecycle(t *testing.T) {
@@ -493,7 +493,7 @@ func TestEngineDataSourceList(t *testing.T) {
 			}},
 		},
 	}
-	ds := &genericDataSource{desc: d, client: f.client(t)}
+	ds := &genericDataSource{engineBase: engineBase{desc: d, client: f.client(t)}}
 	schema := buildDataSourceSchema(d)
 	resp := &datasourcedatasource.ReadResponse{State: tfsdk.State{Schema: schema}}
 	ds.Read(ctx, datasourcedatasource.ReadRequest{
@@ -546,7 +546,7 @@ func TestEngineActionInvoke(t *testing.T) {
 			{Name: "wake", Type: AttrBool, Optional: true},
 		},
 	}
-	a := &genericAction{desc: d, client: f.client(t)}
+	a := &genericAction{engineBase: engineBase{desc: d, client: f.client(t)}}
 	schema := buildActionSchema(d)
 	progress := []string{}
 	resp := &action.InvokeResponse{SendProgress: func(e action.InvokeProgressEvent) { progress = append(progress, e.Message) }}
@@ -595,7 +595,7 @@ func TestEngineFunctionRun(t *testing.T) {
 		Call:       &Op{Method: "GET", Path: "/cluster/nextid"},
 		FuncResult: AttrInt64,
 	}
-	fn := &genericFunction{desc: d, client: c}
+	fn := &genericFunction{engineBase: engineBase{desc: d, client: c}}
 	resultData, ferr := function.Int64Return{}.NewResultData(ctx)
 	if ferr != nil {
 		t.Fatalf("NewResultData: %v", ferr)
@@ -767,7 +767,7 @@ func TestEngineFunctionArgumentsSentAsParams(t *testing.T) {
 		},
 		FuncResult: AttrString,
 	}
-	fn := &genericFunction{desc: d, client: c}
+	fn := &genericFunction{engineBase: engineBase{desc: d, client: c}}
 	rd, ferr := function.StringReturn{}.NewResultData(ctx)
 	if ferr != nil {
 		t.Fatalf("NewResultData: %v", ferr)
