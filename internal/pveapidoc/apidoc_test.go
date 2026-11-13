@@ -93,6 +93,32 @@ func TestParseParameters(t *testing.T) {
 	}
 }
 
+// TestParseFormatProperties pins the format-object layer: the named
+// properties of a property-string parameter, their default_key flag, and
+// alias links.
+func TestParseFormatProperties(t *testing.T) {
+	p, err := parseParameter("test[n]", map[string]any{
+		"type":        "string",
+		"description": "format-bearing parameter",
+		"format": map[string]any{
+			"file":   map[string]any{"default_key": json.Number("1"), "type": "string"},
+			"volume": map[string]any{"alias": "file", "optional": json.Number("1")},
+		},
+	})
+	if err != nil {
+		t.Fatalf("parseParameter: %v", err)
+	}
+	if len(p.FormatProperties) != 2 {
+		t.Fatalf("FormatProperties = %+v, want 2", p.FormatProperties)
+	}
+	if fp := p.FormatProperties[0]; fp.Key != "file" || !fp.DefaultKey {
+		t.Errorf("property 0 = %+v, want file default_key", fp)
+	}
+	if fp := p.FormatProperties[1]; fp.Key != "volume" || fp.Alias != "file" || !fp.Optional || fp.DefaultKey {
+		t.Errorf("property 1 = %+v, want volume alias file optional", fp)
+	}
+}
+
 func TestNormalizedPath(t *testing.T) {
 	tests := []struct{ in, want string }{
 		{"/nodes/{node}/qemu/{vmid}", "/nodes/{*}/qemu/{*}"},

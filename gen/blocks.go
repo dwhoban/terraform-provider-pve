@@ -8,13 +8,14 @@ import (
 
 	"github.com/dwhoban/terraform-provider-pve/gen/mapping"
 	"github.com/dwhoban/terraform-provider-pve/internal/provider"
+	"github.com/dwhoban/terraform-provider-pve/internal/pveapidoc"
 )
 
 // applyBlocks folds declared slot-family blocks into the attribute set:
 // each block consumes its families' derived slot-pattern attributes
 // (apidoc `x[n]`) and adds one block attribute in their place. Called
 // after the AttrRules and before op params bind to the final attrs.
-func applyBlocks(m mapping.Type, attrs map[string]*provider.Attr) error {
+func applyBlocks(doc *pveapidoc.Document, m mapping.Type, attrs map[string]*provider.Attr) error {
 	// consumed tracks families already taken by an earlier block of this
 	// type: sibling blocks may share a family (disk and cdrom share ide).
 	consumed := map[string]bool{}
@@ -100,6 +101,87 @@ func applyBlocks(m mapping.Type, attrs map[string]*provider.Attr) error {
 			a.ElemAttrs = elems
 		}
 		attrs[b.Name] = &a
+		if err := checkBlock(doc, m, b, spec); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkBlock validates a block spec against the API schema and adopts what
+// the mapping left out. The slot parameter's format object (net[n]'s
+// bridge, model, macaddr, ...) is the source of truth for the property
+// keys a slot value may carry, and its default_key property names the
+// value PVE writes without "key=". Families whose parameter has no format
+// object (ipconfig[n] uses the named string "pve-qm-ipconfig") are
+// skipped; a field key valid for any family's format passes (iothread is
+// a scsi/virtio property, not an ide one).
+func checkBlock(doc *pveapidoc.Document, m mapping.Type, b mapping.Block, spec *provider.BlockSpec) error {
+	props := map[string]bool{}
+	defKey := ""
+	for _, fam := range b.Families {
+		want := fam + "[n]"
+		if b.Fixed {
+			want = fam
+		}
+		for _, ep := range []struct {
+			e   *mapping.Endpoint
+			def string
+		}{
+			{m.Create, "POST"},
+			{m.Update, "PUT"},
+			{m.Invoke, "POST"},
+		} {
+			if ep.e == nil {
+				continue
+			}
+			method := orDefault(ep.e.Method, ep.def)
+			paths := []string{ep.e.Path}
+			for _, p := range ep.e.Paths {
+				paths = append(paths, p)
+			}
+			for _, p := range paths {
+				if p == "" {
+					continue
+				}
+				f, ok := doc.Find(p)
+				if !ok {
+					continue
+				}
+				mi, ok := f.Methods[method]
+				if !ok {
+					continue
+				}
+				for _, prm := range mi.Parameters {
+					if prm.Name != want {
+						continue
+					}
+					for _, fp := range prm.FormatProperties {
+						props[fp.Key] = true
+						if fp.DefaultKey {
+							defKey = fp.Key
+						}
+					}
+				}
+			}
+		}
+	}
+	if len(props) == 0 {
+		return nil // no format object: nothing to validate against
+	}
+	switch {
+	case b.DefaultKey != "" && defKey != "" && b.DefaultKey != defKey:
+		return fmt.Errorf("block %s: default key %q does not match apidoc %q", b.Name, b.DefaultKey, defKey)
+	case b.DefaultKey == "" && defKey != "":
+		spec.DefaultKey = defKey // adopt the schema's default key
+	}
+	for _, f := range spec.Fields {
+		if f.Family != "" || f.Role == provider.RoleIndex || f.Key == "size" {
+			continue // secondary families and structural fields
+		}
+		if !props[f.Key] {
+			return fmt.Errorf("block %s: field %s key %q is not a property of %s[n]", b.Name, f.Name, f.Key, b.Families[0])
+		}
 	}
 	return nil
 }

@@ -142,8 +142,8 @@ func (f *fakeGuestPVE) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func guestDescriptor() *TypeDescriptor {
-	disk, network := guestBlockSpecs()
+func guestDescriptor(t *testing.T) *TypeDescriptor {
+	disk, network := registryAttr(t, "pve_vm", "disk"), registryAttr(t, "pve_vm", "network")
 	return &TypeDescriptor{
 		Name: "pve_guest", Kind: KindResource, Phase: 3,
 		IDAttrs: []string{"node", "vmid"},
@@ -169,7 +169,7 @@ func blockElemValue(a Attr, fields map[string]attr.Value) attr.Value {
 func TestEngineGuestBlocksRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	f := newFakeGuestPVE()
-	d := guestDescriptor()
+	d := guestDescriptor(t)
 	r := &genericResource{engineBase: engineBase{desc: d, client: f.client(t)}}
 	schema := buildResourceSchema(d)
 

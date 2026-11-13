@@ -74,12 +74,28 @@ type Parameter struct {
 	Type        string // "string" | "boolean" | "integer" | "number" | "array"
 	Description string
 	Format      string // e.g. "pve-storage-id", "ipv4"
-	Typetext    string
-	Optional    bool
-	Enum        []string
-	Default     json.RawMessage
-	MaxLength   int
-	Items       *Parameter // array element descriptor
+	// FormatProperties are the properties of an object-valued format: the
+	// named keys a property-string parameter carries (scsi[n]'s file, aio,
+	// cache, ...). Empty when Format is a named string or absent.
+	FormatProperties []FormatProperty
+	Typetext         string
+	Optional         bool
+	Enum             []string
+	Default          json.RawMessage
+	MaxLength        int
+	Items            *Parameter // array element descriptor
+}
+
+// FormatProperty is one property of a parameter's format object.
+type FormatProperty struct {
+	Key               string
+	Type              string
+	Alias             string // alias of another property (volume → file)
+	KeyAlias          string
+	FormatDescription string // value shape prose, e.g. "+FLAG[;-FLAG...]"
+	Enum              []string
+	Optional          bool
+	DefaultKey        bool // PVE writes this property without "key="
 }
 
 // Find returns the family for an exact path.
@@ -256,5 +272,38 @@ func parseParameter(name string, pmap map[string]any) (Parameter, error) {
 		}
 		p.Items = &ip
 	}
+	if formats, ok := pmap["format"].(map[string]any); ok {
+		keys := make([]string, 0, len(formats))
+		for k := range formats {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys) // stable regardless of JSON key order
+		for _, k := range keys {
+			pm, ok := formats[k].(map[string]any)
+			if !ok {
+				continue
+			}
+			p.FormatProperties = append(p.FormatProperties, parseFormatProperty(k, pm))
+		}
+	}
 	return p, nil
+}
+
+// parseFormatProperty decodes one property of a format object.
+func parseFormatProperty(key string, pmap map[string]any) FormatProperty {
+	fp := FormatProperty{Key: key}
+	fp.Type, _ = pmap["type"].(string)
+	fp.Alias, _ = pmap["alias"].(string)
+	fp.KeyAlias, _ = pmap["key_alias"].(string)
+	fp.FormatDescription, _ = pmap["format_description"].(string)
+	fp.Optional = numberFlag(pmap["optional"])
+	fp.DefaultKey = numberFlag(pmap["default_key"])
+	if enums, ok := pmap["enum"].([]any); ok {
+		for _, e := range enums {
+			if s, ok := e.(string); ok {
+				fp.Enum = append(fp.Enum, s)
+			}
+		}
+	}
+	return fp
 }

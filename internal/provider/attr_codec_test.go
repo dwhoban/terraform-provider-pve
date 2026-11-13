@@ -82,51 +82,31 @@ func TestAttrCodec(t *testing.T) {
 	}
 }
 
-// guestBlockSpecs mirrors the generator's pve_vm disk/network block
-// declarations (gen/mapping/phase3.go) for codec-level tests.
-func guestBlockSpecs() (disk, network Attr) {
-	disk = Attr{Name: "disk", Type: AttrList, Optional: true, ElemAttrs: []Attr{
-		{Name: "interface", Type: AttrString, Required: true},
-		{Name: "storage", Type: AttrString, Optional: true},
-		{Name: "size_gb", Type: AttrInt64, Optional: true, Computed: true},
-		{Name: "volume_id", Type: AttrString, Optional: true, Computed: true},
-		{Name: "iothread", Type: AttrBool, Optional: true},
-		{Name: "discard", Type: AttrBool, Optional: true},
-	}, Block: &BlockSpec{
-		Families:   []string{"ide", "sata", "scsi", "virtio"},
-		DefaultKey: "file",
-		Exclude:    map[string]string{"media": "cdrom", "file": "*cloudinit*"},
-		Fields: []BlockField{
-			{Name: "interface", Key: "interface", Role: RoleIndex},
-			{Name: "storage", Key: "file", Role: RoleVolumeStorage, CreateOnly: true},
-			{Name: "size_gb", Key: "size", Role: RoleVolumeSizeGB, CreateOnly: true},
-			{Name: "volume_id", Key: "file", Role: RoleVolumeID, CreateOnly: true},
-			{Name: "iothread", Key: "iothread"},
-			{Name: "discard", Key: "discard", True: "on", False: "ignore"},
-		},
-	}}
-	network = Attr{Name: "network", Type: AttrList, Optional: true, ElemAttrs: []Attr{
-		{Name: "model", Type: AttrString, Optional: true, Computed: true, Enum: []string{"virtio", "e1000"}},
-		{Name: "mac_address", Type: AttrString, Optional: true, Computed: true},
-		{Name: "bridge", Type: AttrString, Optional: true},
-		{Name: "vlan", Type: AttrInt64, Optional: true},
-		{Name: "ipv4", Type: AttrString, Optional: true},
-	}, Block: &BlockSpec{
-		Families:   []string{"net"},
-		DefaultKey: "model",
-		Fields: []BlockField{
-			{Name: "model", Key: "model", Role: RoleModel},
-			{Name: "mac_address", Key: "macaddr", Role: RoleMAC},
-			{Name: "bridge", Key: "bridge"},
-			{Name: "vlan", Key: "tag"},
-			{Name: "ipv4", Family: "ipconfig", Key: "ip"},
-		},
-	}}
-	return disk, network
+// registryAttr fetches a generated resource attribute from the embedded
+// registry, so tests exercise exactly what the generator produced instead
+// of a hand-mirrored copy.
+func registryAttr(t *testing.T, typeName, attrName string) Attr { //nolint:unparam // helper: typeName kept for future non-vm fixtures
+	t.Helper()
+	reg, err := GeneratedRegistry()
+	if err != nil {
+		t.Fatalf("GeneratedRegistry: %v", err)
+	}
+	for _, d := range reg.Types {
+		if d.Name != typeName || d.Kind != KindResource {
+			continue
+		}
+		a, ok := d.Attr(attrName)
+		if !ok {
+			t.Fatalf("type %s has no attribute %s", typeName, attrName)
+		}
+		return a
+	}
+	t.Fatalf("no resource %s in registry", typeName)
+	return Attr{}
 }
 
 func TestBlockCodec(t *testing.T) {
-	disk, network := guestBlockSpecs()
+	disk, network := registryAttr(t, "pve_vm", "disk"), registryAttr(t, "pve_vm", "network")
 
 	t.Run("encode disk", func(t *testing.T) {
 		v, err := encodeBlock(disk, blockValue(disk, []map[string]attr.Value{{

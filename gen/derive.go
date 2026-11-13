@@ -284,7 +284,7 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 			return nil, fmt.Errorf("type %s attr %s: %w", m.Type, rule.Name, err)
 		}
 	}
-	if err := applyBlocks(m, attrs); err != nil {
+	if err := applyBlocks(doc, m, attrs); err != nil {
 		return nil, fmt.Errorf("type %s: %w", m.Type, err)
 	}
 	for op, apiNames := range wire {

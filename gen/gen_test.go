@@ -140,6 +140,76 @@ func TestDeriveGuestBlocks(t *testing.T) {
 	}
 }
 
+// TestCheckBlock pins the apidoc-driven block validation: default-key
+// adoption, mismatch rejection, and unknown property keys — against the
+// real schema's net[n] format object (default key "model").
+func TestCheckBlock(t *testing.T) {
+	doc := parsedDoc(t)
+	m := mapping.Type{
+		Type:   "pve_test",
+		Kind:   "resource",
+		Update: &mapping.Endpoint{Path: "/nodes/{node}/qemu/{vmid}/config"},
+	}
+	base := mapping.Block{
+		Name:     "network",
+		Families: []string{"net"},
+		Fields: []mapping.BlockField{
+			{Name: "model", Key: "model", Role: "model"},
+			{Name: "bridge", Key: "bridge"},
+		},
+	}
+
+	// Omitted default key: adopted from the schema.
+	adopted := base
+	spec := &provider.BlockSpec{Families: adopted.Families, Fields: []provider.BlockField{
+		{Name: "model", Key: "model", Role: provider.RoleModel},
+		{Name: "bridge", Key: "bridge"},
+	}}
+	if err := checkBlock(doc, m, adopted, spec); err != nil {
+		t.Fatalf("checkBlock: %v", err)
+	}
+	if spec.DefaultKey != "model" {
+		t.Fatalf("DefaultKey = %q, want adopted %q", spec.DefaultKey, "model")
+	}
+
+	// Wrong default key: rejected with the schema's value.
+	wrong := base
+	wrong.DefaultKey = "bridge"
+	if err := checkBlock(doc, m, wrong, spec); err == nil || !strings.Contains(err.Error(), `default key "bridge" does not match apidoc "model"`) {
+		t.Fatalf("err = %v", err)
+	}
+
+	// Field key the format object does not declare: rejected.
+	bogus := base
+	bogus.Fields = append(bogus.Fields, mapping.BlockField{Name: "carrier", Key: "carrier"})
+	spec2 := &provider.BlockSpec{Families: bogus.Families, DefaultKey: "model", Fields: []provider.BlockField{
+		{Name: "model", Key: "model", Role: provider.RoleModel},
+		{Name: "bridge", Key: "bridge"},
+		{Name: "carrier", Key: "carrier"},
+	}}
+	if err := checkBlock(doc, m, bogus, spec2); err == nil || !strings.Contains(err.Error(), `field carrier key "carrier" is not a property of net[n]`) {
+		t.Fatalf("err = %v", err)
+	}
+
+	// No format object anywhere (named string format): skipped silently.
+	noFmt := mapping.Type{
+		Type:   "pve_test2",
+		Kind:   "resource",
+		Update: &mapping.Endpoint{Path: "/nodes/{node}/qemu/{vmid}/config"},
+	}
+	secondary := mapping.Block{
+		Name:     "ipconfig",
+		Families: []string{"ipconfig"},
+		Fields: []mapping.BlockField{
+			{Name: "ipv4", Key: "ip"},
+		},
+	}
+	spec3 := &provider.BlockSpec{Families: secondary.Families, Fields: []provider.BlockField{{Name: "ipv4", Key: "ip"}}}
+	if err := checkBlock(doc, noFmt, secondary, spec3); err != nil {
+		t.Fatalf("ipconfig[n] (named string format) should skip validation: %v", err)
+	}
+}
+
 func deriveAll(t *testing.T, doc *pveapidoc.Document) *provider.Registry {
 	t.Helper()
 	reg := &provider.Registry{SchemaVersion: 1}
