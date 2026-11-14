@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -280,5 +282,109 @@ func TestClientReauthReplaysBody(t *testing.T) {
 
 	if _, err := c.DoRequest(context.Background(), http.MethodPost, "/things", url.Values{"name": []string{"alpha"}}); err != nil {
 		t.Fatalf("DoRequest after re-auth: %v", err)
+	}
+}
+
+type fakeRootTickets struct {
+	mu     sync.Mutex
+	minted []string
+	forgot []string
+}
+
+func (f *fakeRootTickets) RootTicket(_ context.Context, node string) (string, string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.minted = append(f.minted, node)
+	return "T", "C", nil
+}
+
+func (f *fakeRootTickets) ForgetRootTicket(node string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.forgot = append(f.forgot, node)
+}
+
+func TestRootTicketClusterConfig(t *testing.T) {
+	type seen struct{ method, path, cookie, csrf, auth string }
+	var (
+		mu       sync.Mutex
+		requests []seen
+	)
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie := ""
+		if c, err := r.Cookie("PVEAuthCookie"); err == nil {
+			cookie = c.Value
+		}
+		mu.Lock()
+		requests = append(requests, seen{r.Method, strings.TrimPrefix(r.URL.Path, "/api2/json"), cookie, r.Header.Get("CSRFPreventionToken"), r.Header.Get("Authorization")})
+		mu.Unlock()
+		if r.URL.Path == "/api2/json/cluster/status" {
+			writeJSON(w, http.StatusOK, `{"data":[{"type":"cluster","name":"c"},{"type":"node","name":"pve02","local":0},{"type":"node","name":"pve01","local":1}]}`)
+			return
+		}
+		writeJSON(w, http.StatusOK, `{"data":null}`)
+	}))
+	t.Cleanup(srv.Close)
+	fake := &fakeRootTickets{}
+	c, err := NewClient(Config{
+		URL:            srv.URL,
+		Credentials:    Credentials{APIToken: "root@pam!t=abc"},
+		Insecure:       true,
+		RequestTimeout: 5 * time.Second,
+		RootTickets:    fake,
+	})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	ctx := context.Background()
+	for _, call := range []struct{ method, path string }{
+		{http.MethodPost, "/cluster/config"},
+		{http.MethodPost, "/cluster/config"},
+		{http.MethodGet, "/cluster/config/join"},
+		{http.MethodPost, "/cluster/config/join"},
+		{http.MethodPost, "/nodes/pve02/lxc"},
+	} {
+		if _, err := c.DoRequest(ctx, call.method, call.path, nil); err != nil {
+			t.Fatalf("%s %s: %v", call.method, call.path, err)
+		}
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	byCall := map[string][]seen{}
+	for _, s := range requests {
+		key := s.method + " " + s.path
+		byCall[key] = append(byCall[key], s)
+	}
+	if n := len(byCall["GET /cluster/status"]); n != 1 {
+		t.Fatalf("GET /cluster/status fetched %d times, want 1", n)
+	}
+	if s := byCall["GET /cluster/status"][0]; s.auth != "PVEAPIToken=root@pam!t=abc" || s.cookie != "" {
+		t.Errorf("GET /cluster/status must use the token, got %+v", s)
+	}
+	posts := byCall["POST /cluster/config"]
+	if len(posts) != 2 {
+		t.Fatalf("POST /cluster/config sent %d times, want 2", len(posts))
+	}
+	for _, s := range posts {
+		if s.cookie != "T" || s.csrf != "C" || s.auth != "" {
+			t.Errorf("POST /cluster/config must carry the root ticket only, got %+v", s)
+		}
+	}
+	if s := byCall["GET /cluster/config/join"][0]; s.auth == "" || s.cookie != "" {
+		t.Errorf("GET /cluster/config/join must use the token, got %+v", s)
+	}
+	if s := byCall["POST /cluster/config/join"][0]; s.cookie != "T" || s.auth != "" {
+		t.Errorf("POST /cluster/config/join must carry the root ticket, got %+v", s)
+	}
+
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if want := []string{"pve01", "pve01", "pve01", "pve02"}; !slices.Equal(fake.minted, want) {
+		t.Errorf("minted on %v, want %v", fake.minted, want)
+	}
+	if want := []string{"pve01"}; !slices.Equal(fake.forgot, want) {
+		t.Errorf("forgot %v, want %v", fake.forgot, want)
 	}
 }

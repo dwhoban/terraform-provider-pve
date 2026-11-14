@@ -53,7 +53,7 @@ type sshNodeModel struct {
 
 func sshBlock() schema.Block {
 	return schema.SingleNestedBlock{
-		MarkdownDescription: "Optional SSH access to the nodes. The provider is API-first; SSH is used only for operations the Proxmox VE API cannot perform — currently installing Ceph (`pve_ceph_install`) and, with `root_ticket`, running `root@pam`-only API calls with an API token. If you use neither, omit this block and no SSH connection is ever made. See \"When is SSH required?\" in the provider guide.",
+		MarkdownDescription: "Optional SSH access to the nodes. The provider is API-first; SSH is used only for operations the Proxmox VE API cannot perform — currently installing Ceph (`pve_ceph_install`), setting up a QDevice (`pve_cluster_qdevice`) and, with `root_ticket`, running `root@pam`-only API calls with an API token. If you use none of these, omit this block and no SSH connection is ever made. See \"When is SSH required?\" in the provider guide.",
 		Attributes: map[string]schema.Attribute{
 			"username": schema.StringAttribute{
 				Optional:            true,
@@ -87,7 +87,7 @@ func sshBlock() schema.Block {
 			},
 			"root_ticket": schema.BoolAttribute{
 				Optional:            true,
-				MarkdownDescription: "Run API calls under `/nodes/{node}/` with a `root@pam` ticket minted on that node over SSH, so an API token can perform operations Proxmox VE restricts to `root@pam`. Requires `username = \"root\"`. While enabled, those calls are logged and authorized as `root@pam`, not as the token; calls outside `/nodes/{node}/` (such as `/cluster`) keep using the configured credentials. May also be set via `PVE_SSH_ROOT_TICKET`.",
+				MarkdownDescription: "Run API calls under `/nodes/{node}/` and the root-only cluster configuration writes (cluster create, join, node add/remove) with a `root@pam` ticket minted over SSH, so an API token can perform operations Proxmox VE restricts to `root@pam`. The ticket is minted on the node named in the call; for the cluster writes, on the API endpoint's own node, which the provider resolves through `/cluster/status` (the token needs `Sys.Audit` on `/`). Requires `username = \"root\"`. While enabled, those calls are logged and authorized as `root@pam`, not as the token; every other `/cluster` and `/access` call keeps using the configured credentials. May also be set via `PVE_SSH_ROOT_TICKET`.",
 			},
 		},
 		Blocks: map[string]schema.Block{

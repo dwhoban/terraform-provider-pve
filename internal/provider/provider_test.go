@@ -20,6 +20,9 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 
 func testAccPreCheck(t *testing.T) {
 	t.Helper()
+	if !testAccEnabled(t) {
+		return
+	}
 	if os.Getenv(pveclient.EnvAPIURL) == "" || os.Getenv(pveclient.EnvAPIToken) == "" {
 		t.Fatalf("acceptance tests require %s and %s to be set", pveclient.EnvAPIURL, pveclient.EnvAPIToken)
 	}
@@ -27,9 +30,24 @@ func testAccPreCheck(t *testing.T) {
 
 func testAccPreCheckURL(t *testing.T) {
 	t.Helper()
+	if !testAccEnabled(t) {
+		return
+	}
 	if os.Getenv(pveclient.EnvAPIURL) == "" {
 		t.Fatalf("acceptance tests require %s to be set", pveclient.EnvAPIURL)
 	}
+}
+
+// testAccEnabled reports whether acceptance tests run: `make testacc`
+// sets TF_ACC=1. Without it (plain `make test`, CI unit runs) they skip
+// instead of failing for want of a lab.
+func testAccEnabled(t *testing.T) bool {
+	t.Helper()
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("acceptance test: set TF_ACC=1 with PVE_API_URL/PVE_API_TOKEN to run against a lab")
+		return false
+	}
+	return true
 }
 
 // TestAccPveProvider_invalidCredentials pins the plan-time diagnostic for a

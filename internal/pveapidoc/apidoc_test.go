@@ -5,6 +5,7 @@ package pveapidoc
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -116,6 +117,60 @@ func TestParseFormatProperties(t *testing.T) {
 	}
 	if fp := p.FormatProperties[1]; fp.Key != "volume" || fp.Alias != "file" || !fp.Optional || fp.DefaultKey {
 		t.Errorf("property 1 = %+v, want volume alias file optional", fp)
+	}
+}
+
+// TestParseOneOfParameters pins the allOf/oneOf flattening used by the HA
+// rule endpoints: the discriminator becomes a required parameter and the
+// variants' parameters merge with their instance types recorded.
+func TestParseOneOfParameters(t *testing.T) {
+	doc, err := Parse(SchemaJS)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	fam, ok := doc.Find("/cluster/ha/rules")
+	if !ok {
+		t.Fatal("/cluster/ha/rules not found")
+	}
+	post := fam.Methods["POST"]
+	if post == nil {
+		t.Fatal("POST /cluster/ha/rules missing")
+	}
+	byName := map[string]Parameter{}
+	var names []string
+	for _, p := range post.Parameters {
+		byName[p.Name] = p
+		names = append(names, p.Name)
+	}
+	want := []string{"affinity", "comment", "disable", "nodes", "resources", "rule", "strict", "type"}
+	if !slices.Equal(names, want) {
+		t.Fatalf("POST parameters = %v, want %v", names, want)
+	}
+	if p := byName["type"]; p.Optional || !slices.Equal(p.Enum, []string{"node-affinity", "resource-affinity"}) {
+		t.Errorf("type = %+v, want required enum [node-affinity resource-affinity]", p)
+	}
+	if p := byName["resources"]; p.Optional || p.InstanceTypes != nil {
+		t.Errorf("resources = %+v, want required for every variant", p)
+	}
+	if p := byName["nodes"]; !p.Optional || !slices.Equal(p.InstanceTypes, []string{"node-affinity"}) || p.TypeProperty != "type" {
+		t.Errorf("nodes = %+v, want optional, node-affinity only, discriminated by type", p)
+	}
+	if p := byName["affinity"]; !p.Optional || p.Default != nil {
+		t.Errorf("affinity = %+v, want optional with no default (variants disagree)", p)
+	}
+
+	ruleFam, ok := doc.Find("/cluster/ha/rules/{rule}")
+	if !ok || ruleFam.Methods["PUT"] == nil {
+		t.Fatal("PUT /cluster/ha/rules/{rule} missing")
+	}
+	putNames := map[string]bool{}
+	for _, p := range ruleFam.Methods["PUT"].Parameters {
+		putNames[p.Name] = true
+	}
+	for _, n := range slices.Concat(want, []string{"delete", "digest"}) {
+		if !putNames[n] {
+			t.Errorf("PUT parameters miss %q (have %v)", n, putNames)
+		}
 	}
 }
 

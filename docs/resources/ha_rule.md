@@ -14,7 +14,9 @@ HA constraint rule over resources.
 
 ```terraform
 resource "pve_ha_rule" "example" {
-  rule = "CHANGE_ME"
+  resources = ["CHANGE_ME"]
+  rule      = "CHANGE_ME"
+  type      = "node-affinity"
 }
 ```
 
@@ -23,9 +25,19 @@ resource "pve_ha_rule" "example" {
 
 ### Required
 
+- `resources` (Set of String) HA resource IDs (e.g. `vm:100`, `ct:101`). PVE stores them sorted; a set keeps plans stable.
 - `rule` (String) HA rule identifier.
+- `type` (String) HA rule type. One of: `node-affinity`, `resource-affinity`.
+
+### Optional
+
+- `affinity` (String) `node-affinity`: Describes whether the HA resources are supposed to be placed on the given nodes ('positive'), or are supposed to be placed on any but the given nodes ('negative'). `resource-affinity`: Describes whether the HA resources are supposed to be kept on the same node ('positive'), or are supposed to be kept on separate nodes ('negative'). One of: `positive`, `negative`.
+- `comment` (String) HA rule description.
+- `delete` (String) A list of settings you want to delete.
+- `disable` (Boolean) Whether the HA rule is disabled.
+- `nodes` (Set of String) Nodes as `name` or `name:priority` (node-affinity only; required there). PVE drops `:0` priorities — write `pve03`, not `pve03:0`. Only valid when `type` is `node-affinity`.
+- `strict` (Boolean) Describes whether the node affinity rule is strict or non-strict. Only valid when `type` is `node-affinity`.
 
 ### Read-Only
 
 - `id` (String) Opaque identifier: rule (also the `terraform import` format).
-- `type` (String) HA rule type.

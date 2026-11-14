@@ -1,3 +1,5 @@
 resource "pve_ha_rule" "example" {
-  rule = "CHANGE_ME"
+  resources = ["CHANGE_ME"]
+  rule      = "CHANGE_ME"
+  type      = "node-affinity"
 }

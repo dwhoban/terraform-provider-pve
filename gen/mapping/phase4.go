@@ -28,7 +28,6 @@ var Phase4 = []Type{
 			{Name: "digest", Skip: true},
 			{Name: "clone_source_vmid", Type: "int64", Add: true, Optional: BoolPtr(true), ForceNew: true},
 			// Slot families not modeled as blocks.
-			{Name: "dev_n_", Skip: true},
 			{Name: "unused_n_", Skip: true},
 		},
 		Blocks: []Block{
@@ -72,6 +71,19 @@ var Phase4 = []Type{
 					{Name: "ipv6", Key: "ip6", Description: "IPv6 (CIDR, auto, dhcp or manual)."},
 					{Name: "gateway6", Key: "gw6", Description: "IPv6 gateway."},
 					{Name: "mac_address", Key: "hwaddr", Computed: true, Description: "MAC address (PVE assigns one when unset)."},
+				},
+			},
+			{
+				Name:        "device",
+				Description: "Host device passed through to the container (PVE 8.1+); list position is the PVE slot (device[0] is dev0). Proxmox VE allows device passthrough only for root@pam — with an API token enable the provider's `ssh.root_ticket`.",
+				Families:    []string{"dev"},
+				DefaultKey:  "path",
+				Fields: []BlockField{
+					{Name: "path", Key: "path", Required: true, Description: "Host device path (e.g. /dev/dri/renderD128)."},
+					{Name: "gid", Key: "gid", Type: "int64", Description: "Group id of the device node inside the container (PVE maps it through the container's id map)."},
+					{Name: "uid", Key: "uid", Type: "int64", Description: "User id of the device node inside the container."},
+					{Name: "mode", Key: "mode", Description: "Octal access mode of the device node (e.g. 0660)."},
+					{Name: "deny_write", Key: "deny-write", Type: "bool", Description: "Deny the container write access to the device."},
 				},
 			},
 		},

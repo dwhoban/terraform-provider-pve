@@ -26,10 +26,10 @@ resource "pve_node_disk_zfs" "example" {
 
 ### Required
 
-- `devices` (String) The block devices you want to create the zpool on.
+- `devices` (String) Block devices for the pool, comma-separated (e.g. `join(",", ["/dev/disk/by-id/nvme-A", "/dev/disk/by-id/nvme-B"])`). `/dev/sdX` paths work too; PVE records each disk by its `/dev/disk/by-id` link. The count must fit `raidlevel`.
 - `name` (String) The storage identifier.
 - `node` (String) The cluster node name.
-- `raidlevel` (String) The RAID level to use. One of: `single`, `mirror`, `raid10`, `raidz`, `raidz2`, `raidz3`, `draid`, `draid2`, `draid3`.
+- `raidlevel` (String) Pool layout; it decides how many `devices` are needed: `single` exactly 1, `mirror` ≥2, `raid10` an even number ≥4 (mirrored pairs in listed order), `raidz` ≥3, `raidz2` ≥4, `raidz3` ≥5, `draid`/`draid2`/`draid3` ≥3/4/5 (more with `draid_config` data and spares). PVE has no plain stripe (RAID0) layout. One of: `single`, `mirror`, `raid10`, `raidz`, `raidz2`, `raidz3`, `draid`, `draid2`, `draid3`.
 
 ### Optional
 

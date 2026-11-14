@@ -97,6 +97,9 @@ var Phase9 = []Type{
 		Delete:  &Endpoint{Path: "/cluster/ha/rules/{rule}"},
 		Attrs: []AttrRule{
 			{Name: "rule", Type: "string", Add: true, PathParam: "rule", Required: BoolPtr(true), ForceNew: true},
+			{Name: "type", Required: BoolPtr(true), ForceNew: true},
+			{Name: "resources", Type: "set", Elem: "string", Description: "HA resource IDs (e.g. `vm:100`, `ct:101`). PVE stores them sorted; a set keeps plans stable."},
+			{Name: "nodes", Type: "set", Elem: "string", Description: "Nodes as `name` or `name:priority` (node-affinity only; required there). PVE drops `:0` priorities — write `pve03`, not `pve03:0`. Only valid when `type` is `node-affinity`."},
 		},
 	},
 	{

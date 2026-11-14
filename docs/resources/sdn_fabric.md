@@ -16,7 +16,7 @@ SDN routing fabric (openfabric, ospf, wireguard, bgp); item_id is the fabric id 
 resource "pve_sdn_fabric" "example" {
   item_id      = "CHANGE_ME"
   protocol     = "openfabric"
-  redistribute = "CHANGE_ME"
+  redistribute = ["CHANGE_ME"]
 }
 ```
 

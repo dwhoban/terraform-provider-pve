@@ -14,6 +14,7 @@ SSH is used only for:
 | Feature | Why SSH is needed |
 |---|---|
 | `pve_ceph_install` action | The API has no endpoint that installs packages; the action runs `/usr/sbin/pveceph install` on the node. |
+| `pve_cluster_qdevice` resource | The API cannot configure a QDevice; the resource runs `/usr/bin/pvecm qdevice setup` and `/usr/bin/pvecm qdevice remove` on a cluster member. |
 | `ssh.root_ticket = true` | Proxmox VE restricts some API calls (container bind mounts, privileged-container feature flags, `arch`, PCI/USB passthrough without a mapping, …) to a logged-in `root@pam`. With this opt-in the provider mints a short-lived `root@pam` ticket on the node over SSH, so an API token can still perform them. |
 
 Everything else — VMs, containers, storage, networking, pools, RBAC, firewall, SDN, backup, HA, Ceph pools/OSDs/monitors, and so on — uses the API only.
@@ -50,11 +51,12 @@ Every `ssh` setting can also come from an environment variable: `PVE_SSH_USERNAM
 
 ## Non-root SSH user (sudo)
 
-If `ssh.username` is not `root`, commands run through `sudo -n` and the user needs passwordless sudo for **exactly** the commands you use. Do **not** grant sudo on `pveceph` or `perl` wholesale — grant the pattern below, which sudo (1.9.10+) matches as a regular expression against the full argument list:
+If `ssh.username` is not `root`, commands run through `sudo -n` and the user needs passwordless sudo for **exactly** the commands you use. Do **not** grant sudo on `pveceph`, `pvecm` or `perl` wholesale — grant the pattern below, which sudo (1.9.10+) matches as a regular expression against the full argument list:
 
 ```text
 # /etc/sudoers.d/terraform  (edit with: visudo -f /etc/sudoers.d/terraform)
 terraform ALL=(root) NOPASSWD: /usr/sbin/pveceph ^install --repository (enterprise|no-subscription|test)( --version [a-z0-9][a-z0-9.-]*)?( --allow-experimental)?$
+terraform ALL=(root) NOPASSWD: /usr/bin/pvecm ^qdevice (setup [0-9A-Fa-f.:]+( --force)?( --network [0-9A-Fa-f.:]+/[0-9]{1,3})?|remove)$
 ```
 
 ~> `root_ticket` requires `username = "root"`: minting a `root@pam` ticket needs a root shell, and `sudo` on `perl` would be root-equivalent. The provider refuses to start with `root_ticket` and a non-root SSH user.
@@ -74,7 +76,7 @@ provider "pve" {
 }
 ```
 
-While `root_ticket` is on, every call under `/nodes/{node}/` is authorized and logged as `root@pam`, so the token's own permissions no longer limit those calls. Calls outside `/nodes/{node}/` (for example `/cluster`, `/access`) keep using the configured credentials; operations such as creating a cluster still need `root@pam` credentials. Tickets are minted per node, cached for an hour, and never logged.
+While `root_ticket` is on, every call under `/nodes/{node}/` is authorized and logged as `root@pam`, so the token's own permissions no longer limit those calls. The root-only cluster configuration writes (`POST /cluster/config`, `POST /cluster/config/join`, `POST`/`DELETE /cluster/config/nodes/{node}`, used by `pve_cluster`, `pve_cluster_join`, and `pve_cluster_node_remove`) are authorized the same way, with a ticket minted on the API endpoint's node (resolved through `GET /cluster/status`, which needs `Sys.Audit` on `/`). Every other call outside `/nodes/{node}/` (for example `/access`) keeps using the configured credentials. Tickets are minted per node, cached for an hour, and never logged.
 
 ## Installing Ceph
 

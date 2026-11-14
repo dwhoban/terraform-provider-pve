@@ -33,6 +33,15 @@ func contains(list []string, s string) bool {
 	return false
 }
 
+// joinBackticked renders each item as inline code, joined by sep.
+func joinBackticked(items []string, sep string) string {
+	quoted := make([]string, len(items))
+	for i, s := range items {
+		quoted[i] = "`" + s + "`"
+	}
+	return strings.Join(quoted, sep)
+}
+
 var badIdentRe = regexp.MustCompile(`[^a-z0-9_]`)
 
 // tfAttrName converts an API field name to a Terraform attribute name:

@@ -113,6 +113,8 @@ func emitExamples(reg *provider.Registry) error {
 // exampleValue picks a plausible placeholder value for required attributes.
 func exampleValue(a provider.Attr) string {
 	switch a.Type {
+	case provider.AttrList, provider.AttrSet:
+		return `["CHANGE_ME"]`
 	case provider.AttrInt64:
 		switch a.Name {
 		case "vmid", "source_vmid", "newid":

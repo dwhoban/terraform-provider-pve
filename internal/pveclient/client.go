@@ -81,8 +81,9 @@ type Config struct {
 	Shell Shell
 
 	// RootTickets, when set, supplies a root@pam session ticket for calls
-	// under /nodes/{node}/ so an API token can perform operations PVE
-	// restricts to root@pam. Optional.
+	// under /nodes/{node}/ and for the root-only cluster configuration writes
+	// (create, join, node add/remove), so an API token can perform operations
+	// PVE restricts to root@pam. Optional.
 	RootTickets RootTicketSource
 }
 
@@ -97,9 +98,14 @@ type Shell interface {
 	Run(ctx context.Context, node string, argv []string, stdin string) (ShellOutput, error)
 }
 
-// RootTicketSource mints a root@pam ticket and CSRF token on a node.
+// RootTicketSource mints a root@pam ticket and CSRF token on a node. The
+// client uses it for /nodes/{node}/… calls and for the root-only cluster
+// configuration writes.
 type RootTicketSource interface {
 	RootTicket(ctx context.Context, node string) (ticket, csrf string, err error)
+	// ForgetRootTicket drops the cached ticket of node; the next RootTicket
+	// call mints a fresh one.
+	ForgetRootTicket(node string)
 }
 
 // APIError is a non-2xx response from the PVE API.
@@ -138,6 +144,9 @@ type Client struct {
 	taskTimeout time.Duration
 	shell       Shell
 	rootTickets RootTicketSource
+
+	localMu       sync.Mutex
+	localNodeName string
 
 	authMu    sync.Mutex
 	ticket    string
@@ -197,17 +206,54 @@ func NewClient(cfg Config) (*Client, error) {
 // has no ssh block.
 func (c *Client) Shell() Shell { return c.shell }
 
-// rootNode extracts the node of a /nodes/{node}/… API path ("" otherwise).
-func rootNode(path string) string {
-	rest, ok := strings.CutPrefix(path, "/nodes/")
-	if !ok {
-		return ""
+// rootTicketNode returns the node whose root@pam ticket authorizes the call,
+// or "" when the call uses the configured credentials. /nodes/{node}/…
+// calls target that node; the root-only /cluster/config writes target the
+// API endpoint's own node.
+func (c *Client) rootTicketNode(ctx context.Context, method, path string) (string, error) {
+	if c.rootTickets == nil {
+		return "", nil
 	}
-	node, _, found := strings.Cut(rest, "/")
-	if !found {
-		return ""
+	if rest, ok := strings.CutPrefix(path, "/nodes/"); ok {
+		node, _, found := strings.Cut(rest, "/")
+		if !found {
+			return "", nil
+		}
+		return node, nil
 	}
-	return node
+	if method != http.MethodGet && (path == "/cluster/config" || path == "/cluster/config/join" || strings.HasPrefix(path, "/cluster/config/nodes/")) {
+		return c.localNode(ctx)
+	}
+	return "", nil
+}
+
+// localNode resolves, once, the name of the node that answers the API
+// endpoint, from the `local` entry of GET /cluster/status.
+func (c *Client) localNode(ctx context.Context) (string, error) {
+	c.localMu.Lock()
+	defer c.localMu.Unlock()
+	if c.localNodeName != "" {
+		return c.localNodeName, nil
+	}
+	var entries []struct {
+		Type  string          `json:"type"`
+		Name  string          `json:"name"`
+		Local json.RawMessage `json:"local"`
+	}
+	payload, err := c.DoRequest(ctx, http.MethodGet, "/cluster/status", nil)
+	if err != nil {
+		return "", fmt.Errorf("resolving the API endpoint's node for a root@pam ticket (GET /cluster/status needs Sys.Audit on /): %w", err)
+	}
+	if err := json.Unmarshal(payload, &entries); err != nil {
+		return "", fmt.Errorf("GET /cluster/status: decoding response: %w", err)
+	}
+	for _, e := range entries {
+		if l := string(e.Local); e.Type == "node" && (l == "1" || l == "true") && e.Name != "" {
+			c.localNodeName = e.Name
+			return e.Name, nil
+		}
+	}
+	return "", errors.New("GET /cluster/status: no local node entry")
 }
 
 // TaskTimeout returns the per-task wait bound configured on the client.
@@ -337,8 +383,13 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 		if body != nil {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
+		node := ""
 		if authenticate {
-			if err := c.authorize(ctx, req, rootNode(strings.SplitN(path, "?", 2)[0])); err != nil {
+			node, err = c.rootTicketNode(ctx, method, strings.SplitN(path, "?", 2)[0])
+			if err != nil {
+				return nil, err
+			}
+			if err := c.authorize(ctx, req, node); err != nil {
 				return nil, err
 			}
 		}
@@ -354,7 +405,11 @@ func (c *Client) doRequest(ctx context.Context, method, path string, params url.
 			}
 			return nil, lastErr
 		}
-
+		if node != "" && method == http.MethodPost && path == "/cluster/config/join" {
+			// Joining replaces the node's authkey, which invalidates every
+			// ticket minted before it.
+			c.rootTickets.ForgetRootTicket(node)
+		}
 		apiErr := c.handleResponse(resp, authenticate)
 		if apiErr != nil {
 			lastErr = apiErr

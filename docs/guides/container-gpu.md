@@ -1,0 +1,59 @@
+---
+page_title: "GPU passthrough (LXC)"
+subcategory: ""
+description: |-
+  Passing a host GPU (for example an Intel Arc render node) into an LXC container with the pve_container device block, and why no lxc.idmap is needed.
+---
+
+# GPU passthrough (LXC)
+
+The `device` block of `pve_container` passes a host device node into the container. Each element maps to a PVE `dev<n>` slot by list position (`device[0]` is `dev0`). GPU access needs the render node (`/dev/dri/renderD*`) and, for some applications, the card node (`/dev/dri/card*`).
+
+## Prerequisites
+
+- Proxmox VE 8.1 or newer, on a host whose GPU driver creates `/dev/dri/renderD*` and `/dev/dri/card*` (Intel Arc: `i915` or `xe`).
+- **Credentials**: Proxmox VE allows device passthrough only for `root@pam`. With password login as `root@pam` it works directly. With an API token, enable [`ssh.root_ticket`](ssh.md) so the provider performs the call under a `root@pam` ticket minted on the node.
+
+```terraform
+# Passing an Intel Arc GPU into an unprivileged container.
+# Find the gids with `getent group render video` inside the container.
+resource "pve_container" "media" {
+  node         = "pve1"
+  vmid         = 210
+  hostname     = "media"
+  ostemplate   = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+  unprivileged = true
+  password     = "CHANGE_ME-root-password"
+
+  rootfs {
+    storage = "local-lvm"
+    size_gb = 16
+  }
+
+  network {
+    name   = "eth0"
+    bridge = "vmbr0"
+    ipv4   = "dhcp"
+  }
+
+  device {
+    path = "/dev/dri/renderD128"
+    gid  = 104 # `render` group inside the container
+    mode = "0660"
+  }
+
+  device {
+    path = "/dev/dri/card0"
+    gid  = 44 # `video` group inside the container
+    mode = "0660"
+  }
+}
+```
+
+`gid` and `uid` set the owner of the device node *inside* the container. Look up the group ids in the container with `getent group render video`, and use those numbers.
+
+## Do I need `lxc.idmap`?
+
+No. For an unprivileged container PVE creates the device node with the `uid`/`gid` you give, translated through the container's own id map, so the container's `render`/`video` groups can open it without a custom mapping.
+
+The Proxmox VE API cannot write raw `lxc.*` keys, so the provider has no `lxc.idmap` argument. If you need a custom id map for another reason, edit `/etc/pve/lxc/<vmid>.conf` on a node (and grant the ranges in `/etc/subuid` and `/etc/subgid`). PVE keeps those lines when the provider updates the container, and the `lxc` attribute of the `pve_container` resource and data source shows them read-only.

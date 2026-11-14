@@ -4,6 +4,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -137,6 +138,65 @@ func TestDeriveGuestBlocks(t *testing.T) {
 	}
 	if a, ok := byName["pve_cluster_join/action"].Attr("link"); !ok || a.Block == nil {
 		t.Error("pve_cluster_join: missing link block")
+	}
+	dev, ok := ct.Attr("device")
+	if !ok || dev.Block == nil {
+		t.Fatal("pve_container: missing device block")
+	}
+	var devFields []string
+	for _, f := range dev.Block.Fields {
+		devFields = append(devFields, f.Name)
+	}
+	if want := []string{"path", "gid", "uid", "mode", "deny_write"}; !slices.Equal(devFields, want) {
+		t.Errorf("pve_container device fields = %v, want %v", devFields, want)
+	}
+	if _, has := ct.Attr("dev_n_"); has {
+		t.Error("pve_container: dev_n_ attribute still present")
+	}
+	for _, op := range []*provider.Op{ct.Create, ct.Update} {
+		if !contains(op.Params, "device") {
+			t.Errorf("pve_container %s params: %v misses device", op.Method, op.Params)
+		}
+	}
+}
+
+// TestDeriveHARule pins the node-affinity / resource-affinity fields that
+// the apidoc's allOf/oneOf parameters contribute to pve_ha_rule.
+func TestDeriveHARule(t *testing.T) {
+	doc := parsedDoc(t)
+	var rule *provider.TypeDescriptor
+	for _, m := range mapping.All() {
+		if m.Type != "pve_ha_rule" {
+			continue
+		}
+		d, err := derive(doc, m)
+		if err != nil {
+			t.Fatalf("derive pve_ha_rule: %v", err)
+		}
+		rule = d
+	}
+	if rule == nil {
+		t.Fatal("pve_ha_rule not mapped")
+	}
+	for _, want := range []string{"affinity", "comment", "disable", "nodes", "resources", "rule", "strict", "type"} {
+		if !contains(rule.Create.Params, want) {
+			t.Errorf("Create.Params %v misses %s", rule.Create.Params, want)
+		}
+	}
+	if !rule.Update.DeleteParam {
+		t.Error("Update.DeleteParam = false, want true")
+	}
+	if a, ok := rule.Attr("type"); !ok || !a.Required || !a.ForceNew {
+		t.Errorf("type = %+v, want Required+ForceNew", a)
+	}
+	if a, ok := rule.Attr("resources"); !ok || a.Type != provider.AttrSet || !a.Required {
+		t.Errorf("resources = %+v, want required set", a)
+	}
+	if a, ok := rule.Attr("nodes"); !ok || a.Type != provider.AttrSet || !a.Optional {
+		t.Errorf("nodes = %+v, want optional set", a)
+	}
+	if a, ok := rule.Attr("strict"); !ok || !strings.Contains(a.Description, "Only valid when `type` is `node-affinity`") {
+		t.Errorf("strict description = %q, want the node-affinity note", a.Description)
 	}
 }
 

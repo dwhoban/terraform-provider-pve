@@ -96,9 +96,13 @@ var Phase6 = []Type{
 	},
 	{
 		Type: "pve_node_disk_zfs", Kind: "resource", Phase: 6,
-		Summary:     "ZFS pool created on a node's disk(s).",
-		IDAttrs:     []string{"node", "name"},
-		Create:      &Endpoint{Path: "/nodes/{node}/disks/zfs"},
+		Summary: "ZFS pool created on a node's disk(s).",
+		IDAttrs: []string{"node", "name"},
+		Create:  &Endpoint{Path: "/nodes/{node}/disks/zfs"},
+		Attrs: []AttrRule{
+			{Name: "devices", Description: "Block devices for the pool, comma-separated (e.g. `join(\",\", [\"/dev/disk/by-id/nvme-A\", \"/dev/disk/by-id/nvme-B\"])`). `/dev/sdX` paths work too; PVE records each disk by its `/dev/disk/by-id` link. The count must fit `raidlevel`."},
+			{Name: "raidlevel", Description: "Pool layout; it decides how many `devices` are needed: `single` exactly 1, `mirror` ≥2, `raid10` an even number ≥4 (mirrored pairs in listed order), `raidz` ≥3, `raidz2` ≥4, `raidz3` ≥5, `draid`/`draid2`/`draid3` ≥3/4/5 (more with `draid_config` data and spares). PVE has no plain stripe (RAID0) layout."},
+		},
 		Read:        &Endpoint{Path: "/nodes/{node}/disks/zfs/{name}"},
 		Delete:      &Endpoint{Path: "/nodes/{node}/disks/zfs/{name}"},
 		AllForceNew: true,

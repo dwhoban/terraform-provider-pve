@@ -529,6 +529,9 @@ func attrFromParam(p pveapidoc.Parameter) provider.Attr {
 	if p.Typetext != "" && a.Description == "" {
 		a.Description = p.Typetext
 	}
+	if len(p.InstanceTypes) > 0 {
+		a.Description += fmt.Sprintf(" Only valid when `%s` is %s.", attrNameOfParam(p.TypeProperty), joinBackticked(p.InstanceTypes, " or "))
+	}
 	if p.Optional {
 		a.Optional = true
 		if p.Default != nil {
@@ -706,11 +709,16 @@ func attrsFromProperties(props map[string]any) []provider.Attr {
 	return out
 }
 
-// familyParam finds a request parameter with the placeholder's name on any
-// method of a family, to type/describe synthesized path attributes from the
+// familyParam finds a request parameter with the placeholder's name on the
+// family's methods (fixed HTTP method order, so derivation is
+// deterministic), to type/describe synthesized path attributes from the
 // real schema instead of guessing.
 func familyParam(fam *pveapidoc.Family, name string) *pveapidoc.Parameter {
-	for _, mi := range fam.Methods {
+	for _, m := range [...]string{"GET", "POST", "PUT", "DELETE"} {
+		mi, ok := fam.Methods[m]
+		if !ok {
+			continue
+		}
 		for i := range mi.Parameters {
 			if mi.Parameters[i].Name == name {
 				return &mi.Parameters[i]
@@ -720,7 +728,8 @@ func familyParam(fam *pveapidoc.Family, name string) *pveapidoc.Parameter {
 	return nil
 }
 
-// endpointPath returns the (first) path of a mapping endpoint.
+// endpointPath returns the (first) path of a mapping endpoint: the explicit
+// Path, else the lexically smallest scoped path (map order must not leak).
 func endpointPath(e *mapping.Endpoint) string {
 	if e == nil {
 		return ""
@@ -728,8 +737,13 @@ func endpointPath(e *mapping.Endpoint) string {
 	if e.Path != "" {
 		return e.Path
 	}
+	paths := make([]string, 0, len(e.Paths))
 	for _, p := range e.Paths {
-		return p
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	if len(paths) > 0 {
+		return paths[0]
 	}
 	return ""
 }

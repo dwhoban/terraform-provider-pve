@@ -7,6 +7,8 @@ project {
 
   header_ignore = [
   "internal/pveapidoc/schema/**",
+    # local agent scaffolding, not project source
+    ".agents/**",
     # internal catalog metadata (prose)
     "META.d/**/*.yaml",
 

@@ -192,6 +192,28 @@ func TestRootTicketIsMintedOnceAndCached(t *testing.T) {
 	}
 }
 
+func TestForgetRootTicketForcesRemint(t *testing.T) {
+	node := startFakeNode(t, "root")
+	node.reply = func(string) (string, uint32) { return "PVE:root@pam:ABC::sig\n12345678:csrf\n", 0 }
+	cfg := node.config("root")
+	cfg.RootTicket = true
+	r, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if _, _, err := r.RootTicket(context.Background(), "pve01"); err != nil {
+		t.Fatal(err)
+	}
+	r.ForgetRootTicket("pve01")
+	if _, _, err := r.RootTicket(context.Background(), "pve01"); err != nil {
+		t.Fatal(err)
+	}
+	if len(node.commands) != 2 {
+		t.Fatalf("ticket minted %d times, want 2", len(node.commands))
+	}
+}
+
 func TestNewValidatesConfiguration(t *testing.T) {
 	for name, cfg := range map[string]Config{
 		"no user":                 {Password: "x"},

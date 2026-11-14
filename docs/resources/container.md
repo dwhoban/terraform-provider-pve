@@ -45,6 +45,7 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 - `delete` (String) A list of settings you want to delete.
 - `description` (String) Description for the Container. Shown in the web-interface CT's summary. This is saved as comment inside the configuration file.
 - `destroy_unreferenced_disks` (Boolean) If set, destroy additionally all disks with the VMID from all enabled storages which are not referenced in the config.
+- `device` (Block List) Host device passed through to the container (PVE 8.1+); list position is the PVE slot (device[0] is dev0). Proxmox VE allows device passthrough only for root@pam — with an API token enable the provider's `ssh.root_ticket`. (see [below for nested schema](#nestedblock--device))
 - `entrypoint` (String) Command to run as init, optionally with arguments; may start with an absolute path, relative path, or a binary in $PATH. (default: /sbin/init)
 - `env` (String) The container runtime environment as NUL-separated list. Replaces any lxc.environment.runtime entries in the config.
 - `features` (String) Allow containers access to advanced features.
@@ -84,6 +85,21 @@ NOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indi
 
 - `id` (String) Opaque identifier: node/vmid (also the `terraform import` format).
 - `lxc` (List of String) Array of lxc low-level configurations ([[key1, value1], [key2, value2] ...]).
+
+<a id="nestedblock--device"></a>
+### Nested Schema for `device`
+
+Required:
+
+- `path` (String) Host device path (e.g. /dev/dri/renderD128).
+
+Optional:
+
+- `deny_write` (Boolean) Deny the container write access to the device.
+- `gid` (Number) Group id of the device node inside the container (PVE maps it through the container's id map).
+- `mode` (String) Octal access mode of the device node (e.g. 0660).
+- `uid` (Number) User id of the device node inside the container.
+
 
 <a id="nestedblock--mount_point"></a>
 ### Nested Schema for `mount_point`

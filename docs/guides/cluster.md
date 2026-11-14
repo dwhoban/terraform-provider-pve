@@ -7,7 +7,7 @@ description: |-
 
 # Cluster lifecycle
 
-Cluster creation and joining are **root-only** operations: create the cluster with `root@pam` credentials, and join peers with the root password of the cluster.
+Cluster creation and joining are **root-only** operations. Use `root@pam` password credentials, or an API token together with [`ssh.root_ticket`](ssh.md): the provider then mints a `root@pam` ticket over SSH on the node the API endpoint belongs to (found through `GET /cluster/status`, so the token needs `Sys.Audit` on `/`). Joining a peer still needs the seed's root password as the `password` argument, because the API requires it.
 
 1. **Create** the cluster on the seed node with `pve_cluster`. The resource is create-only: every attribute forces replacement, and destroy removes the node from state only (PVE has no cluster-delete API — leaving a cluster is a manual operation).
 2. **Join** each peer node with the `pve_cluster_join` action, run in a separate root module against that node's root context. It needs the seed's address, TLS fingerprint, and root password — the `pve_cluster_join_info` data source exposes the fingerprint, allowed IPs, and totem configuration.
@@ -59,3 +59,23 @@ action "pve_cluster_node_remove" "old" {
 Corosync links are the `link` block: `link[0]` is `link0`, up to `link7`. The link `address` is the value PVE writes without a key (the default property of the property string); `priority` is optional.
 
 For observation, the provider ships cluster data sources: `pve_cluster` (status and options), `pve_cluster_nodes`, `pve_cluster_join_info`, `pve_cluster_api_version`, `pve_cluster_jobs`, `pve_cluster_qdevice`, `pve_cluster_totem`, and `pve_cluster_mappings`.
+
+## QDevice
+
+`pve_cluster_qdevice` sets up an external corosync QDevice (a vote-only tie-breaker, usually for two-node clusters). The Proxmox VE API can only *read* QDevice status, so this resource runs `pvecm qdevice setup` / `pvecm qdevice remove` on a cluster member over the provider's `ssh` block (see [When is SSH required?](ssh.md)).
+
+```terraform
+resource "pve_cluster_qdevice" "tiebreaker" {
+  node    = "pve1"
+  address = "10.0.0.50" # IP of the host running corosync-qnetd
+}
+```
+
+Prerequisites, all outside the provider's control:
+
+- `corosync-qnetd` is installed on the QNet host and `corosync-qdevice` on **every** cluster node.
+- All nodes are online.
+- `pvecm` copies keys and runs BatchMode `ssh`/`scp` from the node to the QNet host as root: the node's `/root/.ssh/id_rsa.pub` must already be in the QNet host's root `authorized_keys`, and the QNet host's key must be in the node's `known_hosts`.
+- Set `force = true` for clusters with an odd node count.
+
+Destroy runs `pvecm qdevice remove`. Import with `terraform import pve_cluster_qdevice.tiebreaker pve1/10.0.0.50` (`node/address`).

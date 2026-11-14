@@ -12,6 +12,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -84,6 +85,10 @@ type Parameter struct {
 	Default          json.RawMessage
 	MaxLength        int
 	Items            *Parameter // array element descriptor
+	// InstanceTypes lists the oneOf variants (values of TypeProperty) that
+	// accept this parameter; nil when every variant (or no oneOf) does.
+	InstanceTypes []string
+	TypeProperty  string // discriminator parameter name when InstanceTypes is set
 }
 
 // FormatProperty is one property of a parameter's format object.
@@ -193,23 +198,179 @@ func parseMethod(httpMethod string, info map[string]any) (*Method, error) {
 		m.Returns = raw
 	}
 	if params, ok := info["parameters"].(map[string]any); ok {
+		var all []Parameter
 		props, _ := params["properties"].(map[string]any)
-		names := make([]string, 0, len(props))
-		for name := range props {
-			names = append(names, name)
+		parsed, err := parseProperties(props)
+		if err != nil {
+			return nil, err
 		}
-		sort.Strings(names)
-		for _, name := range names {
-			pmap, ok := props[name].(map[string]any)
+		all = append(all, parsed...)
+		parts, _ := params["allOf"].([]any)
+		for _, raw := range parts {
+			part, ok := raw.(map[string]any)
 			if !ok {
 				continue
 			}
-			p, err := parseParameter(name, pmap)
-			if err != nil {
-				return nil, err
+			if pp, ok := part["properties"].(map[string]any); ok {
+				parsed, err := parseProperties(pp)
+				if err != nil {
+					return nil, err
+				}
+				all = append(all, parsed...)
 			}
-			m.Parameters = append(m.Parameters, p)
+			if _, ok := part["oneOf"]; ok {
+				parsed, err := parseOneOf(part)
+				if err != nil {
+					return nil, err
+				}
+				all = append(all, parsed...)
+			}
 		}
+		seen := make(map[string]bool, len(all))
+		for _, p := range all {
+			if !seen[p.Name] {
+				seen[p.Name] = true
+				m.Parameters = append(m.Parameters, p)
+			}
+		}
+		sort.Slice(m.Parameters, func(i, j int) bool { return m.Parameters[i].Name < m.Parameters[j].Name })
+	}
+	return m, nil
+}
+
+// parseProperties parses a JSON-schema properties map into parameters,
+// sorted by name.
+func parseProperties(props map[string]any) ([]Parameter, error) {
+	names := make([]string, 0, len(props))
+	for name := range props {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	out := make([]Parameter, 0, len(names))
+	for _, name := range names {
+		pmap, ok := props[name].(map[string]any)
+		if !ok {
+			continue
+		}
+		p, err := parseParameter(name, pmap)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+// parseOneOf flattens a discriminated oneOf parameter group (PVE's
+// type-property + instance-type variants) into one parameter per name:
+// the discriminator itself, plus the union of the variants' parameters.
+func parseOneOf(part map[string]any) ([]Parameter, error) {
+	tp, _ := part["type-property"].(string)
+	if tp == "" {
+		return nil, fmt.Errorf("oneOf without type-property")
+	}
+	schema, _ := part["type-property-schema"].(map[string]any)
+	disc, err := parseParameter(tp, schema)
+	if err != nil {
+		return nil, err
+	}
+	disc.Optional = false
+
+	variants, _ := part["oneOf"].([]any)
+	type seenParam struct {
+		params []Parameter // one per containing variant, in variant order
+		types  []string    // instance type of each entry in params
+	}
+	byName := map[string]*seenParam{}
+	var order []string
+	for _, raw := range variants {
+		variant, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		it, _ := variant["instance-type"].(string)
+		vprops, _ := variant["properties"].(map[string]any)
+		parsed, err := parseProperties(vprops)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range parsed {
+			sp := byName[p.Name]
+			if sp == nil {
+				sp = &seenParam{}
+				byName[p.Name] = sp
+				order = append(order, p.Name)
+			}
+			sp.params = append(sp.params, p)
+			sp.types = append(sp.types, it)
+		}
+	}
+
+	var allTypes []string
+	for _, raw := range variants {
+		if variant, ok := raw.(map[string]any); ok {
+			it, _ := variant["instance-type"].(string)
+			allTypes = append(allTypes, it)
+		}
+	}
+
+	out := []Parameter{disc}
+	for _, name := range order {
+		sp := byName[name]
+		merged, err := mergeVariants(sp.params, sp.types, len(allTypes))
+		if err != nil {
+			return nil, err
+		}
+		if len(sp.types) < len(allTypes) {
+			merged.InstanceTypes = sp.types
+			merged.TypeProperty = tp
+		}
+		out = append(out, merged)
+	}
+	return out, nil
+}
+
+// mergeVariants folds one parameter's per-variant definitions into one.
+// params and types are parallel (the variants that declare it); total is
+// the number of variants in the oneOf.
+func mergeVariants(params []Parameter, types []string, total int) (Parameter, error) {
+	m := params[0]
+	m.Optional = len(params) < total
+	sameDesc := true
+	sameDefault := len(params) == total
+	for i, p := range params {
+		if p.Type != m.Type {
+			return Parameter{}, fmt.Errorf("parameter %q: oneOf variants disagree on type (%s vs %s)", m.Name, m.Type, p.Type)
+		}
+		if p.Optional {
+			m.Optional = true
+		}
+		if p.MaxLength > m.MaxLength {
+			m.MaxLength = p.MaxLength
+		}
+		if p.Description != params[0].Description {
+			sameDesc = false
+		}
+		if !bytes.Equal(p.Default, params[0].Default) {
+			sameDefault = false
+		}
+		if i > 0 {
+			for _, e := range p.Enum {
+				if !slices.Contains(m.Enum, e) {
+					m.Enum = append(m.Enum, e)
+				}
+			}
+		}
+	}
+	if !sameDefault {
+		m.Default = nil
+	}
+	if !sameDesc {
+		segs := make([]string, len(params))
+		for i, p := range params {
+			segs[i] = fmt.Sprintf("`%s`: %s", types[i], p.Description)
+		}
+		m.Description = strings.Join(segs, " ")
 	}
 	return m, nil
 }

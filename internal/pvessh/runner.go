@@ -57,7 +57,8 @@ type Config struct {
 	// InsecureIgnoreHostKey disables host key verification.
 	InsecureIgnoreHostKey bool
 
-	// RootTicket mints root@pam tickets for API calls under /nodes/{node}/.
+	// RootTicket mints root@pam tickets for API calls under /nodes/{node}/
+	// and for the root-only cluster configuration writes.
 	RootTicket bool
 
 	Nodes []Node
@@ -214,6 +215,14 @@ func (r *Runner) RootTicket(ctx context.Context, node string) (string, string, e
 	r.tickets[node] = t
 	r.mu.Unlock()
 	return t.ticket, t.csrf, nil
+}
+
+// ForgetRootTicket drops the cached ticket of node. A cluster join replaces
+// the node's authkey, which invalidates the ticket before its hour is up.
+func (r *Runner) ForgetRootTicket(node string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.tickets, node)
 }
 
 func (r *Runner) drop(node string, c *ssh.Client) {

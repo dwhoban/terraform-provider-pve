@@ -35,6 +35,7 @@ func testAccNode(t *testing.T) string {
 
 func testAccClient(t *testing.T) *pveclient.Client {
 	t.Helper()
+	testAccEnabled(t)
 	c, err := pveclient.NewClient(pveclient.Config{
 		URL:         os.Getenv(pveclient.EnvAPIURL),
 		Credentials: pveclient.Credentials{APIToken: os.Getenv(pveclient.EnvAPIToken)},

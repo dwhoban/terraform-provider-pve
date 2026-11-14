@@ -303,6 +303,71 @@ func TestEngineGuestBlocksRoundTrip(t *testing.T) {
 	}
 }
 
+// deviceBlockAttr mirrors the generated pve_container `device` block
+// (gen/mapping/phase4.go): dev[n] with path as the default key and the
+// hyphenated deny-write property.
+func deviceBlockAttr() Attr {
+	return Attr{
+		Name: "device",
+		Type: AttrList,
+		Block: &BlockSpec{
+			Families:   []string{"dev"},
+			DefaultKey: "path",
+			Fields: []BlockField{
+				{Name: "path", Key: "path"},
+				{Name: "gid", Key: "gid"},
+				{Name: "uid", Key: "uid"},
+				{Name: "mode", Key: "mode"},
+				{Name: "deny_write", Key: "deny-write"},
+			},
+		},
+		ElemAttrs: []Attr{
+			{Name: "path", Type: AttrString, Required: true},
+			{Name: "gid", Type: AttrInt64, Optional: true},
+			{Name: "uid", Type: AttrInt64, Optional: true},
+			{Name: "mode", Type: AttrString, Optional: true},
+			{Name: "deny_write", Type: AttrBool, Optional: true},
+		},
+		Optional: true,
+	}
+}
+
+// TestDeviceBlockEncodesHyphenatedKey pins the dev[n] slot codec: the
+// hyphenated deny-write key survives encode and decode.
+func TestDeviceBlockEncodesHyphenatedKey(t *testing.T) {
+	device := deviceBlockAttr()
+
+	values, err := encodeBlock(device, blockElemValue(device, map[string]attr.Value{
+		"path":       types.StringValue("/dev/dri/renderD128"),
+		"gid":        types.Int64Value(104),
+		"deny_write": types.BoolValue(true),
+	}))
+	if err != nil {
+		t.Fatalf("encodeBlock: %v", err)
+	}
+	props := parsePropertyString(values.Get("dev0"), "path")
+	for key, want := range map[string]string{"path": "/dev/dri/renderD128", "gid": "104", "deny-write": "1"} {
+		if got := props[key]; got != want {
+			t.Errorf("dev0 %s = %q, want %q (dev0 = %q)", key, got, want, values.Get("dev0"))
+		}
+	}
+
+	elems, present, err := decodeBlockSlots(device, map[string]any{"dev0": "/dev/dri/renderD128,deny-write=1,gid=104"})
+	if err != nil || !present || len(elems) != 1 {
+		t.Fatalf("decodeBlockSlots: elems=%v present=%v err=%v", elems, present, err)
+	}
+	f := elems[0].fields
+	if !blockBool(t, f, "deny_write") {
+		t.Errorf("deny_write = %v, want true", f["deny_write"])
+	}
+	if got := blockStr(t, f, "path"); got != "/dev/dri/renderD128" {
+		t.Errorf("path = %q", got)
+	}
+	if got := blockInt(t, f, "gid"); got != 104 {
+		t.Errorf("gid = %d, want 104", got)
+	}
+}
+
 // blockElemAt returns element i of a block list as its attribute map.
 func blockElemAt(t *testing.T, list types.List, i int) map[string]attr.Value {
 	t.Helper()

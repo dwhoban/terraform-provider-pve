@@ -23,7 +23,7 @@ import (
 const pvecephBinary = "/usr/sbin/pveceph"
 
 var (
-	cephNodeRe    = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$`)
+	nodeNameRe    = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$`)
 	cephVersionRe = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]*$`)
 )
 
@@ -62,7 +62,7 @@ func (a *cephInstallAction) Schema(_ context.Context, _ action.SchemaRequest, re
 			"node": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Node to install Ceph on.",
-				Validators:          []validator.String{stringvalidator.RegexMatches(cephNodeRe, "must be a valid node name")},
+				Validators:          []validator.String{stringvalidator.RegexMatches(nodeNameRe, "must be a valid node name")},
 			},
 			"repository": schema.StringAttribute{
 				Optional:            true,

@@ -13,6 +13,7 @@ Storage and NICs are **slot-family blocks**:
 
 - `rootfs` is a single (fixed) block: allocate from `storage` + `size_gb`; PVE normalizes the allocation to a concrete `volume_id`, which is read back computed.
 - `mount_point` elements map to `mp0`, `mp1`, … by list position; bind mounts need `root@pam` rights (see the [SSH guide](ssh.md) on `ssh.root_ticket`).
+- `device` elements map to `dev0`, `dev1`, … by list position and pass host devices (such as a GPU render node) into the container; PVE allows this only for `root@pam` (see the [GPU passthrough guide](container-gpu.md)).
 - `network` elements map to `net0`, `net1`, … by list position; `name` is the interface name inside the container (e.g. `eth0`).
 
 {{ tffile "examples/guides/container.tf" }}

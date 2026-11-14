@@ -34,7 +34,7 @@ provider "pve" {
 
 ### SSH (optional)
 
-The provider is API-first; **most configurations never need SSH** and, without an `ssh` block, no SSH connection is ever made. SSH is used only where the Proxmox VE API cannot do the job: installing Ceph (`pve_ceph_install` action → `pveceph install`) and, opt-in, `ssh.root_ticket` for `root@pam`-only API calls made with an API token. Host keys are verified against `known_hosts`; non-root users run through `sudo -n` and need a strict sudoers rule. Details: [When is SSH required?](docs/guides/ssh.md).
+The provider is API-first; **most configurations never need SSH** and, without an `ssh` block, no SSH connection is ever made. SSH is used only where the Proxmox VE API cannot do the job: installing Ceph (`pve_ceph_install` action → `pveceph install`), QDevice setup (`pve_cluster_qdevice` resource → `pvecm qdevice`) and, opt-in, `ssh.root_ticket` for `root@pam`-only API calls (node calls, device passthrough, cluster create/join) made with an API token. Host keys are verified against `known_hosts`; non-root users run through `sudo -n` and need a strict sudoers rule. Details: [When is SSH required?](docs/guides/ssh.md).
 
 ```hcl
 provider "pve" {
