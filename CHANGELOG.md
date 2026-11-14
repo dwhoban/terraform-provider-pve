@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-14)
 
 Phases 2–13 — the full declarative surface, **generated from the API schema** ([ROADMAP.md](ROADMAP.md)):
 
@@ -22,7 +22,7 @@ Phases 2–13 — the full declarative surface, **generated from the API schema*
 - Live acceptance (Phase 1 + Phase 2): token auth round-trip, invalid-credentials diagnostic, 11 inventory data sources, node-agreement and `nextid()` scenarios against a real node. Live testing surfaced and fixed generator bugs: typeless response properties, apidoc array-quirk responses (raw-JSON result attributes), list elements without schemas, and optional API parameters becoming required provider-function arguments (`nextid()` is zero-arg).
 - Verification: `go build`, `go vet`, `golangci-lint`, unit tests throughout — parser invariants (449 families), generator audit, registry schema smoke test over all 222 types, and httptest-backed engine tests for CRUD/task/staged-apply/action/function flows. Live-cluster `TF_ACC` acceptance suites remain to be run against a lab.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (not published; included in 0.2.0)
 
 Phase 1 — foundation ([ROADMAP.md](ROADMAP.md)):
 

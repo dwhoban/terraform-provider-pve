@@ -44,7 +44,7 @@ var aptNodeLocks sync.Map // node -> *sync.Mutex
 
 func lockAptNode(node string) func() {
 	m, _ := aptNodeLocks.LoadOrStore(node, &sync.Mutex{})
-	mu := m.(*sync.Mutex)
+	mu := m.(*sync.Mutex) //nolint:forcetypeassert // aptNodeLocks only ever stores *sync.Mutex
 	mu.Lock()
 	return mu.Unlock
 }
