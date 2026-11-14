@@ -39,7 +39,7 @@ resource "pve_file" "example" {
 - `format` (String) Format of the image. One of: `raw`, `qcow2`, `subvol`, `vmdk`.
 - `notes` (String) The new notes.
 - `protected` (Boolean) Protection status. Currently only supported for backups.
-- `volume` (String) Source volume identifier
+- `volume` (String) Volume identifier
 
 ### Read-Only
 
