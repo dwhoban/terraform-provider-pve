@@ -119,8 +119,8 @@ func TestRegistryRegistrationWiring(t *testing.T) {
 	for _, d := range reg.Types {
 		counts[d.Kind]++
 	}
-	if got := len(p.Resources(context.Background())); got != counts[KindResource]+2 { // + pve_cluster_qdevice, pve_apt_standard_repository (hand-written)
-		t.Errorf("Resources() = %d, want %d", got, counts[KindResource]+2)
+	if got := len(p.Resources(context.Background())); got != counts[KindResource]+3 { // + pve_cluster_qdevice, pve_apt_standard_repository, pve_apt_repository (hand-written)
+		t.Errorf("Resources() = %d, want %d", got, counts[KindResource]+3)
 	}
 	if got := len(p.DataSources(context.Background())); got != counts[KindDataSource]+1 { // + pve_version
 		t.Errorf("DataSources() = %d, want %d", got, counts[KindDataSource]+1)

@@ -114,8 +114,11 @@ type aptRepositoryFile struct {
 type aptRepositoryEntry struct {
 	Types      []string `json:"Types"`
 	URIs       []string `json:"URIs"`
+	Suites     []string `json:"Suites"`
 	Components []string `json:"Components"`
 	Enabled    pveBool  `json:"Enabled"`
+	FileType   string   `json:"FileType"`
+	Comment    string   `json:"Comment"`
 }
 
 type aptStandardRepo struct {

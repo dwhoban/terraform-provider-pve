@@ -104,7 +104,7 @@ func (f *aptFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				repos = append(repos, map[string]any{
 					"Types": []string{"deb"}, "URIs": []string{e.uri},
 					"Suites": []string{"trixie"}, "Components": []string{e.component},
-					"Enabled": b2i(e.enabled),
+					"Enabled": b2i(e.enabled), "FileType": "sources",
 				})
 			}
 			files = append(files, map[string]any{"path": p, "repositories": repos})
