@@ -1,6 +1,6 @@
 action "pve_ceph_restart_bulk" "example" {
   config {
-    service_type = "mon"
+  service_type = "mon"
   }
 }
 

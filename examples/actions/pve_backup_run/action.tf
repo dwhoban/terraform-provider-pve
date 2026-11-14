@@ -1,6 +1,6 @@
 action "pve_backup_run" "example" {
   config {
-    node = "pve1"
+  node = "pve1"
   }
 }
 

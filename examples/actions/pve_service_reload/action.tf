@@ -1,7 +1,7 @@
 action "pve_service_reload" "example" {
   config {
-    node    = "pve1"
-    service = "CHANGE_ME"
+  node = "pve1"
+  service = "CHANGE_ME"
   }
 }
 

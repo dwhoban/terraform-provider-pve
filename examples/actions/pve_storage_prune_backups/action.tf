@@ -1,7 +1,7 @@
 action "pve_storage_prune_backups" "example" {
   config {
-    node    = "pve1"
-    storage = "local"
+  node = "pve1"
+  storage = "local"
   }
 }
 

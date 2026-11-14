@@ -1,7 +1,7 @@
 action "pve_ha_resource_migrate" "example" {
   config {
-    node = "pve1"
-    sid  = "CHANGE_ME"
+  node = "pve1"
+  sid = "CHANGE_ME"
   }
 }
 

@@ -21,14 +21,14 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 func testAccPreCheck(t *testing.T) {
 	t.Helper()
 	if os.Getenv(pveclient.EnvAPIURL) == "" || os.Getenv(pveclient.EnvAPIToken) == "" {
-		t.Fatalf("acceptance tests require %s and %s to be set", pveclient.EnvAPIURL, pveclient.EnvAPIToken)
+		t.Skipf("acceptance tests require %s and %s to be set", pveclient.EnvAPIURL, pveclient.EnvAPIToken)
 	}
 }
 
 func testAccPreCheckURL(t *testing.T) {
 	t.Helper()
 	if os.Getenv(pveclient.EnvAPIURL) == "" {
-		t.Fatalf("acceptance tests require %s to be set", pveclient.EnvAPIURL)
+		t.Skipf("acceptance tests require %s to be set", pveclient.EnvAPIURL)
 	}
 }
 

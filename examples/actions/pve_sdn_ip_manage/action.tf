@@ -1,8 +1,8 @@
 action "pve_sdn_ip_manage" "example" {
   config {
-    ip   = "CHANGE_ME"
-    vnet = "CHANGE_ME"
-    zone = "CHANGE_ME"
+  ip = "CHANGE_ME"
+  vnet = "CHANGE_ME"
+  zone = "CHANGE_ME"
   }
 }
 

@@ -1,7 +1,7 @@
 action "pve_ceph_health_mute" "example" {
   config {
-    code  = "CHANGE_ME"
-    value = true
+  code = "CHANGE_ME"
+  value = true
   }
 }
 

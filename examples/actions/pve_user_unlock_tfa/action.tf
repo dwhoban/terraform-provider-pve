@@ -1,6 +1,6 @@
 action "pve_user_unlock_tfa" "example" {
   config {
-    userid = "CHANGE_ME"
+  userid = "CHANGE_ME"
   }
 }
 

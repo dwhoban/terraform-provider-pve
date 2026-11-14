@@ -1,3 +1,3 @@
 data "pve_apt" "example" {
-  node = "pve1"
+node = "pve1"
 }

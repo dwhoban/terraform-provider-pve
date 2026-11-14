@@ -1,7 +1,7 @@
 action "pve_node_disk_wipe" "example" {
   config {
-    disk = "CHANGE_ME"
-    node = "pve1"
+  disk = "CHANGE_ME"
+  node = "pve1"
   }
 }
 

@@ -1,6 +1,6 @@
 action "pve_node_suspendall" "example" {
   config {
-    node = "pve1"
+  node = "pve1"
   }
 }
 
