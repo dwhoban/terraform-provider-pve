@@ -3,20 +3,18 @@
 page_title: "pve_apt_repositories Resource - pve"
 subcategory: ""
 description: |-
-  APT repository configuration of a node (singleton): create adds a repository (POST), update changes one by handle (PUT).
+  APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).
 ---
 
 # pve_apt_repositories (Resource)
 
-APT repository configuration of a node (singleton): create adds a repository (POST), update changes one by handle (PUT).
+APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).
 
 ## Example Usage
 
 ```terraform
 resource "pve_apt_repositories" "example" {
-  index = 1
-  node  = "pve1"
-  path  = "CHANGE_ME"
+  node = "pve1"
 }
 ```
 
@@ -25,14 +23,14 @@ resource "pve_apt_repositories" "example" {
 
 ### Required
 
-- `index` (Number) Index within the file (starting from 0).
 - `node` (String) The cluster node name.
-- `path` (String) Path to the containing file.
 
 ### Optional
 
 - `enabled` (Boolean) Whether the repository should be enabled or not.
 - `handle` (String) Handle that identifies a repository.
+- `index` (Number) Index within the file (starting from 0).
+- `path` (String) Path to the containing file.
 
 ### Read-Only
 

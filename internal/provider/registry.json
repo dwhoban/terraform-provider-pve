@@ -905,19 +905,17 @@
       "name": "pve_apt_repositories",
       "kind": "resource",
       "phase": 6,
-      "summary": "APT repository configuration of a node (singleton): create adds a repository (POST), update changes one by handle (PUT).",
+      "summary": "APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).",
       "behavior": "singleton",
       "idAttrs": [
         "node"
       ],
       "create": {
-        "method": "POST",
+        "method": "PUT",
         "path": "/nodes/{node}/apt/repositories",
         "params": [
-          "enabled",
-          "index",
-          "node",
-          "path"
+          "handle",
+          "node"
         ],
         "waitTask": true
       },
@@ -929,33 +927,23 @@
         ]
       },
       "update": {
-        "method": "PUT",
+        "method": "POST",
         "path": "/nodes/{node}/apt/repositories",
         "params": [
-          "handle",
-          "node"
+          "enabled",
+          "index",
+          "node",
+          "path"
         ],
         "waitTask": true
       },
       "attributes": [
-        {
-          "name": "index",
-          "type": "int64",
-          "required": true,
-          "description": "Index within the file (starting from 0)."
-        },
         {
           "name": "node",
           "pathParam": "node",
           "type": "string",
           "required": true,
           "description": "The cluster node name."
-        },
-        {
-          "name": "path",
-          "type": "string",
-          "required": true,
-          "description": "Path to the containing file."
         },
         {
           "name": "enabled",
@@ -1101,6 +1089,12 @@
           "description": "Handle that identifies a repository."
         },
         {
+          "name": "index",
+          "type": "int64",
+          "optional": true,
+          "description": "Index within the file (starting from 0)."
+        },
+        {
           "name": "infos",
           "type": "list",
           "elemAttrs": [
@@ -1137,6 +1131,12 @@
           ],
           "computed": true,
           "description": "Additional information/warnings for APT repositories."
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "optional": true,
+          "description": "Path to the containing file."
         },
         {
           "name": "standard_repos",

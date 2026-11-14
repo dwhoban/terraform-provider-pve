@@ -168,13 +168,13 @@ var Phase6 = []Type{
 	},
 	{
 		Type: "pve_apt_repositories", Kind: "resource", Phase: 6,
-		Summary:  "APT repository configuration of a node (singleton): create adds a repository (POST), update changes one by handle (PUT).",
+		Summary:  "APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).",
 		Behavior: "singleton",
-		Create:   &Endpoint{Path: "/nodes/{node}/apt/repositories"},                // POST: add repository
-		Read:     &Endpoint{Path: "/nodes/{node}/apt/repositories"},                // GET: parsed state
-		Update:   &Endpoint{Path: "/nodes/{node}/apt/repositories", Method: "PUT"}, // change by handle
+		Create:   &Endpoint{Path: "/nodes/{node}/apt/repositories", Method: "PUT"},  // PUT: add_repository by handle
+		Read:     &Endpoint{Path: "/nodes/{node}/apt/repositories"},                 // GET: parsed state
+		Update:   &Endpoint{Path: "/nodes/{node}/apt/repositories", Method: "POST"}, // POST: change_repository (enabled at path+index)
 		Attrs: []AttrRule{
-			// PUT-only input: the repo handle to change.
+			// Create (PUT add_repository) input: the standard repo handle to add.
 			{Name: "handle", Type: "string", Add: true, Optional: BoolPtr(true)},
 		},
 	},
