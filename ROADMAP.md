@@ -144,7 +144,7 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 | actions `pve_node_disk_initgpt`, `pve_node_disk_wipe` | actions (destructive) | `/disks/initgpt`, `/disks/wipedisk` |
 | `pve_subscription` | resource | `/subscription` GET/POST/PUT/DELETE |
 | `pve_node_services` | data source + actions `pve_service_{start,stop,restart,reload}` | `/services*` |
-| `pve_apt_repositories` | resource | `/apt/repositories` (+ `GET /apt`, `/apt/versions` data source) |
+| `pve_apt_repositories` | data source | `GET /apt/repositories` (+ `GET /apt`, `/apt/versions` data sources); toggled by the hand-written resource `pve_apt_standard_repository` |
 | action `pve_apt_update` | action | `/apt/update` |
 | actions `pve_node_reboot/shutdown`, `pve_node_{startall,stopall,suspendall,wakeonlan,migrate_all}` | actions | `POST /status`, `/startall`, `/stopall`, `/suspendall`, `/wakeonlan`, `/migrateall` |
 

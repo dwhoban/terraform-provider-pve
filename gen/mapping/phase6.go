@@ -171,16 +171,9 @@ var Phase6 = []Type{
 		Invoke:  &Endpoint{Path: "/nodes/{node}/services/{service}/reload"},
 	},
 	{
-		Type: "pve_apt_repositories", Kind: "resource", Phase: 6,
-		Summary:  "APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).",
-		Behavior: "singleton",
-		Create:   &Endpoint{Path: "/nodes/{node}/apt/repositories", Method: "PUT"},  // PUT: add_repository by handle
-		Read:     &Endpoint{Path: "/nodes/{node}/apt/repositories"},                 // GET: parsed state
-		Update:   &Endpoint{Path: "/nodes/{node}/apt/repositories", Method: "POST"}, // POST: change_repository (enabled at path+index)
-		Attrs: []AttrRule{
-			// Create (PUT add_repository) input: the standard repo handle to add.
-			{Name: "handle", Type: "string", Add: true, Optional: BoolPtr(true)},
-		},
+		Type: "pve_apt_repositories", Kind: "data_source", Phase: 6,
+		Summary: "APT repository configuration of a node: parsed repository files, parse errors, infos, and the standard repositories with their enabled status. Toggle standard repositories with the pve_apt_standard_repository resource.",
+		Reads:   []*Endpoint{{Path: "/nodes/{node}/apt/repositories"}},
 	},
 	{
 		Type: "pve_apt", Kind: "data_source", Phase: 6,

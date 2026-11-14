@@ -362,7 +362,7 @@ func envBool(getenv func(string) string, key string) bool {
 }
 
 func (p *pveProvider) Resources(ctx context.Context) []func() resource.Resource {
-	base := []func() resource.Resource{NewClusterQDeviceResource}
+	base := []func() resource.Resource{NewClusterQDeviceResource, NewAptStandardRepositoryResource}
 	return append(base, registryConstructors(KindResource, func(d *TypeDescriptor) func() resource.Resource { return NewGenericResource(d) })...)
 }
 

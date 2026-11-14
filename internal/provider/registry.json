@@ -903,40 +903,21 @@
     },
     {
       "name": "pve_apt_repositories",
-      "kind": "resource",
+      "kind": "data_source",
       "phase": 6,
-      "summary": "APT repository configuration of a node (singleton): create adds a standard repository by handle (PUT), update toggles enabled at path+index (POST).",
-      "behavior": "singleton",
+      "summary": "APT repository configuration of a node: parsed repository files, parse errors, infos, and the standard repositories with their enabled status. Toggle standard repositories with the pve_apt_standard_repository resource.",
       "idAttrs": [
         "node"
       ],
-      "create": {
-        "method": "PUT",
-        "path": "/nodes/{node}/apt/repositories",
-        "params": [
-          "handle",
-          "node"
-        ],
-        "waitTask": true
-      },
-      "read": {
-        "method": "GET",
-        "path": "/nodes/{node}/apt/repositories",
-        "params": [
-          "node"
-        ]
-      },
-      "update": {
-        "method": "POST",
-        "path": "/nodes/{node}/apt/repositories",
-        "params": [
-          "enabled",
-          "index",
-          "node",
-          "path"
-        ],
-        "waitTask": true
-      },
+      "reads": [
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/apt/repositories",
+          "params": [
+            "node"
+          ]
+        }
+      ],
       "attributes": [
         {
           "name": "node",
@@ -946,10 +927,10 @@
           "description": "The cluster node name."
         },
         {
-          "name": "enabled",
-          "type": "bool",
-          "optional": true,
-          "description": "Whether the repository should be enabled or not."
+          "name": "digest",
+          "type": "string",
+          "computed": true,
+          "description": "Common digest of all files."
         },
         {
           "name": "errors",
@@ -1083,18 +1064,6 @@
           "description": "List of parsed repository files."
         },
         {
-          "name": "handle",
-          "type": "string",
-          "optional": true,
-          "description": "Handle that identifies a repository."
-        },
-        {
-          "name": "index",
-          "type": "int64",
-          "optional": true,
-          "description": "Index within the file (starting from 0)."
-        },
-        {
           "name": "infos",
           "type": "list",
           "elemAttrs": [
@@ -1131,12 +1100,6 @@
           ],
           "computed": true,
           "description": "Additional information/warnings for APT repositories."
-        },
-        {
-          "name": "path",
-          "type": "string",
-          "optional": true,
-          "description": "Path to the containing file."
         },
         {
           "name": "standard_repos",
