@@ -1,3 +1,3 @@
 data "pve_node_capabilities" "example" {
-  node = "pve1"
+node = "pve1"
 }

@@ -1,3 +1,3 @@
 resource "pve_cluster" "example" {
-  clustername = "CHANGE_ME"
+clustername = "CHANGE_ME"
 }

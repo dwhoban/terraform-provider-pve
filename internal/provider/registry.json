@@ -10256,7 +10256,7 @@
           "optional": true,
           "computed": true,
           "forceNew": true,
-          "description": "Volume identifier"
+          "description": "Source volume identifier"
         }
       ]
     },

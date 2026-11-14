@@ -1,8 +1,8 @@
 action "pve_file_oci_pull" "example" {
   config {
-    node      = "pve1"
-    reference = "CHANGE_ME"
-    storage   = "local"
+  node = "pve1"
+  reference = "CHANGE_ME"
+  storage = "local"
   }
 }
 

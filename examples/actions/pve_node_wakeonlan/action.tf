@@ -1,6 +1,6 @@
 action "pve_node_wakeonlan" "example" {
   config {
-    node = "pve1"
+  node = "pve1"
   }
 }
 

@@ -1,9 +1,9 @@
 action "pve_container_resize" "example" {
   config {
-    disk = "rootfs"
-    node = "pve1"
-    size = "CHANGE_ME"
-    vmid = 100
+  disk = "rootfs"
+  node = "pve1"
+  size = "CHANGE_ME"
+  vmid = 100
   }
 }
 

@@ -1,7 +1,7 @@
 action "pve_ceph_osd_scrub" "example" {
   config {
-    node  = "pve1"
-    osdid = 1
+  node = "pve1"
+  osdid = 1
   }
 }
 

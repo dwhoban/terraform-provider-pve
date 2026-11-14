@@ -1,8 +1,8 @@
 action "pve_container_move_volume" "example" {
   config {
-    node   = "pve1"
-    vmid   = 100
-    volume = "rootfs"
+  node = "pve1"
+  vmid = 100
+  volume = "rootfs"
   }
 }
 

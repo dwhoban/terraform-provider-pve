@@ -1,3 +1,3 @@
 resource "pve_notification_matcher" "example" {
-  name = "CHANGE_ME"
+name = "CHANGE_ME"
 }

@@ -1,3 +1,3 @@
 resource "pve_node_certificate" "example" {
-  node = "pve1"
+node = "pve1"
 }

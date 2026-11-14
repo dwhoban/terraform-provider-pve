@@ -1,8 +1,8 @@
 action "pve_vm_disk_move" "example" {
   config {
-    disk = "ide0"
-    node = "pve1"
-    vmid = 100
+  disk = "ide0"
+  node = "pve1"
+  vmid = 100
   }
 }
 
