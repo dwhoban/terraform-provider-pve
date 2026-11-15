@@ -67,7 +67,17 @@ var Phase6 = []Type{
 		Create:   &Endpoint{Path: "/nodes/{node}/config", Method: "PUT"},
 		Read:     &Endpoint{Path: "/nodes/{node}/config"},
 		Update:   &Endpoint{Path: "/nodes/{node}/config", Method: "PUT"},
-		Attrs:    []AttrRule{{Name: "acmedomain_n_", Skip: true}},
+		Blocks: []Block{{
+			Name:        "acme_domain",
+			Description: "ACME domain and validation plugin; list position is the slot number (acme_domain[0] is acmedomain0, up to acmedomain5).",
+			Families:    []string{"acmedomain"},
+			DefaultKey:  "domain",
+			Fields: []BlockField{
+				{Name: "domain", Key: "domain", Required: true, Description: "Domain for this node's ACME certificate."},
+				{Name: "plugin", Key: "plugin", Description: "ACME plugin ID (DNS validation); omit for standalone."},
+				{Name: "alias", Key: "alias", Description: "Alias domain for DNS validation (CNAME delegation)."},
+			},
+		}},
 	},
 	{
 		Type: "pve_node_disk_lvm", Kind: "resource", Phase: 6,

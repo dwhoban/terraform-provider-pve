@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- `pve_node_config` gains the `acme_domain` block (acmedomain0–5) so DNS-01 plugins can be bound per node.
+
 ## 0.2.0 (2026-11-14)
 
 Phases 2–13 — the full declarative surface, **generated from the API schema** ([ROADMAP.md](ROADMAP.md)):

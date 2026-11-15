@@ -14392,6 +14392,7 @@
         "path": "/nodes/{node}/config",
         "params": [
           "acme",
+          "acme_domain",
           "ballooning_target",
           "delete",
           "description",
@@ -14415,6 +14416,7 @@
         "path": "/nodes/{node}/config",
         "params": [
           "acme",
+          "acme_domain",
           "ballooning_target",
           "delete",
           "description",
@@ -14439,6 +14441,52 @@
           "type": "string",
           "optional": true,
           "description": "Node specific ACME settings."
+        },
+        {
+          "name": "acme_domain",
+          "type": "list",
+          "block": {
+            "families": [
+              "acmedomain"
+            ],
+            "defaultKey": "domain",
+            "fields": [
+              {
+                "name": "domain",
+                "key": "domain"
+              },
+              {
+                "name": "plugin",
+                "key": "plugin"
+              },
+              {
+                "name": "alias",
+                "key": "alias"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "domain",
+              "type": "string",
+              "required": true,
+              "description": "Domain for this node's ACME certificate."
+            },
+            {
+              "name": "plugin",
+              "type": "string",
+              "optional": true,
+              "description": "ACME plugin ID (DNS validation); omit for standalone."
+            },
+            {
+              "name": "alias",
+              "type": "string",
+              "optional": true,
+              "description": "Alias domain for DNS validation (CNAME delegation)."
+            }
+          ],
+          "optional": true,
+          "description": "ACME domain and validation plugin; list position is the slot number (acme_domain[0] is acmedomain0, up to acmedomain5)."
         },
         {
           "name": "ballooning_target",

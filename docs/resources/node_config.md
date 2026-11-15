@@ -28,6 +28,7 @@ resource "pve_node_config" "example" {
 ### Optional
 
 - `acme` (String) Node specific ACME settings.
+- `acme_domain` (Block List) ACME domain and validation plugin; list position is the slot number (acme_domain[0] is acmedomain0, up to acmedomain5). (see [below for nested schema](#nestedblock--acme_domain))
 - `ballooning_target` (Number) RAM usage target for ballooning (in percent of total memory) (default: 80)
 - `delete` (String) A list of settings you want to delete.
 - `description` (String) Description for the Node. Shown in the web-interface node notes panel. This is saved as comment inside the configuration file.
@@ -38,3 +39,15 @@ resource "pve_node_config" "example" {
 ### Read-Only
 
 - `id` (String) Opaque identifier: node (also the `terraform import` format).
+
+<a id="nestedblock--acme_domain"></a>
+### Nested Schema for `acme_domain`
+
+Required:
+
+- `domain` (String) Domain for this node's ACME certificate.
+
+Optional:
+
+- `alias` (String) Alias domain for DNS validation (CNAME delegation).
+- `plugin` (String) ACME plugin ID (DNS validation); omit for standalone.

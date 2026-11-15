@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -376,4 +377,131 @@ func blockElemAt(t *testing.T, list types.List, i int) map[string]attr.Value {
 		t.Fatalf("element %d is %T, want object", i, list.Elements()[i])
 	}
 	return e.Attributes()
+}
+
+// fakeNodeConfigPVE is a /nodes/{node}/config stub: PUT stores every key
+// verbatim (the canonical `delete` parameter unsets keys) and records the
+// request form; GET answers the stored config.
+type fakeNodeConfigPVE struct {
+	mu   sync.Mutex
+	cfg  map[string]string
+	puts []url.Values
+}
+
+func (f *fakeNodeConfigPVE) serve(w http.ResponseWriter, r *http.Request) {
+	if strings.TrimPrefix(r.URL.Path, "/api2/json") != "/nodes/pve1/config" {
+		writeErr(w, http.StatusInternalServerError, "unhandled "+r.Method+" "+r.URL.Path)
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch r.Method {
+	case http.MethodGet:
+		out := map[string]any{}
+		for k, v := range f.cfg {
+			out[k] = v
+		}
+		writeData(w, out)
+	case http.MethodPut:
+		_ = r.ParseForm()
+		f.puts = append(f.puts, r.PostForm)
+		for k, vs := range r.PostForm {
+			if k == "delete" {
+				for _, d := range strings.Split(vs[0], ",") {
+					delete(f.cfg, d)
+				}
+				continue
+			}
+			f.cfg[k] = vs[0]
+		}
+		writeData(w, nil)
+	default:
+		writeErr(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+// TestEngineNodeConfigAcmeDomain drives the generated pve_node_config
+// acme_domain block (acmedomain[n]) through create, in-place update and
+// removal: PVE takes `domain` as the property string's default key, so it
+// is written bare, and removing the block unsets the slot via `delete`.
+func TestEngineNodeConfigAcmeDomain(t *testing.T) {
+	ctx := context.Background()
+	reg, err := GeneratedRegistry()
+	if err != nil {
+		t.Fatalf("GeneratedRegistry: %v", err)
+	}
+	var d *TypeDescriptor
+	for _, td := range reg.Types {
+		if td.Name == "pve_node_config" && td.Kind == KindResource {
+			d = td
+		}
+	}
+	if d == nil {
+		t.Fatal("pve_node_config not in registry")
+	}
+	f := &fakeNodeConfigPVE{cfg: map[string]string{}}
+	srv := httptest.NewTLSServer(http.HandlerFunc(f.serve))
+	t.Cleanup(srv.Close)
+	c, err := pveclient.NewClient(pveclient.Config{
+		URL: srv.URL, Credentials: pveclient.Credentials{APIToken: "root@pam!t=test"},
+		Insecure: true, RetryMax: 1, RetryBaseWait: 1, RequestTimeout: 0,
+	})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	r := &genericResource{engineBase: engineBase{desc: d, client: c}}
+	schema := buildResourceSchema(d)
+	acmeAttr, _ := d.Attr("acme_domain")
+
+	plan := func(domains attr.Value) map[string]attr.Value {
+		return map[string]attr.Value{"node": types.StringValue("pve1"), "acme_domain": domains}
+	}
+	withPlugin := blockElemValue(acmeAttr, map[string]attr.Value{
+		"domain": types.StringValue("pve1.example.com"),
+		"plugin": types.StringValue("cloudflare"),
+	})
+
+	createResp := &resource.CreateResponse{State: tfsdk.State{Schema: schema}}
+	r.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan{Raw: toTF(d, plan(withPlugin)), Schema: schema}}, createResp)
+	if createResp.Diagnostics.HasError() {
+		t.Fatalf("Create: %v", createResp.Diagnostics)
+	}
+	if len(f.puts) != 1 {
+		t.Fatalf("PUT count = %d, want 1", len(f.puts))
+	}
+	if got, want := f.puts[0].Get("acmedomain0"), "pve1.example.com,plugin=cloudflare"; got != want {
+		t.Fatalf("acmedomain0 = %q, want %q", got, want)
+	}
+	var domains types.List
+	if diags := createResp.State.GetAttribute(ctx, pathpkg.Root("acme_domain"), &domains); diags.HasError() {
+		t.Fatalf("state acme_domain: %v", diags)
+	}
+	if len(domains.Elements()) != 1 {
+		t.Fatalf("state acme_domain len = %d", len(domains.Elements()))
+	}
+	e0 := blockElemAt(t, domains, 0)
+	if got := blockStr(t, e0, "domain"); got != "pve1.example.com" {
+		t.Fatalf("domain = %q", got)
+	}
+	if got := blockStr(t, e0, "plugin"); got != "cloudflare" {
+		t.Fatalf("plugin = %q", got)
+	}
+
+	// Removing the block unsets the slot through the delete parameter.
+	empty := blockValue(acmeAttr, nil)
+	updateResp := &resource.UpdateResponse{State: tfsdk.State{Schema: schema}}
+	r.Update(ctx, resource.UpdateRequest{
+		Plan:  tfsdk.Plan{Raw: toTF(d, plan(empty)), Schema: schema},
+		State: tfsdk.State{Raw: createResp.State.Raw, Schema: schema},
+	}, updateResp)
+	if updateResp.Diagnostics.HasError() {
+		t.Fatalf("Update: %v", updateResp.Diagnostics)
+	}
+	last := f.puts[len(f.puts)-1]
+	if got := last.Get("delete"); got != "acmedomain0" {
+		t.Fatalf("delete = %q, want acmedomain0 (form %v)", got, last)
+	}
+	if _, still := f.cfg["acmedomain0"]; still {
+		t.Fatal("acmedomain0 not deleted")
+	}
 }
