@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	actionschema "github.com/hashicorp/terraform-plugin-framework/action/schema"
 	dschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -215,6 +216,45 @@ func keepBlockComputed(a Attr, plan, state attr.Value) attr.Value {
 	return blockValue(a, out)
 }
 
+// planFromConfig plans a server-derived Computed-only string from the
+// configuration (PlanFrom) so updates show a known value. A known plan
+// value means the framework kept state (config unchanged): left as is.
+type planFromConfig struct{ p PlanFrom }
+
+var _ planmodifier.String = planFromConfig{}
+
+func (m planFromConfig) Description(context.Context) string {
+	return fmt.Sprintf("Plans %q when any of %s is set, %q otherwise.", m.p.IfSet, joinQuoted(m.p.Attrs), m.p.IfUnset)
+}
+
+func (m planFromConfig) MarkdownDescription(ctx context.Context) string { return m.Description(ctx) }
+
+func (m planFromConfig) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if !req.PlanValue.IsUnknown() || req.Plan.Raw.IsNull() {
+		return
+	}
+	set, unknown := false, false
+	for _, name := range m.p.Attrs {
+		var v types.String
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root(name), &v)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		switch {
+		case v.IsUnknown():
+			unknown = true
+		case !v.IsNull() && v.ValueString() != "":
+			set = true
+		}
+	}
+	switch {
+	case set:
+		resp.PlanValue = types.StringValue(m.p.IfSet)
+	case !unknown:
+		resp.PlanValue = types.StringValue(m.p.IfUnset)
+	}
+}
+
 // specKind is the neutral attribute shape shared by every schema flavor.
 type specKind int
 
@@ -241,6 +281,7 @@ type attrSpec struct {
 	ElemType                                AttrType // list/set scalar elements
 	Nested                                  []attrSpec
 	Block                                   *BlockSpec
+	PlanFrom                                *PlanFrom
 }
 
 // attrSpecsOf projects a descriptor attribute list.
@@ -260,6 +301,7 @@ func attrSpecOf(a Attr) attrSpec {
 		Required: a.Required, Optional: a.Optional, Computed: a.Computed, Sensitive: a.Sensitive,
 		Enum: a.Enum, Default: a.Default, ForceNew: a.ForceNew,
 		ElemType: a.ElemType, Block: a.Block,
+		PlanFrom: a.PlanFrom,
 	}
 	switch a.Type {
 	case AttrBool:
@@ -401,6 +443,9 @@ func renderResourceAttrs(specs []attrSpec) map[string]schema.Attribute {
 			}
 			if spec.ForceNew {
 				attr.PlanModifiers = []planmodifier.String{stringplanmodifier.RequiresReplace()}
+			}
+			if spec.PlanFrom != nil {
+				attr.PlanModifiers = append(attr.PlanModifiers, planFromConfig{p: *spec.PlanFrom})
 			}
 			out[spec.Name] = attr
 		}

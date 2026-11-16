@@ -62,4 +62,5 @@ resource "pve_node_network" "example" {
 ### Read-Only
 
 - `id` (String) Opaque identifier: node/iface (also the `terraform import` format).
-- `method` (String)
+- `method` (String) The network configuration method for IPv4. PVE sets `static` when `cidr` or `address` is sent, `manual` otherwise.
+- `method6` (String) The network configuration method for IPv6. PVE sets `static` when `cidr6` or `address6` is sent, `manual` otherwise.

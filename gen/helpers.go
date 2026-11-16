@@ -267,6 +267,9 @@ func applyRuleFields(a *provider.Attr, rule mapping.AttrRule) {
 	if rule.NoDefault {
 		a.Default = nil
 	}
+	if rule.PlanFrom != nil {
+		a.PlanFrom = &provider.PlanFrom{Attrs: rule.PlanFrom.Attrs, IfSet: rule.PlanFrom.IfSet, IfUnset: rule.PlanFrom.IfUnset}
+	}
 }
 
 // bindParams lists, sorted, the attributes an endpoint accepts given its

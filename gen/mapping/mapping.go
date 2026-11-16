@@ -62,6 +62,12 @@ type Block struct {
 	Fields      []BlockField
 }
 
+// PlanFrom: see provider.PlanFrom.
+type PlanFrom struct {
+	Attrs          []string
+	IfSet, IfUnset string
+}
+
 // BlockField maps one block attribute onto a property key of the slot
 // value. Family names a secondary slot family sharing the element index
 // (net1 ⇄ ipconfig1); Role gives volume/model/index semantics.
@@ -166,6 +172,8 @@ type AttrRule struct {
 	Enum        []string
 	Default     string // rendered into the description
 	Add         bool   // force-add even when not derived
+	// PlanFrom plans a Computed-only value from config (provider.PlanFrom).
+	PlanFrom *PlanFrom
 }
 
 // FamilyImplemented lists families covered by the hand-written Phase 1

@@ -35,6 +35,18 @@ var Phase6 = []Type{
 		},
 		Attrs: []AttrRule{
 			{Name: "iface", ForceNew: true},
+			// PVE rewrites method/method6 on every create and update from whether an
+			// address is sent (cidr maps to address): plan them from config.
+			{
+				Name:        "method",
+				Description: "The network configuration method for IPv4. PVE sets `static` when `cidr` or `address` is sent, `manual` otherwise.",
+				PlanFrom:    &PlanFrom{Attrs: []string{"cidr", "address"}, IfSet: "static", IfUnset: "manual"},
+			},
+			{
+				Name: "method6", Type: "string", Computed: BoolPtr(true), Add: true,
+				Description: "The network configuration method for IPv6. PVE sets `static` when `cidr6` or `address6` is sent, `manual` otherwise.",
+				PlanFrom:    &PlanFrom{Attrs: []string{"cidr6", "address6"}, IfSet: "static", IfUnset: "manual"},
+			},
 		},
 	},
 	{

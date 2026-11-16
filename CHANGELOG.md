@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- `pve_node_network` plans `method` (and new computed `method6`) as a known value derived from config (`static` when `cidr`/`address` [`cidr6`/`address6`] is set, `manual` otherwise; unchanged config keeps the state value) instead of `(known after apply)`. Generic descriptor rule `planFrom`.
+
 ## 0.2.1
 
 - `pve_node_config` gains the `acme_domain` block (acmedomain0–5) so DNS-01 plugins can be bound per node.

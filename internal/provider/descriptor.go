@@ -85,6 +85,14 @@ type BlockField struct {
 	CreateOnly bool      `json:"createOnly,omitempty"`
 }
 
+// PlanFrom names the configured attributes a derived computed value
+// depends on and the value planned for each case.
+type PlanFrom struct {
+	Attrs   []string `json:"attrs"`
+	IfSet   string   `json:"ifSet"`
+	IfUnset string   `json:"ifUnset"`
+}
+
 // FieldRole gives a block field special encode/decode semantics.
 type FieldRole string
 
@@ -132,6 +140,11 @@ type Attr struct {
 	Description string   `json:"description,omitempty"`
 	Default     any      `json:"default,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
+	// PlanFrom plans a Computed-only string the server derives from the
+	// configuration, instead of leaving it unknown on create/update: IfSet
+	// when any Attrs value is configured (known, non-null, non-empty),
+	// IfUnset otherwise (PVE network `method`: static iff an address is sent).
+	PlanFrom *PlanFrom `json:"planFrom,omitempty"`
 }
 
 // TFName returns the PVE field name for the attribute: APIName when set,

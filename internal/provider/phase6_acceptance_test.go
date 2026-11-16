@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
@@ -38,32 +39,10 @@ resource "pve_node_network" "test" {
 }
 `, node, iface, vids)
 	}
-	// ifaceGone: the staged deletion must be flushed (apply) before the
-	// interface disappears from PVE's applied state.
-	ifaceGone := func(s *terraform.State) error {
-		c := testAccClient(t)
-		if _, err := c.DoRequest(context.Background(), "PUT", "/nodes/"+node+"/network", nil); err != nil {
-			return fmt.Errorf("flushing staged network deletion: %w", err)
-		}
-		payload, err := c.DoRequest(context.Background(), "GET", "/nodes/"+node+"/network", nil)
-		if err != nil {
-			return err
-		}
-		var list []map[string]any
-		if err := jsonUnmarshalT(payload, &list); err != nil {
-			return err
-		}
-		for _, e := range list {
-			if v, _ := e["iface"].(string); v == iface {
-				return fmt.Errorf("interface %s still configured", iface)
-			}
-		}
-		return nil
-	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             ifaceGone,
+		CheckDestroy:             testAccNetworkIfaceGone(t, node, iface),
 		Steps: []resource.TestStep{
 			{
 				// Create stages the bridge (PVE semantics: no apply until
@@ -86,6 +65,74 @@ resource "pve_node_network" "test" {
 				ResourceName:      "pve_node_network.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// testAccNetworkIfaceGone checks the interface is gone after destroy: the
+// staged deletion must be flushed (apply) before the interface disappears
+// from PVE's applied state.
+func testAccNetworkIfaceGone(t *testing.T, node, iface string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		c := testAccClient(t)
+		if _, err := c.DoRequest(context.Background(), "PUT", "/nodes/"+node+"/network", nil); err != nil {
+			return fmt.Errorf("flushing staged network deletion: %w", err)
+		}
+		payload, err := c.DoRequest(context.Background(), "GET", "/nodes/"+node+"/network", nil)
+		if err != nil {
+			return err
+		}
+		var list []map[string]any
+		if err := jsonUnmarshalT(payload, &list); err != nil {
+			return err
+		}
+		for _, e := range list {
+			if v, _ := e["iface"].(string); v == iface {
+				return fmt.Errorf("interface %s still configured", iface)
+			}
+		}
+		return nil
+	}
+}
+
+// Dropping cidr makes PVE rewrite method to manual; the plan must carry
+// that value instead of (known after apply), and apply must agree.
+func TestAccPhase6NetworkMethodKnownInPlan(t *testing.T) {
+	node := testAccNode(t)
+	config := func(cidr string) string {
+		return fmt.Sprintf(`
+resource "pve_node_network" "test" {
+  node      = %q
+  iface     = "vmbr98"
+  type      = "bridge"
+  autostart = true
+%s}
+`, node, cidr)
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccNetworkIfaceGone(t, node, "vmbr98"),
+		Steps: []resource.TestStep{
+			{
+				Config: config(`  cidr      = "192.0.2.10/24"` + "\n"), // TEST-NET-1: never routed
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("pve_node_network.test", tfjsonpath.New("method"), knownvalue.StringExact("static")),
+				},
+			},
+			{
+				Config: config(""),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("pve_node_network.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("pve_node_network.test", tfjsonpath.New("method"), knownvalue.StringExact("manual")),
+						plancheck.ExpectKnownValue("pve_node_network.test", tfjsonpath.New("method6"), knownvalue.StringExact("manual")),
+					},
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("pve_node_network.test", tfjsonpath.New("method"), knownvalue.StringExact("manual")),
+				},
 			},
 		},
 	})

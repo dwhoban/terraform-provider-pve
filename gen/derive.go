@@ -287,6 +287,9 @@ func derive(doc *pveapidoc.Document, m mapping.Type) (*provider.TypeDescriptor, 
 	if err := applyBlocks(doc, m, attrs); err != nil {
 		return nil, fmt.Errorf("type %s: %w", m.Type, err)
 	}
+	if err := checkPlanFrom(attrs); err != nil {
+		return nil, fmt.Errorf("type %s: %w", m.Type, err)
+	}
 	for op, apiNames := range wire {
 		op.Params = bindParams(apiNames, attrs)
 	}
@@ -759,4 +762,33 @@ func dedupeStrings(in []string) []string {
 		}
 	}
 	return out
+}
+
+// checkPlanFrom rejects a planFrom rule that would plan a wrong known
+// value (and fail apply with "inconsistent result"): the target must be a
+// computed-only string, every source a configurable string.
+func checkPlanFrom(attrs map[string]*provider.Attr) error {
+	names := make([]string, 0, len(attrs))
+	for name, a := range attrs {
+		if a.PlanFrom != nil {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		a, p := attrs[name], attrs[name].PlanFrom
+		if a.Type != provider.AttrString || !a.Computed || a.Optional || a.Required {
+			return fmt.Errorf("attribute %q: planFrom needs a computed-only string", name)
+		}
+		for _, src := range p.Attrs {
+			s, ok := attrs[src]
+			if !ok || s.Type != provider.AttrString || s.Computed {
+				return fmt.Errorf("attribute %q: planFrom source %q must be a configured string attribute", name, src)
+			}
+		}
+		if p.IfSet == "" || p.IfUnset == "" {
+			return fmt.Errorf("attribute %q: planFrom needs ifSet and ifUnset", name)
+		}
+	}
+	return nil
 }
