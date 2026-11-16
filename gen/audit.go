@@ -126,6 +126,9 @@ func audit(doc *pveapidoc.Document, reg *provider.Registry) []string {
 			}
 			if op.Apply != nil {
 				collect(op.Apply.Path)
+				if a, ok := t.Attr(op.ApplyIf); !ok || a.Type != provider.AttrBool || !a.Optional || a.Computed {
+					errs = append(errs, fmt.Sprintf("type %s: %s %s: apply requires applyIf naming an optional bool attribute", t.Name, op.Method, op.Path))
+				}
 			}
 		}
 		// 3. Attr ⇄ Params: every required API parameter is satisfiable
@@ -203,6 +206,9 @@ func auditWiring(doc *pveapidoc.Document, t *provider.TypeDescriptor) []string {
 		reach[n] = true // ID composition (e.g. a constant singleton anchor)
 	}
 	for _, op := range ops {
+		if op.ApplyIf != "" {
+			reach[op.ApplyIf] = true
+		}
 		for _, n := range op.Params {
 			reach[n] = true
 		}

@@ -2,7 +2,7 @@
 
 A [Terraform](https://www.terraform.io) provider for [Proxmox Virtual Environment](https://pve.proxmox.com) built on the [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework). Goal: every declarative aspect of a Proxmox node and cluster configurable via Terraform — see [ROADMAP.md](ROADMAP.md) for the phased plan and current status.
 
-**Status:** all roadmap phases implemented. The provider surface — **223 types** — 222 generated (72 resources, 73 data sources, 75 actions, 2 functions) plus the hand-written `pve_version` data source covering all 388 in-scope API path families — is **generated from the official API schema** (`apidoc.js`), not hand-written. Live-cluster acceptance tests (`TF_ACC`) are pending a lab; development verification is `go build`, `go vet`, `golangci-lint`, and unit tests against an in-process PVE stub.
+**Status:** all roadmap phases implemented. The provider surface — **225 types** — 224 generated (72 resources, 73 data sources, 77 actions, 2 functions) plus the hand-written `pve_version` data source covering all 388 in-scope API path families — is **generated from the official API schema** (`apidoc.js`), not hand-written. Live-cluster acceptance tests (`TF_ACC`) are pending a lab; development verification is `go build`, `go vet`, `golangci-lint`, and unit tests against an in-process PVE stub.
 
 ## Requirements
 

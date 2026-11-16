@@ -614,27 +614,98 @@ func TestEngineFunctionRun(t *testing.T) {
 	}
 }
 
-func TestEngineStagedApply(t *testing.T) {
-	ctx := ctxbg()
-	f := newFakePVE()
-	d := widgetDescriptor()
-	d.Update = &Op{
-		Method: "PUT", Path: "/nodes/{node}/widgets/{widget_id}", Params: []string{"name", "size"},
-		Apply: &Op{Method: "PUT", Path: "/nodes/{node}/network"},
+func TestEngineApplyOnChange(t *testing.T) {
+	applyDescriptor := func() *TypeDescriptor {
+		d := widgetDescriptor()
+		d.Attributes = append(d.Attributes, Attr{Name: "apply_on_change", Type: AttrBool, Optional: true})
+		d.Create.Apply = &Op{Method: "PUT", Path: "/nodes/{node}/network"}
+		d.Create.ApplyIf = "apply_on_change"
+		d.Update.Apply = &Op{Method: "PUT", Path: "/nodes/{node}/network"}
+		d.Update.ApplyIf = "apply_on_change"
+		return d
 	}
-	r := newResourceTest(t, d, f)
-	schema := buildResourceSchema(d)
-	f.widgets["101"] = map[string]any{"id": "101", "name": "old", "size": 1}
-	resp := &resource.UpdateResponse{State: tfsdk.State{Schema: schema}}
-	r.Update(ctx, resource.UpdateRequest{
-		Plan:  tfsdk.Plan{Raw: toTF(d, map[string]attr.Value{"node": types.StringValue("node1"), "widget_id": types.Int64Value(101), "name": types.StringValue("new")}), Schema: schema},
-		State: tfsdk.State{Raw: toTF(d, map[string]attr.Value{"id": types.StringValue("node1/101"), "node": types.StringValue("node1"), "widget_id": types.Int64Value(101), "name": types.StringValue("old")}), Schema: schema},
-	}, resp)
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("Update: %v", resp.Diagnostics)
+	tests := []struct {
+		name string
+		verb string
+		flag types.Bool
+		want int
+	}{
+		{"create true", "create", types.BoolValue(true), 1},
+		{"create false", "create", types.BoolValue(false), 0},
+		{"create null", "create", types.BoolNull(), 0},
+		{"update true", "update", types.BoolValue(true), 1},
+		{"update null", "update", types.BoolNull(), 0},
+		{"delete true in state", "delete", types.BoolValue(true), 0},
 	}
-	if f.applyHits != 1 {
-		t.Fatalf("apply endpoint hit %d times, want 1", f.applyHits)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := ctxbg()
+			f := newFakePVE()
+			d := applyDescriptor()
+			schema := buildResourceSchema(d)
+			switch tc.verb {
+			case "create":
+				r := newResourceTest(t, d, f)
+				resp := &resource.CreateResponse{State: tfsdk.State{Schema: schema}}
+				r.Create(ctx, resource.CreateRequest{
+					Plan: tfsdk.Plan{Raw: toTF(d, map[string]attr.Value{
+						"node": types.StringValue("node1"), "name": types.StringValue("alpha"),
+						"apply_on_change": tc.flag,
+					}), Schema: schema},
+				}, resp)
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("Create: %v", resp.Diagnostics)
+				}
+				var got types.Bool
+				resp.Diagnostics.Append(resp.State.GetAttribute(ctx, pathpkg.Root("apply_on_change"), &got)...)
+				if !got.Equal(tc.flag) {
+					t.Fatalf("state apply_on_change = %v, want planned %v", got, tc.flag)
+				}
+			case "update":
+				r := newResourceTest(t, d, f)
+				f.widgets["101"] = map[string]any{"id": "101", "name": "old", "size": 1}
+				resp := &resource.UpdateResponse{State: tfsdk.State{Schema: schema}}
+				r.Update(ctx, resource.UpdateRequest{
+					Plan: tfsdk.Plan{Raw: toTF(d, map[string]attr.Value{
+						"node": types.StringValue("node1"), "widget_id": types.Int64Value(101),
+						"name": types.StringValue("new"), "apply_on_change": tc.flag,
+					}), Schema: schema},
+					State: tfsdk.State{Raw: toTF(d, map[string]attr.Value{
+						"id": types.StringValue("node1/101"), "node": types.StringValue("node1"),
+						"widget_id": types.Int64Value(101), "name": types.StringValue("old"),
+						"apply_on_change": tc.flag,
+					}), Schema: schema},
+				}, resp)
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("Update: %v", resp.Diagnostics)
+				}
+			case "delete":
+				// Even a descriptor that chains an Apply to Delete must not run it.
+				d.Delete.Apply = &Op{Method: "PUT", Path: "/nodes/{node}/network"}
+				d.Delete.ApplyIf = "apply_on_change"
+				r := newResourceTest(t, d, f)
+				f.widgets["101"] = map[string]any{"id": "101", "name": "old", "size": 1}
+				resp := &resource.DeleteResponse{}
+				r.Delete(ctx, resource.DeleteRequest{
+					State: tfsdk.State{Raw: toTF(d, map[string]attr.Value{
+						"id": types.StringValue("node1/101"), "node": types.StringValue("node1"),
+						"widget_id": types.Int64Value(101), "name": types.StringValue("old"),
+						"apply_on_change": tc.flag,
+					}), Schema: schema},
+				}, resp)
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("Delete: %v", resp.Diagnostics)
+				}
+			}
+			if f.applyHits != tc.want {
+				t.Fatalf("apply endpoint hit %d times, want %d; requests: %v", f.applyHits, tc.want, f.requests)
+			}
+			for _, form := range f.forms {
+				if strings.Contains(form, "apply_on_change") {
+					t.Fatalf("apply_on_change sent to PVE: %q", form)
+				}
+			}
+		})
 	}
 }
 

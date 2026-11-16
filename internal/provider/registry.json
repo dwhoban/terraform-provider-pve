@@ -5117,6 +5117,100 @@
     },
     {
       "name": "pve_cluster",
+      "kind": "resource",
+      "phase": 8,
+      "summary": "Cluster creation on the seed node (create-only lifecycle; destroy removes it from state only — no API delete exists).",
+      "behavior": "state-only-delete",
+      "idAttrs": [
+        "clustername"
+      ],
+      "create": {
+        "method": "POST",
+        "path": "/cluster/config",
+        "params": [
+          "clustername",
+          "link",
+          "nodeid",
+          "token_coefficient",
+          "votes"
+        ],
+        "waitTask": true
+      },
+      "read": {
+        "method": "GET",
+        "path": "/cluster/config"
+      },
+      "attributes": [
+        {
+          "name": "clustername",
+          "type": "string",
+          "required": true,
+          "description": "The name of the cluster."
+        },
+        {
+          "name": "link",
+          "type": "list",
+          "block": {
+            "families": [
+              "link"
+            ],
+            "defaultKey": "address",
+            "fields": [
+              {
+                "name": "address",
+                "key": "address"
+              },
+              {
+                "name": "priority",
+                "key": "priority"
+              }
+            ]
+          },
+          "elemAttrs": [
+            {
+              "name": "address",
+              "type": "string",
+              "required": true,
+              "description": "Link address."
+            },
+            {
+              "name": "priority",
+              "type": "int64",
+              "optional": true,
+              "description": "Link priority."
+            }
+          ],
+          "optional": true,
+          "forceNew": true,
+          "description": "Corosync link; list position is the link number (link[0] is link0, up to link7)."
+        },
+        {
+          "name": "nodeid",
+          "type": "int64",
+          "optional": true,
+          "forceNew": true,
+          "description": "Node id for this node."
+        },
+        {
+          "name": "token_coefficient",
+          "apiName": "token-coefficient",
+          "type": "int64",
+          "optional": true,
+          "forceNew": true,
+          "description": "Coefficient used to determine Corosync's token timeout. See the corosync.conf(5) manual for more details.",
+          "default": 125
+        },
+        {
+          "name": "votes",
+          "type": "int64",
+          "optional": true,
+          "forceNew": true,
+          "description": "Number of votes for this node."
+        }
+      ]
+    },
+    {
+      "name": "pve_cluster",
       "kind": "data_source",
       "phase": 2,
       "summary": "Cluster inventory: identity, quorum status, resource list, and recent tasks.",
@@ -5472,100 +5566,6 @@
             "node",
             "sdn"
           ]
-        }
-      ]
-    },
-    {
-      "name": "pve_cluster",
-      "kind": "resource",
-      "phase": 8,
-      "summary": "Cluster creation on the seed node (create-only lifecycle; destroy removes it from state only — no API delete exists).",
-      "behavior": "state-only-delete",
-      "idAttrs": [
-        "clustername"
-      ],
-      "create": {
-        "method": "POST",
-        "path": "/cluster/config",
-        "params": [
-          "clustername",
-          "link",
-          "nodeid",
-          "token_coefficient",
-          "votes"
-        ],
-        "waitTask": true
-      },
-      "read": {
-        "method": "GET",
-        "path": "/cluster/config"
-      },
-      "attributes": [
-        {
-          "name": "clustername",
-          "type": "string",
-          "required": true,
-          "description": "The name of the cluster."
-        },
-        {
-          "name": "link",
-          "type": "list",
-          "block": {
-            "families": [
-              "link"
-            ],
-            "defaultKey": "address",
-            "fields": [
-              {
-                "name": "address",
-                "key": "address"
-              },
-              {
-                "name": "priority",
-                "key": "priority"
-              }
-            ]
-          },
-          "elemAttrs": [
-            {
-              "name": "address",
-              "type": "string",
-              "required": true,
-              "description": "Link address."
-            },
-            {
-              "name": "priority",
-              "type": "int64",
-              "optional": true,
-              "description": "Link priority."
-            }
-          ],
-          "optional": true,
-          "forceNew": true,
-          "description": "Corosync link; list position is the link number (link[0] is link0, up to link7)."
-        },
-        {
-          "name": "nodeid",
-          "type": "int64",
-          "optional": true,
-          "forceNew": true,
-          "description": "Node id for this node."
-        },
-        {
-          "name": "token_coefficient",
-          "apiName": "token-coefficient",
-          "type": "int64",
-          "optional": true,
-          "forceNew": true,
-          "description": "Coefficient used to determine Corosync's token timeout. See the corosync.conf(5) manual for more details.",
-          "default": 125
-        },
-        {
-          "name": "votes",
-          "type": "int64",
-          "optional": true,
-          "forceNew": true,
-          "description": "Number of votes for this node."
         }
       ]
     },
@@ -6330,6 +6330,611 @@
           "name": "totem",
           "type": "object",
           "computed": true
+        }
+      ]
+    },
+    {
+      "name": "pve_container",
+      "kind": "data_source",
+      "phase": 4,
+      "summary": "One container: configuration, pending changes, capabilities, runtime status, and guest network interfaces.",
+      "idAttrs": [
+        "node",
+        "vmid"
+      ],
+      "reads": [
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/config",
+          "params": [
+            "node",
+            "snapshot",
+            "vmid"
+          ],
+          "resultName": "config"
+        },
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/pending",
+          "params": [
+            "node",
+            "vmid"
+          ],
+          "resultName": "pending"
+        },
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/feature",
+          "params": [
+            "feature",
+            "node",
+            "snapname",
+            "vmid"
+          ],
+          "resultName": "feature_support",
+          "skipIfMissing": [
+            "feature"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/status",
+          "params": [
+            "node",
+            "vmid"
+          ],
+          "resultName": "status"
+        },
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/status/current",
+          "params": [
+            "node",
+            "vmid"
+          ],
+          "resultName": "current"
+        },
+        {
+          "method": "GET",
+          "path": "/nodes/{node}/lxc/{vmid}/interfaces",
+          "params": [
+            "node",
+            "vmid"
+          ],
+          "resultName": "interfaces"
+        }
+      ],
+      "attributes": [
+        {
+          "name": "node",
+          "pathParam": "node",
+          "type": "string",
+          "required": true,
+          "description": "The cluster node name."
+        },
+        {
+          "name": "vmid",
+          "pathParam": "vmid",
+          "type": "int64",
+          "required": true,
+          "description": "The (unique) ID of the VM."
+        },
+        {
+          "name": "config",
+          "type": "object",
+          "attrs": [
+            {
+              "name": "arch",
+              "type": "string",
+              "computed": true,
+              "description": "OS architecture type."
+            },
+            {
+              "name": "cmode",
+              "type": "string",
+              "computed": true,
+              "description": "Console mode. By default, the console command tries to open a connection to one of the available tty devices. By setting cmode to 'console' it tries to attach to /dev/console instead. If you set cmode to 'shell', it simply invokes a shell inside the container (no login)."
+            },
+            {
+              "name": "console",
+              "type": "bool",
+              "computed": true,
+              "description": "Attach a console device (/dev/console) to the container."
+            },
+            {
+              "name": "cores",
+              "type": "int64",
+              "computed": true,
+              "description": "The number of cores assigned to the container. A container can use all available cores by default."
+            },
+            {
+              "name": "cpulimit",
+              "type": "float64",
+              "computed": true,
+              "description": "Limit of CPU usage.\n\nNOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indicates no CPU limit."
+            },
+            {
+              "name": "cpuunits",
+              "type": "int64",
+              "computed": true,
+              "description": "CPU weight for a container, will be clamped to [1, 10000] in cgroup v2."
+            },
+            {
+              "name": "debug",
+              "type": "bool",
+              "computed": true,
+              "description": "Try to be more verbose. For now this only enables debug log-level on start."
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "computed": true,
+              "description": "Description for the Container. Shown in the web-interface CT's summary. This is saved as comment inside the configuration file."
+            },
+            {
+              "name": "dev_n_",
+              "apiName": "dev[n]",
+              "type": "string",
+              "computed": true,
+              "description": "Device to pass through to the container"
+            },
+            {
+              "name": "digest",
+              "type": "string",
+              "computed": true,
+              "description": "SHA1 digest of configuration file. This can be used to prevent concurrent modifications."
+            },
+            {
+              "name": "entrypoint",
+              "type": "string",
+              "computed": true,
+              "description": "Command to run as init, optionally with arguments; may start with an absolute path, relative path, or a binary in $PATH."
+            },
+            {
+              "name": "env",
+              "type": "string",
+              "computed": true,
+              "description": "The container runtime environment as NUL-separated list. Replaces any lxc.environment.runtime entries in the config."
+            },
+            {
+              "name": "features",
+              "type": "string",
+              "computed": true,
+              "description": "Allow containers access to advanced features."
+            },
+            {
+              "name": "hookscript",
+              "type": "string",
+              "computed": true,
+              "description": "Script that will be executed during various steps in the containers lifetime."
+            },
+            {
+              "name": "hostname",
+              "type": "string",
+              "computed": true,
+              "description": "Set a host name for the container."
+            },
+            {
+              "name": "lock",
+              "type": "string",
+              "computed": true,
+              "description": "Lock/unlock the container."
+            },
+            {
+              "name": "lxc",
+              "type": "list",
+              "elemType": "string",
+              "computed": true,
+              "description": "Array of lxc low-level configurations ([[key1, value1], [key2, value2] ...])."
+            },
+            {
+              "name": "memory",
+              "type": "int64",
+              "computed": true,
+              "description": "Amount of RAM for the container in MB."
+            },
+            {
+              "name": "mp_n_",
+              "apiName": "mp[n]",
+              "type": "string",
+              "computed": true,
+              "description": "Use volume as container mount point. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume."
+            },
+            {
+              "name": "nameserver",
+              "type": "string",
+              "computed": true,
+              "description": "Sets DNS server IP address for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver."
+            },
+            {
+              "name": "net_n_",
+              "apiName": "net[n]",
+              "type": "string",
+              "computed": true,
+              "description": "Specifies network interfaces for the container."
+            },
+            {
+              "name": "onboot",
+              "type": "bool",
+              "computed": true,
+              "description": "Specifies whether a container will be started during system bootup."
+            },
+            {
+              "name": "ostype",
+              "type": "string",
+              "computed": true,
+              "description": "OS type. This is used to setup configuration inside the container, and corresponds to lxc setup scripts in /usr/share/lxc/config/<ostype>.common.conf. Value 'unmanaged' can be used to skip and OS specific setup."
+            },
+            {
+              "name": "protection",
+              "type": "bool",
+              "computed": true,
+              "description": "Sets the protection flag of the container. This will prevent the CT or CT's disk remove/update operation."
+            },
+            {
+              "name": "rootfs",
+              "type": "string",
+              "computed": true,
+              "description": "Use volume as container root."
+            },
+            {
+              "name": "searchdomain",
+              "type": "string",
+              "computed": true,
+              "description": "Sets DNS search domains for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver."
+            },
+            {
+              "name": "startup",
+              "type": "string",
+              "computed": true,
+              "description": "Startup and shutdown behavior. Order is a non-negative number defining the general startup order. Shutdown in done with reverse ordering. Additionally you can set the 'up' or 'down' delay in seconds, which specifies a delay to wait before the next VM is started or stopped."
+            },
+            {
+              "name": "swap",
+              "type": "int64",
+              "computed": true,
+              "description": "Amount of SWAP for the container in MB."
+            },
+            {
+              "name": "tags",
+              "type": "string",
+              "computed": true,
+              "description": "Tags of the Container. This is only meta information."
+            },
+            {
+              "name": "template",
+              "type": "bool",
+              "computed": true,
+              "description": "Enable/disable Template."
+            },
+            {
+              "name": "timezone",
+              "type": "string",
+              "computed": true,
+              "description": "Time zone to use in the container. If option isn't set, then nothing will be done. Can be set to 'host' to match the host time zone, or an arbitrary time zone option from /usr/share/zoneinfo/zone.tab"
+            },
+            {
+              "name": "tty",
+              "type": "int64",
+              "computed": true,
+              "description": "Specify the number of tty available to the container"
+            },
+            {
+              "name": "unprivileged",
+              "type": "bool",
+              "computed": true,
+              "description": "Makes the container run as unprivileged user. For creation, the default is 1. For restore, the default is the value from the backup. (Should not be modified manually.)"
+            },
+            {
+              "name": "unused_n_",
+              "apiName": "unused[n]",
+              "type": "string",
+              "computed": true,
+              "description": "Reference to unused volumes. This is used internally, and should not be modified manually."
+            }
+          ],
+          "computed": true
+        },
+        {
+          "name": "current",
+          "type": "object",
+          "attrs": [
+            {
+              "name": "cpu",
+              "type": "float64",
+              "computed": true,
+              "description": "Current CPU usage."
+            },
+            {
+              "name": "cpus",
+              "type": "float64",
+              "computed": true,
+              "description": "Maximum usable CPUs."
+            },
+            {
+              "name": "disk",
+              "type": "int64",
+              "computed": true,
+              "description": "Root disk image space-usage in bytes."
+            },
+            {
+              "name": "diskread",
+              "type": "int64",
+              "computed": true,
+              "description": "The amount of bytes the guest read from it's block devices since the guest was started. (Note: This info is not available for all storage types.)"
+            },
+            {
+              "name": "diskwrite",
+              "type": "int64",
+              "computed": true,
+              "description": "The amount of bytes the guest wrote from it's block devices since the guest was started. (Note: This info is not available for all storage types.)"
+            },
+            {
+              "name": "ha",
+              "type": "object",
+              "computed": true,
+              "description": "HA manager service status."
+            },
+            {
+              "name": "lock",
+              "type": "string",
+              "computed": true,
+              "description": "The current config lock, if any."
+            },
+            {
+              "name": "maxdisk",
+              "type": "int64",
+              "computed": true,
+              "description": "Root disk image size in bytes."
+            },
+            {
+              "name": "maxmem",
+              "type": "int64",
+              "computed": true,
+              "description": "Maximum memory in bytes."
+            },
+            {
+              "name": "maxswap",
+              "type": "int64",
+              "computed": true,
+              "description": "Maximum SWAP memory in bytes."
+            },
+            {
+              "name": "mem",
+              "type": "int64",
+              "computed": true,
+              "description": "Currently used memory in bytes."
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "computed": true,
+              "description": "Container name."
+            },
+            {
+              "name": "netin",
+              "type": "int64",
+              "computed": true,
+              "description": "The amount of traffic in bytes that was sent to the guest over the network since it was started."
+            },
+            {
+              "name": "netout",
+              "type": "int64",
+              "computed": true,
+              "description": "The amount of traffic in bytes that was sent from the guest over the network since it was started."
+            },
+            {
+              "name": "pressurecpusome",
+              "type": "float64",
+              "computed": true,
+              "description": "CPU Some pressure stall average over the last 10 seconds."
+            },
+            {
+              "name": "pressureiofull",
+              "type": "float64",
+              "computed": true,
+              "description": "IO Full pressure stall average over the last 10 seconds."
+            },
+            {
+              "name": "pressureiosome",
+              "type": "float64",
+              "computed": true,
+              "description": "IO Some pressure stall average over the last 10 seconds."
+            },
+            {
+              "name": "pressurememoryfull",
+              "type": "float64",
+              "computed": true,
+              "description": "Memory Full pressure stall average over the last 10 seconds."
+            },
+            {
+              "name": "pressurememorysome",
+              "type": "float64",
+              "computed": true,
+              "description": "Memory Some pressure stall average over the last 10 seconds."
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "computed": true,
+              "description": "LXC Container status."
+            },
+            {
+              "name": "tags",
+              "type": "string",
+              "computed": true,
+              "description": "The current configured tags, if any."
+            },
+            {
+              "name": "template",
+              "type": "bool",
+              "computed": true,
+              "description": "Determines if the guest is a template."
+            },
+            {
+              "name": "uptime",
+              "type": "int64",
+              "computed": true,
+              "description": "Uptime in seconds."
+            },
+            {
+              "name": "vmid",
+              "type": "int64",
+              "computed": true,
+              "description": "The (unique) ID of the VM."
+            }
+          ],
+          "computed": true,
+          "description": "Get current values (instead of pending values)."
+        },
+        {
+          "name": "feature",
+          "type": "string",
+          "optional": true,
+          "description": "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset.",
+          "enum": [
+            "snapshot",
+            "clone",
+            "copy"
+          ]
+        },
+        {
+          "name": "feature_support",
+          "type": "object",
+          "attrs": [
+            {
+              "name": "hasfeature",
+              "apiName": "hasFeature",
+              "type": "bool",
+              "computed": true
+            }
+          ],
+          "computed": true
+        },
+        {
+          "name": "interfaces",
+          "type": "list",
+          "elemAttrs": [
+            {
+              "name": "hardware_address",
+              "apiName": "hardware-address",
+              "type": "string",
+              "computed": true,
+              "description": "The MAC address of the interface"
+            },
+            {
+              "name": "hwaddr",
+              "type": "string",
+              "computed": true,
+              "description": "The MAC address of the interface"
+            },
+            {
+              "name": "inet",
+              "type": "string",
+              "computed": true,
+              "description": "The IPv4 address of the interface"
+            },
+            {
+              "name": "inet6",
+              "type": "string",
+              "computed": true,
+              "description": "The IPv6 address of the interface"
+            },
+            {
+              "name": "ip_addresses",
+              "apiName": "ip-addresses",
+              "type": "list",
+              "elemAttrs": [
+                {
+                  "name": "ip_address",
+                  "apiName": "ip-address",
+                  "type": "string",
+                  "computed": true,
+                  "description": "IP-Address"
+                },
+                {
+                  "name": "ip_address_type",
+                  "apiName": "ip-address-type",
+                  "type": "string",
+                  "computed": true,
+                  "description": "IP-Family"
+                },
+                {
+                  "name": "prefix",
+                  "type": "int64",
+                  "computed": true,
+                  "description": "IP-Prefix"
+                }
+              ],
+              "computed": true,
+              "description": "The addresses of the interface"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "computed": true,
+              "description": "The name of the interface"
+            }
+          ],
+          "computed": true,
+          "description": "Returned by /nodes/{node}/lxc/{vmid}/interfaces."
+        },
+        {
+          "name": "pending",
+          "type": "list",
+          "elemAttrs": [
+            {
+              "name": "delete",
+              "type": "int64",
+              "computed": true,
+              "description": "Indicates a pending delete request if present and not 0."
+            },
+            {
+              "name": "key",
+              "type": "string",
+              "computed": true,
+              "description": "Configuration option name."
+            },
+            {
+              "name": "pending",
+              "type": "string",
+              "computed": true,
+              "description": "Pending value."
+            },
+            {
+              "name": "value",
+              "type": "string",
+              "computed": true,
+              "description": "Current value."
+            }
+          ],
+          "computed": true,
+          "description": "Returned by /nodes/{node}/lxc/{vmid}/pending."
+        },
+        {
+          "name": "snapname",
+          "type": "string",
+          "optional": true,
+          "description": "The name of the snapshot."
+        },
+        {
+          "name": "snapshot",
+          "type": "string",
+          "optional": true,
+          "description": "Fetch config values from given snapshot."
+        },
+        {
+          "name": "status",
+          "type": "list",
+          "elemAttrs": [
+            {
+              "name": "subdir",
+              "type": "string",
+              "computed": true
+            }
+          ],
+          "computed": true,
+          "description": "Returned by /nodes/{node}/lxc/{vmid}/status."
         }
       ]
     },
@@ -7135,611 +7740,6 @@
           "optional": true,
           "description": "Makes the container run as unprivileged user. For creation, the default is 1. For restore, the default is the value from the backup. (Should not be modified manually.)",
           "default": 0
-        }
-      ]
-    },
-    {
-      "name": "pve_container",
-      "kind": "data_source",
-      "phase": 4,
-      "summary": "One container: configuration, pending changes, capabilities, runtime status, and guest network interfaces.",
-      "idAttrs": [
-        "node",
-        "vmid"
-      ],
-      "reads": [
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/config",
-          "params": [
-            "node",
-            "snapshot",
-            "vmid"
-          ],
-          "resultName": "config"
-        },
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/pending",
-          "params": [
-            "node",
-            "vmid"
-          ],
-          "resultName": "pending"
-        },
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/feature",
-          "params": [
-            "feature",
-            "node",
-            "snapname",
-            "vmid"
-          ],
-          "resultName": "feature_support",
-          "skipIfMissing": [
-            "feature"
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/status",
-          "params": [
-            "node",
-            "vmid"
-          ],
-          "resultName": "status"
-        },
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/status/current",
-          "params": [
-            "node",
-            "vmid"
-          ],
-          "resultName": "current"
-        },
-        {
-          "method": "GET",
-          "path": "/nodes/{node}/lxc/{vmid}/interfaces",
-          "params": [
-            "node",
-            "vmid"
-          ],
-          "resultName": "interfaces"
-        }
-      ],
-      "attributes": [
-        {
-          "name": "node",
-          "pathParam": "node",
-          "type": "string",
-          "required": true,
-          "description": "The cluster node name."
-        },
-        {
-          "name": "vmid",
-          "pathParam": "vmid",
-          "type": "int64",
-          "required": true,
-          "description": "The (unique) ID of the VM."
-        },
-        {
-          "name": "config",
-          "type": "object",
-          "attrs": [
-            {
-              "name": "arch",
-              "type": "string",
-              "computed": true,
-              "description": "OS architecture type."
-            },
-            {
-              "name": "cmode",
-              "type": "string",
-              "computed": true,
-              "description": "Console mode. By default, the console command tries to open a connection to one of the available tty devices. By setting cmode to 'console' it tries to attach to /dev/console instead. If you set cmode to 'shell', it simply invokes a shell inside the container (no login)."
-            },
-            {
-              "name": "console",
-              "type": "bool",
-              "computed": true,
-              "description": "Attach a console device (/dev/console) to the container."
-            },
-            {
-              "name": "cores",
-              "type": "int64",
-              "computed": true,
-              "description": "The number of cores assigned to the container. A container can use all available cores by default."
-            },
-            {
-              "name": "cpulimit",
-              "type": "float64",
-              "computed": true,
-              "description": "Limit of CPU usage.\n\nNOTE: If the computer has 2 CPUs, it has a total of '2' CPU time. Value '0' indicates no CPU limit."
-            },
-            {
-              "name": "cpuunits",
-              "type": "int64",
-              "computed": true,
-              "description": "CPU weight for a container, will be clamped to [1, 10000] in cgroup v2."
-            },
-            {
-              "name": "debug",
-              "type": "bool",
-              "computed": true,
-              "description": "Try to be more verbose. For now this only enables debug log-level on start."
-            },
-            {
-              "name": "description",
-              "type": "string",
-              "computed": true,
-              "description": "Description for the Container. Shown in the web-interface CT's summary. This is saved as comment inside the configuration file."
-            },
-            {
-              "name": "dev_n_",
-              "apiName": "dev[n]",
-              "type": "string",
-              "computed": true,
-              "description": "Device to pass through to the container"
-            },
-            {
-              "name": "digest",
-              "type": "string",
-              "computed": true,
-              "description": "SHA1 digest of configuration file. This can be used to prevent concurrent modifications."
-            },
-            {
-              "name": "entrypoint",
-              "type": "string",
-              "computed": true,
-              "description": "Command to run as init, optionally with arguments; may start with an absolute path, relative path, or a binary in $PATH."
-            },
-            {
-              "name": "env",
-              "type": "string",
-              "computed": true,
-              "description": "The container runtime environment as NUL-separated list. Replaces any lxc.environment.runtime entries in the config."
-            },
-            {
-              "name": "features",
-              "type": "string",
-              "computed": true,
-              "description": "Allow containers access to advanced features."
-            },
-            {
-              "name": "hookscript",
-              "type": "string",
-              "computed": true,
-              "description": "Script that will be executed during various steps in the containers lifetime."
-            },
-            {
-              "name": "hostname",
-              "type": "string",
-              "computed": true,
-              "description": "Set a host name for the container."
-            },
-            {
-              "name": "lock",
-              "type": "string",
-              "computed": true,
-              "description": "Lock/unlock the container."
-            },
-            {
-              "name": "lxc",
-              "type": "list",
-              "elemType": "string",
-              "computed": true,
-              "description": "Array of lxc low-level configurations ([[key1, value1], [key2, value2] ...])."
-            },
-            {
-              "name": "memory",
-              "type": "int64",
-              "computed": true,
-              "description": "Amount of RAM for the container in MB."
-            },
-            {
-              "name": "mp_n_",
-              "apiName": "mp[n]",
-              "type": "string",
-              "computed": true,
-              "description": "Use volume as container mount point. Use the special syntax STORAGE_ID:SIZE_IN_GiB to allocate a new volume."
-            },
-            {
-              "name": "nameserver",
-              "type": "string",
-              "computed": true,
-              "description": "Sets DNS server IP address for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver."
-            },
-            {
-              "name": "net_n_",
-              "apiName": "net[n]",
-              "type": "string",
-              "computed": true,
-              "description": "Specifies network interfaces for the container."
-            },
-            {
-              "name": "onboot",
-              "type": "bool",
-              "computed": true,
-              "description": "Specifies whether a container will be started during system bootup."
-            },
-            {
-              "name": "ostype",
-              "type": "string",
-              "computed": true,
-              "description": "OS type. This is used to setup configuration inside the container, and corresponds to lxc setup scripts in /usr/share/lxc/config/<ostype>.common.conf. Value 'unmanaged' can be used to skip and OS specific setup."
-            },
-            {
-              "name": "protection",
-              "type": "bool",
-              "computed": true,
-              "description": "Sets the protection flag of the container. This will prevent the CT or CT's disk remove/update operation."
-            },
-            {
-              "name": "rootfs",
-              "type": "string",
-              "computed": true,
-              "description": "Use volume as container root."
-            },
-            {
-              "name": "searchdomain",
-              "type": "string",
-              "computed": true,
-              "description": "Sets DNS search domains for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver."
-            },
-            {
-              "name": "startup",
-              "type": "string",
-              "computed": true,
-              "description": "Startup and shutdown behavior. Order is a non-negative number defining the general startup order. Shutdown in done with reverse ordering. Additionally you can set the 'up' or 'down' delay in seconds, which specifies a delay to wait before the next VM is started or stopped."
-            },
-            {
-              "name": "swap",
-              "type": "int64",
-              "computed": true,
-              "description": "Amount of SWAP for the container in MB."
-            },
-            {
-              "name": "tags",
-              "type": "string",
-              "computed": true,
-              "description": "Tags of the Container. This is only meta information."
-            },
-            {
-              "name": "template",
-              "type": "bool",
-              "computed": true,
-              "description": "Enable/disable Template."
-            },
-            {
-              "name": "timezone",
-              "type": "string",
-              "computed": true,
-              "description": "Time zone to use in the container. If option isn't set, then nothing will be done. Can be set to 'host' to match the host time zone, or an arbitrary time zone option from /usr/share/zoneinfo/zone.tab"
-            },
-            {
-              "name": "tty",
-              "type": "int64",
-              "computed": true,
-              "description": "Specify the number of tty available to the container"
-            },
-            {
-              "name": "unprivileged",
-              "type": "bool",
-              "computed": true,
-              "description": "Makes the container run as unprivileged user. For creation, the default is 1. For restore, the default is the value from the backup. (Should not be modified manually.)"
-            },
-            {
-              "name": "unused_n_",
-              "apiName": "unused[n]",
-              "type": "string",
-              "computed": true,
-              "description": "Reference to unused volumes. This is used internally, and should not be modified manually."
-            }
-          ],
-          "computed": true
-        },
-        {
-          "name": "current",
-          "type": "object",
-          "attrs": [
-            {
-              "name": "cpu",
-              "type": "float64",
-              "computed": true,
-              "description": "Current CPU usage."
-            },
-            {
-              "name": "cpus",
-              "type": "float64",
-              "computed": true,
-              "description": "Maximum usable CPUs."
-            },
-            {
-              "name": "disk",
-              "type": "int64",
-              "computed": true,
-              "description": "Root disk image space-usage in bytes."
-            },
-            {
-              "name": "diskread",
-              "type": "int64",
-              "computed": true,
-              "description": "The amount of bytes the guest read from it's block devices since the guest was started. (Note: This info is not available for all storage types.)"
-            },
-            {
-              "name": "diskwrite",
-              "type": "int64",
-              "computed": true,
-              "description": "The amount of bytes the guest wrote from it's block devices since the guest was started. (Note: This info is not available for all storage types.)"
-            },
-            {
-              "name": "ha",
-              "type": "object",
-              "computed": true,
-              "description": "HA manager service status."
-            },
-            {
-              "name": "lock",
-              "type": "string",
-              "computed": true,
-              "description": "The current config lock, if any."
-            },
-            {
-              "name": "maxdisk",
-              "type": "int64",
-              "computed": true,
-              "description": "Root disk image size in bytes."
-            },
-            {
-              "name": "maxmem",
-              "type": "int64",
-              "computed": true,
-              "description": "Maximum memory in bytes."
-            },
-            {
-              "name": "maxswap",
-              "type": "int64",
-              "computed": true,
-              "description": "Maximum SWAP memory in bytes."
-            },
-            {
-              "name": "mem",
-              "type": "int64",
-              "computed": true,
-              "description": "Currently used memory in bytes."
-            },
-            {
-              "name": "name",
-              "type": "string",
-              "computed": true,
-              "description": "Container name."
-            },
-            {
-              "name": "netin",
-              "type": "int64",
-              "computed": true,
-              "description": "The amount of traffic in bytes that was sent to the guest over the network since it was started."
-            },
-            {
-              "name": "netout",
-              "type": "int64",
-              "computed": true,
-              "description": "The amount of traffic in bytes that was sent from the guest over the network since it was started."
-            },
-            {
-              "name": "pressurecpusome",
-              "type": "float64",
-              "computed": true,
-              "description": "CPU Some pressure stall average over the last 10 seconds."
-            },
-            {
-              "name": "pressureiofull",
-              "type": "float64",
-              "computed": true,
-              "description": "IO Full pressure stall average over the last 10 seconds."
-            },
-            {
-              "name": "pressureiosome",
-              "type": "float64",
-              "computed": true,
-              "description": "IO Some pressure stall average over the last 10 seconds."
-            },
-            {
-              "name": "pressurememoryfull",
-              "type": "float64",
-              "computed": true,
-              "description": "Memory Full pressure stall average over the last 10 seconds."
-            },
-            {
-              "name": "pressurememorysome",
-              "type": "float64",
-              "computed": true,
-              "description": "Memory Some pressure stall average over the last 10 seconds."
-            },
-            {
-              "name": "status",
-              "type": "string",
-              "computed": true,
-              "description": "LXC Container status."
-            },
-            {
-              "name": "tags",
-              "type": "string",
-              "computed": true,
-              "description": "The current configured tags, if any."
-            },
-            {
-              "name": "template",
-              "type": "bool",
-              "computed": true,
-              "description": "Determines if the guest is a template."
-            },
-            {
-              "name": "uptime",
-              "type": "int64",
-              "computed": true,
-              "description": "Uptime in seconds."
-            },
-            {
-              "name": "vmid",
-              "type": "int64",
-              "computed": true,
-              "description": "The (unique) ID of the VM."
-            }
-          ],
-          "computed": true,
-          "description": "Get current values (instead of pending values)."
-        },
-        {
-          "name": "feature",
-          "type": "string",
-          "optional": true,
-          "description": "Feature to check (e.g. snapshot, clone, copy); the feature read is skipped when unset.",
-          "enum": [
-            "snapshot",
-            "clone",
-            "copy"
-          ]
-        },
-        {
-          "name": "feature_support",
-          "type": "object",
-          "attrs": [
-            {
-              "name": "hasfeature",
-              "apiName": "hasFeature",
-              "type": "bool",
-              "computed": true
-            }
-          ],
-          "computed": true
-        },
-        {
-          "name": "interfaces",
-          "type": "list",
-          "elemAttrs": [
-            {
-              "name": "hardware_address",
-              "apiName": "hardware-address",
-              "type": "string",
-              "computed": true,
-              "description": "The MAC address of the interface"
-            },
-            {
-              "name": "hwaddr",
-              "type": "string",
-              "computed": true,
-              "description": "The MAC address of the interface"
-            },
-            {
-              "name": "inet",
-              "type": "string",
-              "computed": true,
-              "description": "The IPv4 address of the interface"
-            },
-            {
-              "name": "inet6",
-              "type": "string",
-              "computed": true,
-              "description": "The IPv6 address of the interface"
-            },
-            {
-              "name": "ip_addresses",
-              "apiName": "ip-addresses",
-              "type": "list",
-              "elemAttrs": [
-                {
-                  "name": "ip_address",
-                  "apiName": "ip-address",
-                  "type": "string",
-                  "computed": true,
-                  "description": "IP-Address"
-                },
-                {
-                  "name": "ip_address_type",
-                  "apiName": "ip-address-type",
-                  "type": "string",
-                  "computed": true,
-                  "description": "IP-Family"
-                },
-                {
-                  "name": "prefix",
-                  "type": "int64",
-                  "computed": true,
-                  "description": "IP-Prefix"
-                }
-              ],
-              "computed": true,
-              "description": "The addresses of the interface"
-            },
-            {
-              "name": "name",
-              "type": "string",
-              "computed": true,
-              "description": "The name of the interface"
-            }
-          ],
-          "computed": true,
-          "description": "Returned by /nodes/{node}/lxc/{vmid}/interfaces."
-        },
-        {
-          "name": "pending",
-          "type": "list",
-          "elemAttrs": [
-            {
-              "name": "delete",
-              "type": "int64",
-              "computed": true,
-              "description": "Indicates a pending delete request if present and not 0."
-            },
-            {
-              "name": "key",
-              "type": "string",
-              "computed": true,
-              "description": "Configuration option name."
-            },
-            {
-              "name": "pending",
-              "type": "string",
-              "computed": true,
-              "description": "Pending value."
-            },
-            {
-              "name": "value",
-              "type": "string",
-              "computed": true,
-              "description": "Current value."
-            }
-          ],
-          "computed": true,
-          "description": "Returned by /nodes/{node}/lxc/{vmid}/pending."
-        },
-        {
-          "name": "snapname",
-          "type": "string",
-          "optional": true,
-          "description": "The name of the snapshot."
-        },
-        {
-          "name": "snapshot",
-          "type": "string",
-          "optional": true,
-          "description": "Fetch config values from given snapshot."
-        },
-        {
-          "name": "status",
-          "type": "list",
-          "elemAttrs": [
-            {
-              "name": "subdir",
-              "type": "string",
-              "computed": true
-            }
-          ],
-          "computed": true,
-          "description": "Returned by /nodes/{node}/lxc/{vmid}/status."
         }
       ]
     },
@@ -15860,7 +15860,7 @@
       "name": "pve_node_network",
       "kind": "resource",
       "phase": 6,
-      "summary": "Node network interface. Models PVE's staging semantics: create, update, and delete only stage the change; the apply endpoint (PUT /network) commits it.",
+      "summary": "Node network interface. Create, update, and delete record a pending change on the node; PVE activates pending changes only when they are applied. Commit them once per node with the pve_node_network_apply action, or set apply_on_change to apply after this interface's create or update. Destroy never applies; pve_node_network_rollback discards pending changes.",
       "idAttrs": [
         "node",
         "iface"
@@ -15907,7 +15907,8 @@
             "node"
           ],
           "waitTask": true
-        }
+        },
+        "applyIf": "apply_on_change"
       },
       "read": {
         "method": "GET",
@@ -15961,6 +15962,7 @@
           ],
           "waitTask": true
         },
+        "applyIf": "apply_on_change",
         "deleteParam": true
       },
       "delete": {
@@ -15970,15 +15972,7 @@
           "iface",
           "node"
         ],
-        "waitTask": true,
-        "apply": {
-          "method": "PUT",
-          "path": "/nodes/{node}/network",
-          "params": [
-            "node"
-          ],
-          "waitTask": true
-        }
+        "waitTask": true
       },
       "attributes": [
         {
@@ -16027,6 +16021,12 @@
           "type": "string",
           "optional": true,
           "description": "IP address."
+        },
+        {
+          "name": "apply_on_change",
+          "type": "bool",
+          "optional": true,
+          "description": "Apply the node's pending network changes (PUT /nodes/{node}/network) after this interface is created or updated. This commits every pending change on the node, not only this interface's. Unset or false: the change stays pending until the pve_node_network_apply action runs. Destroy never applies. Provider-side setting; never sent to PVE."
         },
         {
           "name": "autostart",
@@ -16225,6 +16225,69 @@
           "type": "string",
           "optional": true,
           "description": "Specify the raw interface for the vlan interface."
+        }
+      ]
+    },
+    {
+      "name": "pve_node_network_apply",
+      "kind": "action",
+      "phase": 6,
+      "summary": "Apply all pending network changes on a node and reload its network configuration (PUT /nodes/{node}/network).",
+      "idAttrs": [
+        "node"
+      ],
+      "invoke": {
+        "method": "PUT",
+        "path": "/nodes/{node}/network",
+        "params": [
+          "node",
+          "regenerate_frr"
+        ],
+        "waitTask": true
+      },
+      "attributes": [
+        {
+          "name": "node",
+          "pathParam": "node",
+          "type": "string",
+          "required": true,
+          "forceNew": true,
+          "description": "The cluster node name."
+        },
+        {
+          "name": "regenerate_frr",
+          "apiName": "regenerate-frr",
+          "type": "bool",
+          "optional": true,
+          "description": "Whether FRR config generation should get skipped or not.",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "name": "pve_node_network_rollback",
+      "kind": "action",
+      "phase": 6,
+      "summary": "Discard all pending network changes on a node (DELETE /nodes/{node}/network).",
+      "idAttrs": [
+        "node"
+      ],
+      "invoke": {
+        "method": "DELETE",
+        "path": "/nodes/{node}/network",
+        "params": [
+          "node"
+        ],
+        "waitTask": true
+      },
+      "attributes": [
+        {
+          "name": "node",
+          "pathParam": "node",
+          "type": "string",
+          "required": true,
+          "forceNew": true,
+          "description": "The cluster node name."
         }
       ]
     },

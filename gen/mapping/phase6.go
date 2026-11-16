@@ -8,15 +8,16 @@ package mapping
 var Phase6 = []Type{
 	{
 		Type: "pve_node_network", Kind: "resource", Phase: 6,
-		Summary: "Node network interface. Models PVE's staging semantics: create, update, and delete only stage the change; the apply endpoint (PUT /network) commits it.",
+		Summary: "Node network interface. Create, update, and delete record a pending change on the node; PVE activates pending changes only when they are applied. Commit them once per node with the pve_node_network_apply action, or set apply_on_change to apply after this interface's create or update. Destroy never applies; pve_node_network_rollback discards pending changes.",
 		IDAttrs: []string{"node", "iface"},
-		// Every mutation is staged; the chained Apply op commits it.
+		// Mutations record pending changes; Apply commits them only when apply_on_change is true.
 		Create: &Endpoint{
 			Path: "/nodes/{node}/network",
 			Apply: &Endpoint{
 				Path:   "/nodes/{node}/network",
 				Method: "PUT",
 			},
+			ApplyIf: "apply_on_change",
 		},
 		Read: &Endpoint{Path: "/nodes/{node}/network/{iface}"},
 		Update: &Endpoint{
@@ -25,15 +26,11 @@ var Phase6 = []Type{
 				Path:   "/nodes/{node}/network",
 				Method: "PUT",
 			},
+			ApplyIf: "apply_on_change",
 		},
-		Delete: &Endpoint{
-			Path: "/nodes/{node}/network/{iface}",
-			Apply: &Endpoint{
-				Path:   "/nodes/{node}/network",
-				Method: "PUT",
-			},
-		},
+		Delete: &Endpoint{Path: "/nodes/{node}/network/{iface}"},
 		Attrs: []AttrRule{
+			{Name: "apply_on_change", Type: "bool", Optional: BoolPtr(true), Add: true, Description: "Apply the node's pending network changes (PUT /nodes/{node}/network) after this interface is created or updated. This commits every pending change on the node, not only this interface's. Unset or false: the change stays pending until the pve_node_network_apply action runs. Destroy never applies. Provider-side setting; never sent to PVE."},
 			{Name: "iface", ForceNew: true},
 			// PVE rewrites method/method6 on every create and update from whether an
 			// address is sent (cidr maps to address): plan them from config.
@@ -48,6 +45,16 @@ var Phase6 = []Type{
 				PlanFrom:    &PlanFrom{Attrs: []string{"cidr6", "address6"}, IfSet: "static", IfUnset: "manual"},
 			},
 		},
+	},
+	{
+		Type: "pve_node_network_apply", Kind: "action", Phase: 6,
+		Summary: "Apply all pending network changes on a node and reload its network configuration (PUT /nodes/{node}/network).",
+		Invoke:  &Endpoint{Path: "/nodes/{node}/network", Method: "PUT"},
+	},
+	{
+		Type: "pve_node_network_rollback", Kind: "action", Phase: 6,
+		Summary: "Discard all pending network changes on a node (DELETE /nodes/{node}/network).",
+		Invoke:  &Endpoint{Path: "/nodes/{node}/network", Method: "DELETE"},
 	},
 	{
 		Type: "pve_node_dns", Kind: "resource", Phase: 6,

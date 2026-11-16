@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- **Breaking:** `pve_node_network` no longer applies (`PUT /nodes/{node}/network`) after create/update/delete; changes stay pending. Commit them with the new `pve_node_network_apply` action (one reload per node) or set the new `apply_on_change = true` to apply after that interface's create/update. Destroy never applies.
+- New action `pve_node_network_rollback` discards a node's pending network changes. New guide "Node networking".
+
 ## 0.2.2
 
 - `pve_node_network` plans `method` (and new computed `method6`) as a known value derived from config (`static` when `cidr`/`address` [`cidr6`/`address6`] is set, `manual` otherwise; unchanged config keeps the state value) instead of `(known after apply)`. Generic descriptor rule `planFrom`.

@@ -22,8 +22,8 @@ import (
 
 // genericResource implements every generated resource from a TypeDescriptor:
 // standard collection CRUD, singletons (GET/PUT), PUT-created ACLs with
-// filtered list reads, state-only deletes, staged applies, and clone-at-
-// create — all selected by descriptor data.
+// filtered list reads, state-only deletes, opt-in apply of pending
+// changes, and clone-at-create — all selected by descriptor data.
 type genericResource struct {
 	engineBase
 }
@@ -63,37 +63,10 @@ func (r *genericResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	payload, waited, err := r.mutateCreate(ctx, values)
-	if err != nil {
-		opError(&resp.Diagnostics, "Creating", r.desc, describeValues(r.desc, values), err)
+	if diags := r.apply(ctx, applyCreate, values, nil); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	r.fillAllocatedID(payload, waited, values)
-	if s, ok := payloadString(payload); ok && r.desc.Create != nil && r.desc.Create.ResultAttr != "" {
-		if a, found := r.desc.Attr(r.desc.Create.ResultAttr); found {
-			values[a.Name] = types.StringValue(s)
-		}
-	}
-
-	if r.desc.Read != nil {
-		if err := r.readBack(ctx, values); err != nil {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("Error Reading %s After Create", r.desc.Name),
-				fmt.Sprintf("reading %s (%s): %s", r.desc.Name, describeValues(r.desc, values), err),
-			)
-			return
-		}
-	}
-
-	id, err := joinID(r.desc, values)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Error Creating %s", r.desc.Name), err.Error())
-		return
-	}
-	if id == "" {
-		id = r.desc.Name // singletons: one instance per type
-	}
-	values["id"] = types.StringValue(id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, objectValue(r.desc, values))...)
 }
 
@@ -136,6 +109,20 @@ func (r *genericResource) mutateCreate(ctx context.Context, values map[string]at
 		return executeOp(ctx, r.client, c.Op, path, params, nil)
 	}
 	return runOp(ctx, r.client, d, d.Create, values)
+}
+
+// applyPending commits the node's pending changes after a create or update (node network): it runs the mutation op's chained Apply endpoint when the op's ApplyIf attribute is true. No-op otherwise.
+func (r *genericResource) applyPending(ctx context.Context, op *Op, values map[string]attr.Value) error {
+	if op == nil || op.Apply == nil {
+		return nil
+	}
+	if b, ok := values[op.ApplyIf].(types.Bool); !ok || b.IsNull() || b.IsUnknown() || !b.ValueBool() {
+		return nil
+	}
+	if _, _, err := runOp(ctx, r.client, r.desc, op.Apply, values); err != nil {
+		return fmt.Errorf("applying pending changes for %s (%s): %w", r.desc.Name, describeID(r.desc, values), err)
+	}
+	return nil
 }
 
 func (r *genericResource) readBack(ctx context.Context, values map[string]attr.Value) error {
@@ -227,73 +214,14 @@ func (r *genericResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Client Not Configured", err.Error())
 		return
 	}
-	// Carry the id from state: plan id is (correctly) unknown until set.
 	state := stateValues(ctx, req.State, &resp.Diagnostics)
-	if state != nil {
-		if id, ok := state["id"]; ok {
-			values["id"] = id
-		}
-		// Computed path identifiers (e.g. an SDN subnet's internal id) are
-		// unknown in the plan; the item endpoints need the state value.
-		for _, a := range r.desc.Attributes {
-			if a.PathParam == "" || !a.Computed || a.Optional {
-				continue
-			}
-			if cur, ok := values[a.Name]; !ok || cur == nil || cur.IsUnknown() {
-				if sv, ok := state[a.Name]; ok {
-					values[a.Name] = sv
-				}
-			}
-		}
-	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if err := createOnlyChange(r.desc, values, state); err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Error Updating %s", r.desc.Name), err.Error())
+	if diags := r.apply(ctx, applyUpdate, values, state); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	if r.desc.Update != nil {
-		var extras []url.Values
-		if r.desc.Update.DeleteParam {
-			if removed := removedParams(r.desc, r.desc.Update, values, state); len(removed) > 0 {
-				extras = append(extras, url.Values{"delete": []string{strings.Join(removed, ",")}})
-			}
-		}
-		payload, _, err := runOp(ctx, r.client, r.desc, r.desc.Update, values, extras...)
-		if err != nil {
-			opError(&resp.Diagnostics, "Updating", r.desc, describeID(r.desc, values), err)
-			return
-		}
-		captureResultAttr(r.desc.Update, payload, values)
-		if r.desc.Update.Apply != nil {
-			if _, _, err := runOp(ctx, r.client, r.desc, r.desc.Update.Apply, values); err != nil {
-				resp.Diagnostics.AddError(
-					fmt.Sprintf("Error Applying %s Changes", r.desc.Name),
-					fmt.Sprintf("applying pending changes for %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-				)
-				return
-			}
-		}
-	}
-	if r.desc.Read != nil {
-		if err := r.readBack(ctx, values); err != nil && err != errVanished && !pveclient.IsNotFound(err) {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("Error Reading %s After Update", r.desc.Name),
-				fmt.Sprintf("reading %s (%s): %s", r.desc.Name, describeID(r.desc, values), err),
-			)
-			return
-		}
-	}
-	id, err := joinID(r.desc, values)
-	if err != nil {
-		resp.Diagnostics.AddError(fmt.Sprintf("Error Updating %s", r.desc.Name), err.Error())
-		return
-	}
-	if id == "" {
-		id = r.desc.Name // singletons: one instance per type
-	}
-	values["id"] = types.StringValue(id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, objectValue(r.desc, values))...)
 }
 
@@ -331,6 +259,7 @@ func (r *genericResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 	if _, _, err := runOp(ctx, r.client, r.desc, r.desc.Delete, values); err != nil && !pveclient.IsNotFound(err) {
 		opError(&resp.Diagnostics, "Deleting", r.desc, describeID(r.desc, values), err)
+		return
 	}
 }
 

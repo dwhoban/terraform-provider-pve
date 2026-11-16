@@ -198,9 +198,11 @@ type Op struct {
 	// whose fields match these attributes is the read result (e.g. ACLs).
 	Filter []FilterRule `json:"filter,omitempty"`
 
-	// Apply is a staged-apply endpoint (node network configuration):
-	// invoked after the mutation, with no parameters.
-	Apply *Op `json:"apply,omitempty"`
+	// Apply commits pending changes (node network): invoked after the
+	// mutation with no parameters, only when the ApplyIf attribute is a
+	// known true bool.
+	Apply   *Op    `json:"apply,omitempty"`
+	ApplyIf string `json:"applyIf,omitempty"`
 
 	// IDFromUPID names the attribute whose value the engine takes from the
 	// UPID's id component when the server allocated it (e.g. vmid on

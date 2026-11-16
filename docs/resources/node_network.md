@@ -3,12 +3,12 @@
 page_title: "pve_node_network Resource - pve"
 subcategory: ""
 description: |-
-  Node network interface. Models PVE's staging semantics: create, update, and delete only stage the change; the apply endpoint (PUT /network) commits it.
+  Node network interface. Create, update, and delete record a pending change on the node; PVE activates pending changes only when they are applied. Commit them once per node with the pve_node_network_apply action, or set apply_on_change to apply after this interface's create or update. Destroy never applies; pve_node_network_rollback discards pending changes.
 ---
 
 # pve_node_network (Resource)
 
-Node network interface. Models PVE's staging semantics: create, update, and delete only stage the change; the apply endpoint (PUT /network) commits it.
+Node network interface. Create, update, and delete record a pending change on the node; PVE activates pending changes only when they are applied. Commit them once per node with the pve_node_network_apply action, or set apply_on_change to apply after this interface's create or update. Destroy never applies; pve_node_network_rollback discards pending changes.
 
 ## Example Usage
 
@@ -33,6 +33,7 @@ resource "pve_node_network" "example" {
 
 - `address` (String) IP address.
 - `address6` (String) IP address.
+- `apply_on_change` (Boolean) Apply the node's pending network changes (PUT /nodes/{node}/network) after this interface is created or updated. This commits every pending change on the node, not only this interface's. Unset or false: the change stays pending until the pve_node_network_apply action runs. Destroy never applies. Provider-side setting; never sent to PVE.
 - `autostart` (Boolean) Automatically start interface on boot.
 - `bond_mode` (String) Bonding mode. One of: `balance-rr`, `active-backup`, `balance-xor`, `broadcast`, `802.3ad`, `balance-tlb`, `balance-alb`, `balance-slb`, `lacp-balance-slb`, `lacp-balance-tcp`.
 - `bond_primary` (String) Specify the primary interface for active-backup bond.

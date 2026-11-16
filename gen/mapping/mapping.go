@@ -117,8 +117,9 @@ type Endpoint struct {
 	// Filter selects one object from an array response: (field, attr) pairs.
 	Filter [][2]string
 
-	// Apply is a staged-apply endpoint invoked after this one.
-	Apply *Endpoint
+	// Apply is the endpoint that commits pending changes after this one; it runs only when the ApplyIf attribute is true.
+	Apply   *Endpoint
+	ApplyIf string // bool attribute gating Apply (required with Apply)
 
 	IDFromUPID  string // create: attribute filled from the UPID id component
 	ResultAttr  string // create: computed attribute receiving the raw string response

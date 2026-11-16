@@ -138,7 +138,7 @@ TF_ACC=1 PVE_API_URL=... PVE_API_TOKEN=... go test ./internal/provider/... -run 
 
 | Type | Kind | API surface |
 |---|---|---|
-| `pve_node_network` | resource | `/nodes/{node}/network` CRUD (`/{iface}`) + **apply** (`PUT /network`) — models PVE's staging semantics: Create/Delete stage, Update applies; drift read via `GET /network` |
+| `pve_node_network` | resource | `/nodes/{node}/network` CRUD (`/{iface}`) — mutations record pending changes; opt-in `apply_on_change` applies after create/update; actions `pve_node_network_apply` (`PUT /network`) and `pve_node_network_rollback` (`DELETE /network`) |
 | `pve_node_dns`, `pve_node_time`, `pve_node_hosts`, `pve_node_config` | singleton resources | `/dns`, `/time`, `/hosts`, `/config` |
 | `pve_node_disk_{lvm,lvmthin,zfs,directory}` | resources | `/disks/{kind}` CRUD |
 | actions `pve_node_disk_initgpt`, `pve_node_disk_wipe` | actions (destructive) | `/disks/initgpt`, `/disks/wipedisk` |

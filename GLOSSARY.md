@@ -14,3 +14,5 @@ Module vocabulary, named from the code's own usage.
 - **Block** — a Terraform nested block (`BlockSpec`) whose elements map onto slot-family slots, each slot's value a property string.
 - **Reconcile mode** — the merge policy `applyReadResponse`/`mergeObject`/`mergeBlock` fold a read response under: outside import mode (after-apply and managed refresh) null plain-Optional values stay null; import (and data-source reads) adopt server values wholesale.
 - **Transport** — the one `pveclient` request path (`do`/`doRaw` → `doRequest` → `handleResponse`, with single-flight `ensureTicket` for password auth) that every HTTP call goes through.
+- **Apply pipeline** — the one module that carries a managed resource's Create or Update from plan to final state: mutation, opt-in apply of pending changes, read-back, ID finalization; the verb's vanish policy (Create fails, Update tolerates) is declared there.
+- **Pending change** — a node network mutation PVE has recorded but not activated on the node; committed by the node network apply action or by a resource opted into applying on change, discarded by rollback. Avoid: staged change.

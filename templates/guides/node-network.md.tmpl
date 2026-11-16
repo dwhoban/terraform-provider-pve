@@ -1,0 +1,28 @@
+---
+page_title: "Node networking"
+subcategory: ""
+description: |-
+  Pending network changes, committing them per node with pve_node_network_apply, opting single interfaces into apply_on_change, and rolling back.
+---
+
+# Node networking
+
+## Pending changes
+
+PVE writes interface changes as pending: `pve_node_network` create, update, and delete edit the node's network configuration, but nothing is active until the changes are applied. An apply (`PUT /nodes/{node}/network`) commits every pending change on the node and reloads its network configuration. Reads return the pending configuration, so Terraform state stays consistent with what you declared before the apply runs.
+
+## One apply per node (recommended)
+
+Declare the `pve_node_network_apply` action once per node and trigger it after all interfaces of that node are written. Use one `terraform_data` per node whose `input` lists every `pve_node_network` of that node, so any change triggers a single apply after all interfaces are written.
+
+{{ tffile "examples/guides/node_network.tf" }}
+
+## Per-interface apply
+
+Set `apply_on_change = true` on a `pve_node_network` to apply after that interface's own create or update. Each changed interface causes one reload, and the apply commits other pending changes on the node too. `apply_on_change` is a provider-side setting and is never sent to PVE.
+
+## Removals and rollback
+
+Destroying a `pve_node_network` only records a pending removal, and Terraform has no destroy trigger. Commit it with `terraform apply -invoke=action.pve_node_network_apply.<label>` (Terraform ≥ 1.14, see the [`terraform apply` reference](https://developer.hashicorp.com/terraform/cli/commands/apply)).
+
+Discard pending changes with `terraform apply -invoke=action.pve_node_network_rollback.<label>` after declaring that action block.

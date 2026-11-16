@@ -353,7 +353,7 @@ func deriveOp(doc *pveapidoc.Document, m mapping.Type, e *mapping.Endpoint, defa
 		Method: method, ResultName: e.ResultName, IDFromUPID: e.IDFromUPID,
 		ResultAttr: e.ResultAttr, ResultField: e.ResultField,
 		ConstParams: e.ConstParams, SkipIfMissingParam: e.SkipIfMissingParam,
-		SkipIfMissing: e.SkipIfMissing,
+		SkipIfMissing: e.SkipIfMissing, ApplyIf: e.ApplyIf,
 	}
 	paths := map[string]string{}
 	if e.Path != "" {
