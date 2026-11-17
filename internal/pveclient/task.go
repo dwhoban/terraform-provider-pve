@@ -5,10 +5,21 @@ package pveclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+)
+
+// Task states reported by GET /nodes/{node}/tasks/{upid}/status; taskUnknown
+// marks a poll that failed transiently and is retried.
+const (
+	taskRunning = "running"
+	taskStopped = "stopped"
+	taskUnknown = "unknown"
 )
 
 // UPID identifies an asynchronous Proxmox task, of the form
@@ -84,8 +95,9 @@ type taskLogLine struct {
 }
 
 // WaitForTask polls the task identified by rawUPID until it stops or the
-// timeout expires. It returns nil when the task exited with status OK;
-// otherwise the error carries the task's exit status and the tail of its log.
+// timeout expires, using retry.StateChangeConf. It returns nil when the task
+// exited with status OK; otherwise the error carries the task's exit status
+// and the tail of its log.
 func (c *Client) WaitForTask(ctx context.Context, rawUPID string, opts TaskPollOptions) error {
 	upid, err := ParseUPID(rawUPID)
 	if err != nil {
@@ -104,51 +116,47 @@ func (c *Client) WaitForTask(ctx context.Context, rawUPID string, opts TaskPollO
 		tailLines = 10
 	}
 
-	deadline := time.Now().Add(timeout)
 	start := time.Now()
-	var last *TaskStatus
-	for {
-		st, err := c.getTaskStatus(ctx, upid)
-		if err != nil {
-			// A single transient poll failure (connection reset, one 5xx)
-			// must not abort a healthy long-running task; keep polling
-			// until the deadline or context cancellation.
-			if ctx.Err() != nil || time.Now().After(deadline) {
-				return err
-			}
-		} else {
-			last = st
-			if opts.OnWait != nil {
-				status := st.Status
-				if st == nil {
-					status = ""
+	conf := &retry.StateChangeConf{
+		Pending:      []string{taskRunning, taskUnknown},
+		Target:       []string{taskStopped},
+		PollInterval: interval,
+		Timeout:      timeout,
+		Refresh: func() (any, string, error) {
+			st, err := c.getTaskStatus(ctx, upid)
+			if err != nil {
+				// A single transient poll failure (connection reset, one 5xx)
+				// must not abort a healthy long-running task: report it as
+				// still pending and keep polling until the timeout or
+				// context cancellation.
+				if ctx.Err() != nil {
+					return nil, "", ctx.Err()
 				}
-				opts.OnWait(time.Since(start).Round(time.Second), status)
+				return &TaskStatus{Status: taskUnknown}, taskUnknown, nil
 			}
-		}
-		if st != nil && st.Status == "stopped" {
-			if st.ExitStatus == "OK" {
-				return nil
+			if opts.OnWait != nil {
+				opts.OnWait(time.Since(start).Round(time.Second), st.Status)
 			}
-			tail, tailErr := c.getTaskLogTail(ctx, upid, tailLines)
-			if tailErr != nil && tail == "" {
-				return fmt.Errorf("task %s (%s %s) failed: %s", upid.raw, upid.Type, upid.ID, st.ExitStatus)
-			}
-			return fmt.Errorf("task %s (%s %s) failed: %s\ntask log tail:\n%s", upid.raw, upid.Type, upid.ID, st.ExitStatus, tail)
-		}
-		if time.Now().After(deadline) {
-			lastStatus := "unknown"
-			if last != nil {
-				lastStatus = last.Status
-			}
-			return fmt.Errorf("timed out after %s waiting for task %s (%s %s): last status %q", timeout, upid.raw, upid.Type, upid.ID, lastStatus)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(interval):
-		}
+			return st, st.Status, nil
+		},
 	}
+	raw, err := conf.WaitForStateContext(ctx)
+	if err != nil {
+		var timeoutErr *retry.TimeoutError
+		if errors.As(err, &timeoutErr) {
+			return fmt.Errorf("timed out after %s waiting for task %s (%s %s): last status %q", timeout, upid.raw, upid.Type, upid.ID, timeoutErr.LastState)
+		}
+		return err
+	}
+	st, ok := raw.(*TaskStatus)
+	if !ok || st.ExitStatus == "OK" {
+		return nil
+	}
+	tail, tailErr := c.getTaskLogTail(ctx, upid, tailLines)
+	if tailErr != nil && tail == "" {
+		return fmt.Errorf("task %s (%s %s) failed: %s", upid.raw, upid.Type, upid.ID, st.ExitStatus)
+	}
+	return fmt.Errorf("task %s (%s %s) failed: %s\ntask log tail:\n%s", upid.raw, upid.Type, upid.ID, st.ExitStatus, tail)
 }
 
 func (c *Client) getTaskStatus(ctx context.Context, upid UPID) (*TaskStatus, error) {
