@@ -72,8 +72,8 @@ func TestApplyVanishedReadBackPolicy(t *testing.T) {
 	if diags := r.apply(ctx, applyUpdate, updateValues, state); diags.HasError() {
 		t.Fatalf("Update with a vanished read-back failed: %v", diags)
 	}
-	if got := updateValues["id"]; got == nil || got.(types.String).ValueString() != "node1/101" {
-		t.Fatalf("Update id = %v, want node1/101", got)
+	if got, ok := updateValues["id"].(types.String); !ok || got.ValueString() != "node1/101" {
+		t.Fatalf("Update id = %v, want node1/101", updateValues["id"])
 	}
 	if name := f.widgets["101"]["name"]; name != "beta" {
 		t.Fatalf("widget name = %v, want beta (the PUT must still happen)", name)

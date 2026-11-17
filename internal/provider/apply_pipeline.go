@@ -88,7 +88,7 @@ func (r *genericResource) apply(ctx context.Context, v applyVerb, values, state 
 	}
 
 	if d.Read != nil {
-		if err := r.readBack(ctx, values); err != nil && !(v.tolerateVanished && (err == errVanished || pveclient.IsNotFound(err))) {
+		if err := r.readBack(ctx, values); err != nil && (!v.tolerateVanished || (err != errVanished && !pveclient.IsNotFound(err))) {
 			diags.AddError(
 				fmt.Sprintf("Error Reading %s After %s", d.Name, v.noun),
 				fmt.Sprintf("reading %s (%s): %s", d.Name, v.ident(d, values), err),
