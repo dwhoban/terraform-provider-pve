@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Fixes the lint failures that blocked the 0.3.0 release build; no behavior change from 0.3.0.
+
 ## 0.3.0
 
 - **Breaking:** `pve_node_network` no longer applies (`PUT /nodes/{node}/network`) after create/update/delete; changes stay pending. Commit them with the new `pve_node_network_apply` action (one reload per node) or set the new `apply_on_change = true` to apply after that interface's create/update. Destroy never applies.
